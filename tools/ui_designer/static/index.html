@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>jy_app 界面设计器</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">界面设计器</div>
+    <select id="fileSelect" title="界面文件"></select>
+    <select id="modeSelect" title="模式"></select>
+    <select id="localeSelect" title="语言"></select>
+    <button id="reloadBtn">重载</button>
+    <button id="saveBtn">保存</button>
+    <button id="refreshPreviewBtn">预览</button>
+    <label class="topCheck"><input id="autoPreviewInput" type="checkbox" checked> 自动</label>
+    <span id="statusText"></span>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar">
+      <section>
+        <h2>控件</h2>
+        <div class="palette">
+          <button draggable="true" data-widget="container">容器</button>
+          <button draggable="true" data-widget="label">文本</button>
+          <button draggable="true" data-widget="img">图片</button>
+          <button draggable="true" data-widget="button">按钮</button>
+          <button draggable="true" data-widget="roller">滚轮</button>
+          <button draggable="true" data-widget="paged_text">分页文本</button>
+          <button draggable="true" data-widget="overlay">覆盖层</button>
+        </div>
+      </section>
+      <section>
+        <h2>节点</h2>
+        <div class="nodeActions">
+          <button id="duplicateBtn">复制</button>
+          <button id="deleteBtn">删除</button>
+          <button id="moveUpBtn">上移</button>
+          <button id="moveDownBtn">下移</button>
+        </div>
+      </section>
+      <section>
+        <h2>层级</h2>
+        <div id="tree"></div>
+      </section>
+    </aside>
+
+    <section class="stageColumn">
+      <div class="stageGrid">
+        <div class="stagePanel">
+          <div class="stageHeader">
+            <strong>编辑 540 * 440</strong>
+            <span>拖拽或点左侧控件添加</span>
+          </div>
+          <div id="canvasWrap">
+            <div id="canvas"></div>
+          </div>
+        </div>
+        <div class="stagePanel">
+          <div class="stageHeader">
+            <strong>预览</strong>
+            <span>Python 解释当前 JSON，不触发编译</span>
+          </div>
+          <div class="previewFrame">
+            <img id="lvglPreview" alt="界面预览">
+          </div>
+        </div>
+      </div>
+      <div class="jsonStrip">
+        <div class="stageHeader">
+          <strong>界面 JSON</strong>
+          <span>高级编辑，改完点应用</span>
+        </div>
+        <textarea id="jsonText" spellcheck="false"></textarea>
+        <button id="applyJsonBtn">应用 JSON</button>
+      </div>
+    </section>
+
+    <aside class="inspector">
+      <section>
+        <h2>属性</h2>
+        <div id="props"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

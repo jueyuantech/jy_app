@@ -1,0 +1,26 @@
+{
+  "name": "prompter_entry_overlay",
+  "root": {
+    "type": "container",
+    "id": "overlay_box",
+    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
+    "opa": "cover",
+    "layout": {
+      "type": "vbox",
+      "spacing": 0,
+      "main_align": "center",
+      "cross_align": "center"
+    },
+    "scroll": { "enabled": false },
+    "children": [
+      {
+        "type": "label",
+        "id": "init_label",
+        "size": { "w": "100%", "h": "content" },
+        "text_key": "PROMPTER_GUIDE1",
+        "align": "center",
+        "overflow": "clip"
+      }
+    ]
+  }
+}

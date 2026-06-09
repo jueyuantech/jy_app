@@ -1,0 +1,58 @@
+{
+  "name": "prompter_file_roller",
+  "root": {
+    "type": "container",
+    "id": "file_menu_box",
+    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
+    "opa": "cover",
+    "visible": false,
+    "scroll": { "enabled": false },
+    "children": [
+      {
+        "type": "container",
+        "id": "roller_box",
+        "geometry": { "x": 12, "y": 72, "w": 516, "h": 264 },
+        "opa": "transparent",
+        "layout": {
+          "type": "vbox",
+          "spacing": 0,
+          "padding": [0, 0, 0, 0],
+          "main_align": "center",
+          "cross_align": "center"
+        },
+        "scroll": { "enabled": false },
+        "children": [
+          {
+            "type": "roller",
+            "id": "file_roller",
+            "size": { "w": "100%", "h": "content" },
+            "items": [""],
+            "label": {
+              "size": { "w": "100%", "h": "content" }
+            },
+            "row_height": 60,
+            "row_gap": 16,
+            "overflow_mode": "expand_height"
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "id": "hint_box",
+        "geometry": { "x": 0, "y": 336, "w": "100%", "h": 54 },
+        "opa": "transparent",
+        "scroll": { "enabled": false },
+        "children": [
+          {
+            "type": "label",
+            "id": "hint_label",
+            "geometry": { "x": 0, "y": 9, "w": "100%", "h": "content" },
+            "text_key": "PROMPTER_TAP_TO_VIEW",
+            "align": "center",
+            "overflow": "clip"
+          }
+        ]
+      }
+    ]
+  }
+}

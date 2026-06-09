@@ -1,0 +1,48 @@
+{
+  "name": "notify_list_popup",
+  "root": {
+    "type": "container",
+    "id": "popup_root",
+    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
+    "opa": 178,
+    "children": [
+      {
+        "type": "container",
+        "id": "root",
+        "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
+        "padding": [16, 16, 16, 8],
+        "opa": 0,
+        "layout": {
+          "type": "vbox",
+          "spacing": 0,
+          "main_align": "start",
+          "cross_align": "start"
+        },
+        "children": [
+          {
+            "type": "container",
+            "id": "list",
+            "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
+            "opa": 0,
+            "layout_item": {
+              "fill_x": true,
+              "fill_y": true,
+              "grow": 1
+            },
+            "layout": {
+              "type": "vbox",
+              "spacing": 18,
+              "main_align": "start",
+              "cross_align": "start"
+            },
+            "scroll": {
+              "enabled": true,
+              "dir": "ver",
+              "scrollbar": "auto"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

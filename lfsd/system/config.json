@@ -1,0 +1,32 @@
+{
+    "fontinfo": {
+        "weight": 26,
+        "wordSpace": 0,
+        "rowSpace": 0
+    },
+    "wearDetectionEnabled": true,
+    "headGestureConfig": {
+        "up_enabled": true,
+        "down_enabled": true,
+        "up_deg": 25,
+        "down_deg": 15,
+        "base_deg": 0
+    },
+    "touchpadEnabled": true,
+    "notificationEnabled": true,
+    "keywordSpottingEnabled": true,
+    "idleDetectionEnabled": true,
+    "displayMode": 0,
+    "lcd_sleep_timeout": 30,
+    "deep_sleep_timeout": 60,
+    "inactivity_timeout": 120,
+    "bl_auto": true,
+    "brightness": 128,
+    "curlang": "",
+    "home_app": "home",
+    "simpleguide": true,
+    "userguide": false,
+    "userguidefinish": false,
+    "playaudio": true,
+    "displaylevel": 1
+}

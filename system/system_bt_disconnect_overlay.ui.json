@@ -1,0 +1,84 @@
+{
+  "name": "system_bt_disconnect_overlay",
+  "resources": "ui.res.json",
+  "root": {
+    "type": "container",
+    "id": "overlay",
+    "geometry": {
+      "x": 0,
+      "y": 0,
+      "w": "100%",
+      "h": "100%"
+    },
+    "opa": 255,
+    "children": [
+      {
+        "type": "img",
+        "id": "icon",
+        "geometry": {
+          "x": 230,
+          "y": 100,
+          "w": 80,
+          "h": 80
+        },
+        "src": "@image/bt_disconnect"
+      },
+      {
+        "type": "container",
+        "id": "text_panel",
+        "geometry": {
+          "x": 30,
+          "y": 190,
+          "w": 480,
+          "h": "content"
+        },
+        "opa": 0,
+        "layout": {
+          "type": "vbox",
+          "spacing": 4,
+          "main_align": "start",
+          "cross_align": "center"
+        },
+        "children": [
+          {
+            "type": "label",
+            "id": "notice",
+            "size": {
+              "w": "100%",
+              "h": "content"
+            },
+            "text_key": "IDLE_NOTICE_UNBOND",
+            "align": "center",
+            "overflow": "wrap"
+          },
+          {
+            "type": "label",
+            "id": "name",
+            "size": {
+              "w": "100%",
+              "h": "content"
+            },
+            "text": "",
+            "align": "center"
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "id": "status_bar_host",
+        "geometry": {
+          "x": 0,
+          "y": 0,
+          "w": "100%",
+          "h": 50
+        },
+        "object_align": {
+          "type": "bottom_mid",
+          "x": 0,
+          "y": 0
+        },
+        "opa": 0
+      }
+    ]
+  }
+}

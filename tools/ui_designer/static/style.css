@@ -1,0 +1,495 @@
+:root {
+  --bg: #101114;
+  --panel: #181a1f;
+  --panel-2: #20242b;
+  --line: #323844;
+  --text: #e9edf3;
+  --muted: #9aa3ad;
+  --accent: #5fb3ff;
+  --warn: #ffcc66;
+}
+
+@font-face {
+  font-family: FloatairSystem;
+  src: url("/api/font") format("truetype");
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.4 "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+button,
+select {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+select {
+  padding: 2px 8px;
+}
+
+option {
+  line-height: 1.8;
+  min-height: 28px;
+}
+
+#fileSelect,
+#fileSelect option {
+  font-family: Consolas, "Microsoft YaHei", "Segoe UI", monospace;
+  font-size: 13px;
+  letter-spacing: .3px;
+}
+
+#fileSelect {
+  min-width: 520px;
+}
+
+button {
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+.topbar {
+  height: 48px;
+  display: grid;
+  grid-template-columns: auto minmax(280px, 1fr) 120px 120px auto auto auto auto minmax(120px, auto);
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background: #14161a;
+}
+
+.brand {
+  font-weight: 700;
+}
+
+#statusText {
+  color: var(--muted);
+}
+
+.topCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.workspace {
+  height: calc(100vh - 48px);
+  display: grid;
+  grid-template-columns: 230px minmax(1120px, 1fr) 340px;
+  min-height: 0;
+}
+
+.sidebar,
+.inspector {
+  min-height: 0;
+  overflow: auto;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.inspector {
+  border-right: 0;
+  border-left: 1px solid var(--line);
+}
+
+section {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.palette {
+  display: grid;
+  gap: 8px;
+}
+
+.nodeActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.nodeActions button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+.stageColumn {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+
+.stageGrid {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: 18px;
+  align-items: start;
+}
+
+.stagePanel {
+  width: 584px;
+}
+
+.stageHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+
+.stageHeader strong {
+  color: var(--text);
+}
+
+#canvasWrap {
+  width: 584px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(45deg, #17191e 25%, transparent 25%),
+    linear-gradient(-45deg, #17191e 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #17191e 75%),
+    linear-gradient(-45deg, transparent 75%, #17191e 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+
+#canvas {
+  position: relative;
+  width: 540px;
+  height: 440px;
+  overflow: hidden;
+  background: #000;
+  outline: 2px solid #e12626;
+}
+
+.node {
+  position: absolute;
+  min-width: 4px;
+  min-height: 4px;
+  outline: 1px solid rgba(255, 255, 255, .25);
+  color: #aaa;
+  overflow: hidden;
+}
+
+.node.layout {
+  display: flex;
+  position: absolute;
+}
+
+.node.inLayout {
+  position: relative;
+}
+
+.node.selected {
+  outline: 2px solid var(--accent);
+  z-index: 10;
+}
+
+.node.hiddenNode {
+  outline-style: dashed;
+}
+
+.node.container {
+  background: rgba(20, 20, 20, .35);
+}
+
+.node.label {
+  font-family: FloatairSystem, "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+}
+
+.node.label .labelContent,
+.node.button .labelContent {
+  display: block;
+  min-width: 0;
+}
+
+.node.label.overflow-wrap .labelContent,
+.node.button .buttonLabel.overflow-wrap .labelContent {
+  width: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.node.label.overflow-clip .labelContent,
+.node.button .buttonLabel.overflow-clip .labelContent {
+  width: max-content;
+  min-width: 100%;
+  white-space: pre;
+}
+
+.node.label.overflow-scroll.canScroll .labelContent,
+.node.button .buttonLabel.overflow-scroll.canScroll .labelContent {
+  width: max-content;
+  white-space: pre;
+  animation: labelScrollPingPong 3.2s ease-in-out infinite alternate;
+}
+
+.node.label.overflow-circular .labelContent,
+.node.button .buttonLabel.overflow-circular .labelContent {
+  display: inline-flex;
+  width: max-content;
+  white-space: pre;
+}
+
+.node.label.overflow-circular.canScroll .labelContent,
+.node.button .buttonLabel.overflow-circular.canScroll .labelContent {
+  animation: labelScrollCircular 4s linear infinite;
+}
+
+.node.label .scrollCopy,
+.node.button .scrollCopy {
+  display: inline-block;
+  padding-right: 48px;
+}
+
+@keyframes labelScrollPingPong {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(0px - var(--scroll-distance, 0px)));
+  }
+}
+
+@keyframes labelScrollCircular {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(0px - var(--scroll-distance, 0px) - 48px));
+  }
+}
+
+.node.button {
+  font-family: FloatairSystem, "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+}
+
+.node.img,
+.node.button {
+  display: grid;
+  place-items: center;
+}
+
+.node.img {
+  border: 1px dashed rgba(255, 255, 255, .32);
+  color: #777;
+}
+
+.node.img .imageContent {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  transform-origin: center;
+}
+
+.node.button {
+  border: 1px solid #777;
+  border-radius: 6px;
+  background: #000;
+  border-color: #fff;
+}
+
+.node.button .buttonLabel {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.node.roller {
+  background: #000;
+}
+
+.rollerRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, .45);
+}
+
+.rollerRow:not(.selected) {
+  border-color: transparent;
+}
+
+.node.paged_text {
+  background: #000;
+}
+
+.pagedTextLabel {
+  position: absolute;
+  overflow: hidden;
+}
+
+.pagedTextHighlight {
+  position: absolute;
+  pointer-events: none;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, .86);
+}
+
+.node.overlay {
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, .18);
+}
+
+.overlayPoints {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlayPoints span {
+  display: block;
+  border-radius: 999px;
+}
+
+.overlayText {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.treeItem {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.treeItem:hover,
+.treeItem.selected {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.propGrid {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.propGrid label {
+  color: var(--muted);
+}
+
+.propGrid input,
+.propGrid select,
+.propGrid textarea,
+.readonlyProp,
+#jsonText {
+  width: 100%;
+  min-height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 4px 6px;
+  background: #101216;
+  color: var(--text);
+}
+
+.readonlyProp {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+.propGroup {
+  margin: 0 0 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.propGroup:last-child {
+  border-bottom: 0;
+}
+
+.propGroupTitle {
+  margin: 0 0 8px;
+  color: var(--warn);
+}
+
+#jsonText {
+  min-height: 280px;
+  resize: vertical;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+}
+
+#applyJsonBtn {
+  margin-top: 8px;
+  width: 100%;
+}
+
+#lvglPreview {
+  width: 540px;
+  height: 440px;
+  border: 1px solid var(--line);
+  background: #050505;
+  object-fit: contain;
+}
+
+.previewFrame {
+  width: 584px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: #050505;
+}
+
+.jsonStrip {
+  width: 1186px;
+  margin-top: 14px;
+}
+
+.jsonStrip #jsonText {
+  min-height: 180px;
+}

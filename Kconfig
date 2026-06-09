@@ -1,0 +1,22 @@
+# Kconfig for jy_app project
+
+menu "jy_app Configuration"
+
+source "lvgl/Kconfig"
+
+config RPMSG_TTF_CLIENT
+    bool "Use RPMSG TTF remote font rendering"
+    default n
+    depends on !LV_USE_TINY_TTF
+    ---help---
+        When enabled, fonts are rendered remotely on the server core
+        via RPMSG. This replaces the local tiny_ttf (stb_truetype)
+        engine. The server core loads the TTF file locally and renders
+        glyph bitmaps into its memory. This core reads bitmaps directly
+        via shared memory.
+
+        Mutually exclusive with LV_USE_TINY_TTF. When RPMSG_TTF_CLIENT
+        is enabled, disable LV_USE_TINY_TTF in menuconfig first, or
+        vice versa.
+
+endmenu

@@ -1,0 +1,82 @@
+{
+  "name": "prompter_page_text_preview",
+  "root": {
+    "type": "container",
+    "id": "preview_box",
+    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
+    "opa": "cover",
+    "visible": false,
+    "scroll": { "enabled": false },
+    "children": [
+      {
+        "type": "container",
+        "id": "header_box",
+        "geometry": { "x": 0, "y": 0, "w": "100%", "h": 72 },
+        "opa": "transparent",
+        "scroll": { "enabled": false },
+        "children": [
+          {
+            "type": "label",
+            "id": "timer_label",
+            "geometry": { "x": 150, "y": 16, "w": 160, "h": "content" },
+            "text": "00:00:00",
+            "align": "center",
+            "overflow": "clip"
+          },
+          {
+            "type": "label",
+            "id": "progress_label",
+            "geometry": { "x": 330, "y": 16, "w": 100, "h": "content" },
+            "text": "0%",
+            "align": "center",
+            "overflow": "clip"
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "id": "text_box",
+        "geometry": { "x": 24, "y": 72, "w": 492, "h": 264 },
+        "opa": "transparent",
+        "scroll": { "enabled": false },
+        "children": [
+          {
+            "type": "paged_text",
+            "id": "text_view",
+            "geometry": { "x": 0, "y": 24, "w": 492, "h": 216 },
+            "label": {
+              "text": "",
+              "align": "left",
+              "overflow": "wrap"
+            },
+            "highlight": {
+              "mask_opa": "60%",
+              "border_width": 2,
+              "radius": 6,
+              "outset": 10
+            },
+            "step_mode": "view_percent",
+            "step_percent": 75
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "id": "hint_box",
+        "geometry": { "x": 0, "y": 336, "w": "100%", "h": 54 },
+        "opa": "transparent",
+        "scroll": { "enabled": false },
+        "children": [
+          {
+            "type": "label",
+            "id": "hint_label",
+            "geometry": { "x": 0, "y": 9, "w": "100%", "h": "content" },
+            "text_key": "PROMPTER_HINT",
+            "align": "center",
+            "overflow": "clip"
+          }
+        ]
+      }
+    ]
+  }
+}
