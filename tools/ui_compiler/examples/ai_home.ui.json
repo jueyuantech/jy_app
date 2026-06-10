@@ -1,0 +1,37 @@
+{
+  "name": "ai_home",
+  "resources": "ai_home.res.json",
+  "root": {
+    "type": "container",
+    "id": "root",
+    "geometry": { "x": 0, "y": 0, "w": 360, "h": 320 },
+    "layout": {
+      "type": "vbox",
+      "spacing": 8,
+      "padding": [12, 12, 8, 8],
+      "main_align": "center",
+      "cross_align": "center"
+    },
+    "children": [
+      {
+        "type": "label",
+        "id": "title",
+        "text": "AI",
+        "size": { "w": "content", "h": "content" },
+        "align": "center"
+      },
+      {
+        "type": "img",
+        "id": "robot_icon",
+        "src": "@image/robot",
+        "size": { "w": 32, "h": 32 }
+      },
+      {
+        "type": "button",
+        "id": "confirm_btn",
+        "text": "OK",
+        "size": { "w": 80, "h": 32 }
+      }
+    ]
+  }
+}

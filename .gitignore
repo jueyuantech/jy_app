@@ -1,0 +1,40 @@
+# Build outputs
+*build*
+/install/
+/lfsc/
+
+!simulator/FloatairSimulator/build_all.sh
+!simulator/FloatairSimulator/build_all.bat
+
+# Local configuration and workspace files
+.vscode/
+.idea/
+**/.DS_Store
+
+# Generated text files outside resource overlays
+*.txt
+!lfsd/**
+!romfs/**
+
+# Product overlay outputs
+/StringPool.csv
+/apps/home/home_cfg.c
+/lfsd/apps/logo/logo.png
+/lfsd/lfsd
+/build_apps_denylist.txt
+/ui.res.json
+/romfs/system/images/*
+!/romfs/system/images/.gitkeep
+
+# Downloaded SDKs and local caches
+/.os_sdk_cache/
+
+# Runtime logs and Python cache
+*.log
+*.pyc
+__pycache__/
+
+# Bundled simulator dependencies kept under source control.
+!simulator/FloatairSimulator/mingw/SDL2/
+!simulator/FloatairSimulator/mingw/SDL2/**/
+!simulator/FloatairSimulator/mingw/SDL2/**

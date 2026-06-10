@@ -1,0 +1,9 @@
+{
+  "name": "ai_home",
+  "images": {
+    "robot": {
+      "symbol": "img_icon_robot_4bit",
+      "type": "lv_image_dsc_t"
+    }
+  }
+}

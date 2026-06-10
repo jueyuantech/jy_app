@@ -1,0 +1,64 @@
+StringID,en-US,de,es-ES,fr-FR,it,ja,ko,pt-BR,ru,th,vi,zh-CN,zh-HK,zh-TW
+LANG_NAME,English,Deutsch,Español,Français,Italiano,日本語,한국어,Português,Русский,ไทย,Tiếng Việt,中文(简体),中文(香港),中文(繁體)
+IDLE_NAVI,Navigation,Navigation,Navegación,Navigation,Navigazione,ナビゲーション,내비게이션,Navegação,Навигация,การนำทาง,Điều hướng,导航,導航,導航
+IDLE_TRANS,Translation,Übersetzung,Traducción,Traduction,Traduzione,翻訳,번역,Tradução,Перевод,การแปล,Dịch,翻译,翻譯,翻譯
+IDLE_PROMP,Teleprompter,Textgeber,Teleprompter,Télésouffleur,Promemoria,テレプロンプター,텔레프롬프터,Teleprompter,Телепrompter,การแจ้งคำพูด,Gợi ý từ,提词,提詞,提詞
+IDLE_MUSIC,Music,Musik,Música,Musique,Musica,音楽,음악,Música,Музыка,ดนตรี,Nhạc,音乐,音樂,音樂
+IDLE_BOOK,Read,Lesen,Leer,Lire,Lettura,読む,읽기,Ler,Чтение,การอ่าน,Đọc sách,阅读,閱讀,閱讀
+IDLE_ASR,Transcription,Transkription,Transcripción,Transcription,Trascrizione vocale,音声文字起こし,음성 인식,Transcrição,Транскрипция,การถอดเสียง,Chuyển đổi văn bản,转写,轉寫,轉寫
+IDLE_AI,Voice Assistant,Sprachassistent,Asistente de voz,Assistant vocal,Assistente vocale,音声アシスタント,음성 비서,Assistente de voz,Голосовый ассистент, सहायการเสียง,Trợ lý giọng nói,语音助手,語音助手,語音助手
+AI_ASK,Is there anything you'd like to ask me?,"Hast du etwas, was du mich fragen möchtest?",¿Tienes algo que quieras preguntarme?,As-tu quelque chose à me demander ?,Hai qualcosa da chiedermi?,何か聞きたいことがありますか？,내게 질문하고 싶은 것이 있나요?,Tens algo que quer me perguntar?,"У тебя есть что-нибудь, что ты хочешь спросить меня?",คุณมีอะไรที่อยากถามฉันไหม?,Bạn có điều gì muốn hỏi tôi không?,你有什么想要问我的吗？,你有什麼想問我的嗎？,你有什麼想問我的嗎？
+OPEN_IDLE_NAVI,Please open Navigation on SmartGlasses,Bitte öffnen Sie die Navigation auf SmartGlasses,"Por favor, abre la Navegación en SmartGlasses",Veuillez ouvrir la Navigation sur SmartGlasses,Apri la Navigazione su SmartGlasses,SmartGlassesでナビゲーションを開いてください,SmartGlasses에서 내비게이션을 엽니다,"Por favor, abra a Navegação no SmartGlasses","Пожалуйста, откройте Навигацию на SmartGlasses",โปรดเปิดการนำทางบน SmartGlasses,Vui lòng mở Định vị trên SmartGlasses,请在SmartGlasses上开启导航,請在SmartGlasses上開啟導航,請在SmartGlasses上開啟導航
+OPEN_IDLE_MUSIC,Please open Music on SmartGlasses,Bitte öffnen Sie die Musik auf SmartGlasses,"Por favor, abre la Música en SmartGlasses",Veuillez ouvrir la Musique sur SmartGlasses,Apri la Musica su SmartGlasses,SmartGlassesで音楽を開いてください,SmartGlasses에서 음악을 엽니다,"Por favor, abra a Música no SmartGlasses","Пожалуйста, откройте Музыку на SmartGlasses",โปรดเปิดเสียงเพลงบน SmartGlasses,Vui lòng mở Âm nhạc trên SmartGlasses,请在SmartGlasses上开启音乐,請在SmartGlasses上開啟音樂,請在SmartGlasses上開啟音樂
+OPEN_IDLE_BOOK,Please open Reading on SmartGlasses,Bitte öffnen Sie das Lesen auf SmartGlasses,"Por favor, abre la Lectura en SmartGlasses",Veuillez ouvrir la Lecture sur SmartGlasses,Apri la Lettura su SmartGlasses,SmartGlassesで読書を開いてください,SmartGlasses에서 독서를 엽니다,"Por favor, abra a Leitura no SmartGlasses","Пожалуйста, откройте Чтение на SmartGlasses",โปรดเปิดการอ่านบน SmartGlasses,Vui lòng mở Đọc sách trên SmartGlasses,请在SmartGlasses上开启阅读,請在SmartGlasses上開啟閱讀,請在SmartGlasses上開啟閱讀
+GUILD_SUC,Operation successful,Vorgang erfolgreich,Operación exitosa,Opération réussie,Operazione riuscita,操作完了,동작 완료,Operação bem-sucedida,Операция выполнена,การทำงานสำเร็จ,Thao tác thành công,操作成功,操作成功,操作成功
+GUILD_LONGPRESS_RIGHT,Long press the right temple,Lange drücken auf den rechten Bügel,Mantén presionada la patilla derecha,Maintenez appuyée la branche droite,Tieni premuta l’asta destra,右テンプル長押し,오른쪽 다리 길게 누르기,Segure a haste direita,Долгое нажатие на правую дужку,กดค้างที่ขาขวา,Giữ lâu chân kính bên phải,长按右镜腿,長按右鏡腿,長按右鏡腿
+GUILD_LONGPRESS_FUNC,"Activate function, start recording","Funktion aktivieren, Aufnahme starten","Activar función, iniciar grabación","Activer la fonction, lancer l’enregistrement","Attiva funzione, avvia registrazione",機能起動、録音開始,"기능 켜기, 녹음 시작","Ativar função, iniciar gravação","Включить функцию, начать запись",เปิดใช้งานฟังก์ชัน、เริ่มบันทึกเสียง,"Bật chức năng, bắt đầu ghi âm",开启功能、开启录音,開啟功能、開啟錄音,開啟功能、開啟錄音
+GUILD_STROLL,Swipe the right temple forward/backward,Rechten Bügel nach vorne/hinten streichen,Desliza la patilla derecha hacia adelante / atrás,Faites glisser la branche droite vers l’avant / vers l’arrière,Scorri l’asta destra in avanti/indietro,右テンプルスライド（前へ／後へ）,오른쪽 다리 밀기 (앞으로/뒤로),Deslizar a haste direita para frente/trás,Проведите по правой дужке вперёд/назад,เลื่อนขาขวา、เลื่อนไปข้างหน้า/ถอยหลัง,"Vuốt chân kính bên phải, vuốt lên / vuốt xuống",滑动右镜腿，前滑/后滑,滑動右鏡腿，前滑 / 後滑,滑動右鏡腿，前滑 / 後滑
+GUILD_STROLL_FUNC,"Switch menu, turn page","Menü wechseln, Seite blättern","Cambiar menú, pasar página","Changer de menu, tourner la page","Cambia menu, sfoglia pagine",メニュー切替、ページ送り,"메뉴 전환, 페이지 넘기기","Mudar menu, passar página","Переключить меню, перелистать страницу",เปลี่ยนเมนู、เปลี่ยนหน้า,"Chuyển menu, lật trang",切换菜单、翻页,切換選單、翻頁,切換選單、翻頁
+GUILD_DCLICK,Double tap quickly,Schnell zweimal tippen (Doppeltippen),Doble toque rápido,Double appui rapide,Doppio tocco veloce,素早く 2 回タップ（ダブルタップ）,빠르게 두 번 탭 (더블 탭),Toque duplo rápido,Быстрое двойное нажатие,แตะสองครั้งอย่างรวดเร็ว,Nhấn nhanh hai lần (nhấn đúp),快速点击2次完成双击,快速點擊 2 次完成雙擊,快速點擊 2 次完成雙擊
+GUILD_DCLICK_FUNC,Exit/return to home page,Beenden / Zur Startseite zurückkehren,Salir / Volver a la página principal,Quitter / Retour à la page d’accueil,Esci / Torna alla home,終了／ホーム画面に戻る,종료/초기 화면으로 돌아가기,Sair / Voltar à página inicial,Выход / Вернуться на главную,ออก/กลับไปหน้าหลัก,Thoát / Quay lại trang chủ,退出/回到首页,離開 / 回到首頁,離開 / 回到首頁
+GUILD_CLICK,Short press the right temple,Rechten Bügel kurz drücken,Pulsa brevemente la patilla derecha,Appui court sur la branche droite,Premi brevemente l’asta destra,右テンプル短押し,오른쪽 다리 짧게 누르기,Toque curto na haste direita,Короткое нажатие на правую дужку,กดสั้นที่ขาขวา,Nhấn ngắn chân kính bên phải,短按右镜腿,短按右鏡腿,短按右鏡腿
+GUILD_CLICK_FUNC,"Activate function, start recording","Funktion aktivieren, Aufnahme starten","Activar función, iniciar grabación","Activer la fonction, lancer l’enregistrement","Attiva funzione, avvia registrazione",機能起動、録音開始,"기능 켜기, 녹음 시작","Ativar função, iniciar gravação","Включить функцию, начать запись",เปิดใช้งานฟังก์ชัน、เริ่มบันทึกเสียง,"Bật chức năng, bắt đầu ghi âm",开启功能、开启录音,開啟功能、開啟錄音,開啟功能、開啟錄音
+SYSTEM_APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP,JYTek APP
+SYSTEM_OPENIGN,Opening…,Wird gestartet…,Encendiendo…,Allumage…,Avvio in corso…,起動中…,시작 중…,Iniciando…,Запуск…,กำลังเปิดใช้งาน…,Đang khởi động…,开启中…,開啟中…,開啟中…
+SYSTEM_LP_TOUCH,"Long press the ""Touchpad""",Langes Drücken der „Touchpad“-Taste,Mantén pulsado el «Panel táctil»,Maintenez le « pavé tactile » enfoncé,Tieni premuto il “tocco”,タッチパッド長押し,터치패드 길게 누르기,Mantenha o “touchpad” pressionado,Долгое нажатие «тачпад»,กดค้าง “แทร็คแพด”,Giữ lâu “bàn cảm ứng”,长按“触摸板”,長按「觸控板」,長按「觸控板」
+SYSTEM_LP_OPEN,Start,Starten,Iniciar,Démarrer,Attiva,開始,시작,Iniciar,Включить,เปิด,Bật,开启,開啟,開啟
+SETTING_NOTICE,"Swipe on the right temple to navigate.
+Press and hold to select.","Am rechten Bügel wischen, um zu navigieren.
+Gedrückt halten zum Auswählen.","Desliza en la patilla derecha para navegar.
+Mantén pulsado para seleccionar.","Balayez la branche droite pour naviguer.
+Maintenez appuyé pour sélectionner.","Scorri sull'asta destra per navigare.
+Tieni premuto per selezionare.","右テンプルをスワイプして移動。
+長押しで選択。","오른쪽 템플을 스와이프해 이동하세요.
+길게 눌러 선택하세요.","Deslize na haste direita para navegar.
+Mantenha pressionado para selecionar.","Проведите по правой дужке для навигации.
+Нажмите и удерживайте для выбора.","ปัดที่ขาแว่นด้านขวาเพื่อเลื่อน
+กดค้างเพื่อเลือก","Vuốt trên gọng kính bên phải để điều hướng.
+Nhấn và giữ để chọn.","滑动右侧镜腿进行切换。
+长按选择。","滑動右側鏡腿進行切換。
+長按選擇。","滑動右側鏡腿進行切換。
+長按選擇。"
+TRANS_TEXT,Conversation,Gespräch,Conversación,Conversation,Conversazione,対話,대화,Conversação,Разговор,สนทนา,Trò chuyện,对话,對話,對話
+TRANS_GUIDE,"Translation displayed here, glasses broadcast the left translation synchronously. To switch languages, please go to","Hier wird die Übersetzung angezeigt, die Brille liest sie synchron vor. Zum Wechseln der Sprache gehen Sie zu.","Aquí se muestra la traducción, las gafas la reproducen simultáneamente. Para cambiar de idioma, ve a","La traduction s’affiche ici, les lunettes la diffusent simultanément. Pour changer de langue, allez à","Qui viene mostrata la traduzione, gli occhiali la riproducono. Per cambiare lingua vai a",ここに翻訳文が表示され、メガネで同時に読み上げられます。言語を切り替える場合は設定へ移動してください。,"여기에 번역문 표시, 안경에서 동시 안내. 언어 전환은 설정으로","A tradução aparece aqui e é reproduzida nos óculos. Para mudar de idioma, acesse:","Здесь отображается перевод, очки воспроизводят его синхронно. Для смены языка перейдите",จะแสดงคำแปลตรงนี้ แว่นจะอ่านคำแปลทางซ้ายพร้อมกัน หากต้องการเปลี่ยนภาษา กรุณาไปที่,"Nơi này hiển thị bản dịch, kính sẽ phát đồng bộ bản dịch bên trái. Nếu muốn đổi ngôn ngữ, vui lòng truy cập",此处显示译文，眼镜同步播报左侧译文。如需切换语言，请前往,此處顯示翻譯內容，眼鏡同步播報左側翻譯。如需切換語言，請前往,此處顯示翻譯內容，眼鏡同步播報左側翻譯。如需切換語言，請前往
+PROMPTER_GUIDE1,No teleprompter document available,Keine Teleprompter-Dokumente vorhanden,Sin documentos de teleprompter disponibles,Aucun document de téléprompteur disponible,Nessun documento per il teleprompter,カンペ用の書類がありません。,프롬프터 문서가 없습니다.,Nenhum documento de teleprompter disponível,Нет документов для субтитров,ยังไม่มีเอกสารคำโปรย,Chưa có tài liệu lời nhắc,暂无提词文档,目前無提詞文件,目前無提詞文件
+IDLE_NOTICE_UNBOND,Open the SmartGlasses app and connect via Bluetooth,Öffnen Sie die SmartGlasses-App und verbinden Sie sich über Bluetooth.,Abre la aplicación SmartGlasses y conéctate por Bluetooth.,Ouvrez l'application SmartGlasses et connectez‑vous via Bluetooth.,Apri l'app SmartGlasses e connettiti tramite Bluetooth.,SmartGlasses アプリを開いて Bluetooth で接続してください。,버드렌즈 앱을 열고 블루투스로 연결하세요.,Abra o aplicativo SmartGlasses e conecte-se via Bluetooth.,Откройте приложение SmartGlasses и подключитесь по Bluetooth.,เปิดแอป SmartGlasses และเชื่อมต่อผ่านบลูทูธ,Mở ứng dụng SmartGlasses và kết nối qua Bluetooth.,打开 SmartGlasses 并连接蓝牙,開啟 SmartGlasses 應用程式，並透過藍牙連線,開啟 SmartGlasses 應用程式，並透過藍牙連線
+PROMPTER_HINT,Tap to start | Swipe to turn pages,Tippen zum Start | Wischen zum Umblättern,Toca para iniciar | Desliza para pasar página,Touchez pour démarrer | Balayez pour tourner la page,Tocca per iniziare | Scorri per cambiare pagina,タップして開始 | スワイプでページ送り,탭하여 시작 | 스와이프하여 페이지 넘기기,Toque para iniciar | Deslize para virar páginas,"Коснитесь, чтобы начать | Смахните для перелистывания",แตะเพื่อเริ่ม | ปัดเพื่อเปลี่ยนหน้า,Chạm để bắt đầu | Vuốt để lật trang,点击开始 | 滑动翻页,點擊開始 | 滑動翻頁,點擊開始 | 滑動翻頁
+PROMPTER_RUNNING_HINT,Tap to pause,Tippen zum Pausieren,Toca para pausar,Touchez pour mettre en pause,Tocca per mettere in pausa,タップして一時停止,탭하여 일시정지,Toque para pausar,Коснитесь чтобы поставить на паузу,แตะเพื่อหยุดชั่วคราว,Chạm để tạm dừng,点击暂停,點擊暫停,點擊暫停
+NOTIFY_CALL_HINT,Double tap to decline | Tap to accept,,,,,,두 번 탭해 거절 | 한 번 탭해 받기,,,,Nhấn đúp để từ chối | Nhấn một lần để nghe,双击拒接 | 单击接听,雙擊拒接 | 單擊接聽,雙擊拒接 | 單擊接聽
+NOTIFY_MESSAGE_HINT,Press and hold to view,,,,,,길게 눌러 보기,,,,Nhấn giữ để xem,长按查看,長按查看,長按查看
+MSGBOX_CANCEL,Cancel,,,,,,취소,,,,Hủy,取消,取消,取消
+MSGBOX_SAVE,Save,,,,,,저장,,,,Lưu,保存,儲存,儲存
+MSGBOX_OK,OK,,,,,,확인,,,,OK,确定,確定,確定
+MSGBOX_CONFIRM,Confirm,,,,,,확인,,,,Xác nhận,确认,確認,確認
+MSGBOX_YES,Yes,,,,,,예,,,,Có,是,是,是
+MSGBOX_NO,No,,,,,,아니요,,,,Không,否,否,否
+TOAST_LOW_BATTERY_WARNING,Low battery warning,,,,,,배터리 부족 경고,,,,Cảnh báo pin yếu,低电量警告,低電量警告,低電量警告
+TOAST_KWS_PHONE_NO_RESPONSE,Open phone app,,,,,,휴대폰 앱을 열어 주세요,,,,Mở ứng dụng điện thoại,请先打开手机App,請先打開手機App,請先打開手機App
+GALLERY_IMAGE_DECODE_FAILED,Unable to decode image,,,,,,이미지를 해석할 수 없습니다,,,,Không thể giải mã ảnh,图片无法解析,圖片無法解析,圖片無法解析
+READER_LOAD_FILE_FAILED,Load file failed,,,,,,파일을 불러오지 못했습니다,,,,Tải tệp thất bại,文件加载失败,檔案載入失敗,檔案載入失敗
+NOTIFY_LIST_UNTITLED,Untitled notification,,,,,,제목 없는 알림,,,,Thông báo chưa có tiêu đề,未命名通知,未命名通知,未命名通知
+NOTIFY_LIST_EMPTY,No notifications yet.,,,,,,아직 알림이 없습니다.,,,,Chưa có thông báo nào.,暂无通知,目前沒有通知,目前沒有通知
+PROMPTER_EXIT_TITLE,Exit Teleprompter?,Exit Teleprompter?,Exit Teleprompter?,Exit Teleprompter?,Exit Teleprompter?,Exit Teleprompter?,Exit Teleprompter?,Exit Teleprompter?,Exit Teleprompter?,Exit Teleprompter?,Exit Teleprompter?,退出提词器？,退出提詞器？,退出提詞器？
+MSGBOX_LEAVE,Leave,Leave,Leave,Leave,Leave,Leave,Leave,Leave,Leave,Leave,Leave,离开,離開,離開
+PROMPTER_TAP_TO_VIEW,Tap to view,Tap to view,Tap to view,Tap to view,Tap to view,Tap to view,Tap to view,Tap to view,Tap to view,Tap to view,Tap to view,点击查看,點擊查看,點擊查看

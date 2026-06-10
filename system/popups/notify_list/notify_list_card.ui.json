@@ -1,0 +1,38 @@
+{
+  "name": "notify_list_card",
+  "root": {
+    "type": "container",
+    "id": "card",
+    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "content" },
+    "max_size": { "w": "100%" },
+    "radius": 12,
+    "border_width": 1,
+    "pad_hor": 12,
+    "pad_ver": 8,
+    "opa": 255,
+    "layout": {
+      "type": "hbox",
+      "spacing": 12,
+      "main_align": "start",
+      "cross_align": "center"
+    },
+    "children": [
+      {
+        "type": "img",
+        "id": "image",
+        "size": { "w": 32, "h": 32 }
+      },
+      {
+        "type": "label",
+        "id": "title",
+        "size": { "w": "content", "h": "content" },
+        "align": "left",
+        "overflow": "wrap",
+        "max_lines": 3,
+        "layout_item": {
+          "grow": 1
+        }
+      }
+    ]
+  }
+}

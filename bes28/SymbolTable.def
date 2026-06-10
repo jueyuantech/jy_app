@@ -1,0 +1,755 @@
+/* aio_cancel */
+/* aio_fsync */
+/* aio_read */
+/* aio_write */
+/* aio_error */
+/* aio_return */
+/* aio_suspend */
+/* lio_listio */
+htonl
+htonq
+htons
+/* inet_addr */
+/* inet_ntoa */
+/* inet_ntop */
+/* inet_pton */
+/* ntohl */
+/* ntohq */
+/* ntohs */
+_assert
+__assert
+isalnum
+isalpha
+isascii
+isblank
+iscntrl
+isdigit
+isgraph
+islower
+isprint
+ispunct
+isspace
+isupper
+isxdigit
+tolower
+toupper
+/* _alert */
+/* _err */
+/* _info */
+/* _warn */
+/* lib_dumpbuffer */
+alphasort
+closedir
+opendir
+readdir
+readdir_r
+scandir
+telldir
+versionsort
+/* dlclose */
+/* dlerror */
+/* dlopen */
+/* dlsym */
+/* dlsymtab */
+fcntl
+posix_fallocate
+b16atan2
+b16cos
+// b16divb16
+// b16mulb16
+b16sin
+// b16sqr
+// ub16divub16
+// ub16mulub16
+// ub16sqr
+fnmatch
+iconv
+iconv_close
+iconv_open
+imaxabs
+strtoimax
+strtoumax
+basename
+dirname
+/* bind_textdomain_codeset */
+/* bindtextdomain */
+/* dgettext */
+/* gettext */
+/* textdomain */
+// setlocale
+mallinfo
+malloc_size
+acos
+acosf
+acosl
+asin
+asinf
+asinl
+atan
+atan2
+atan2f
+atan2l
+atanf
+atanl
+ceil
+ceilf
+ceill
+cos
+cosf
+cosh
+coshf
+coshl
+cosl
+exp
+expf
+expl
+fabs
+fabsf
+fabsl
+floor
+floorf
+floorl
+fmod
+fmodf
+fmodl
+frexp
+frexpf
+frexpl
+gamma
+ldexp
+ldexpf
+ldexpl
+lgamma
+log
+log10
+log10f
+log10l
+log2
+log2f
+log2l
+logf
+logl
+modf
+modff
+modfl
+pow
+powf
+powl
+rint
+rintf
+rintl
+round
+roundf
+roundl
+sin
+sinf
+sinh
+sinhf
+sinhl
+sinl
+sqrt
+sqrtf
+sqrtl
+tan
+tanf
+tanh
+tanhf
+tanhl
+tanl
+mq_close
+mq_getattr
+mq_notify
+mq_open
+mq_receive
+mq_send
+mq_setattr
+mq_timedreceive
+mq_timedsend
+mq_unlink
+// freeaddrinfo
+// gai_strerror
+// getaddrinfo
+// gethostbyname
+// gethostbyname2
+// getnameinfo
+// ether_ntoa
+// pgalloc
+up_fork
+// exec
+nx_mkfifo
+dq_addafter
+dq_remfirst
+dq_remlast
+sq_addafter
+sq_remafter
+sq_remfirst
+sq_remlast
+nxsched_get_stackinfo
+/* nxsem_tickwait */
+/* nxsem_clockwait */
+/* nxsem_close */
+/* nxsem_destroy */
+/* nxsem_getprioceiling */
+/* nxsem_open */
+/* nxsem_post_slow */
+/* nxsem_set_protocol */
+/* nxsem_setprioceiling */
+/* nxsem_timedwait */
+/* nxsem_trywait_slow */
+/* nxsem_unlink */
+/* nxsem_wait_slow */
+// task_spawn
+lib_get_stream
+task_tls_alloc
+task_tls_get_value
+task_tls_set_value
+poll
+ppoll
+pthread_cancel
+pthread_cond_broadcast
+pthread_cond_clockwait
+pthread_cond_signal
+pthread_cond_wait
+pthread_detach
+// pthread_getaffinity_np
+pthread_getschedparam
+pthread_join
+// pthread_mutex_consistent
+pthread_mutex_destroy
+pthread_mutex_init
+pthread_mutex_timedlock
+pthread_mutex_trylock
+pthread_mutex_unlock
+// pthread_setaffinity_np
+pthread_setschedparam
+pthread_setschedprio
+pthread_sigmask
+pthread_attr_destroy
+pthread_attr_getinheritsched
+pthread_attr_getschedparam
+pthread_attr_getschedpolicy
+pthread_attr_getstacksize
+pthread_attr_init
+pthread_attr_setinheritsched
+pthread_attr_setschedparam
+pthread_attr_setschedpolicy
+pthread_attr_setstacksize
+pthread_barrier_destroy
+pthread_barrier_init
+pthread_barrier_wait
+pthread_barrierattr_destroy
+pthread_barrierattr_getpshared
+pthread_barrierattr_init
+pthread_barrierattr_setpshared
+pthread_cond_destroy
+pthread_cond_init
+pthread_cond_timedwait
+pthread_condattr_destroy
+pthread_condattr_init
+pthread_condattr_setclock
+pthread_create
+pthread_getname_np
+// pthread_getspecific
+pthread_gettid_np
+// pthread_key_create
+// pthread_key_delete
+pthread_mutex_getprioceiling
+pthread_mutex_lock
+pthread_mutex_setprioceiling
+pthread_mutexattr_destroy
+pthread_mutexattr_getprioceiling
+pthread_mutexattr_getpshared
+pthread_mutexattr_gettype
+pthread_mutexattr_init
+pthread_mutexattr_setprioceiling
+pthread_mutexattr_setpshared
+pthread_mutexattr_settype
+pthread_once
+pthread_rwlock_destroy
+pthread_rwlock_init
+pthread_rwlock_rdlock
+pthread_rwlock_unlock
+pthread_self
+pthread_setname_np
+// pthread_setspecific
+pthread_yield
+getpwnam_r
+getpwuid_r
+sched_backtrace
+// sched_getaffinity
+sched_getcpu
+sched_getparam
+sched_getscheduler
+sched_lock
+sched_lockcount
+sched_rr_get_interval
+// sched_setaffinity
+sched_setparam
+sched_setscheduler
+sched_unlock
+sched_yield
+task_create
+task_delete
+task_restart
+sched_get_priority_max
+sched_get_priority_min
+task_testcancel
+sem_getvalue
+sem_init
+kill
+sigaction
+sigpending
+sigprocmask
+sigqueue
+sigsuspend
+sigtimedwait
+sigwaitinfo
+tgkill
+raise
+sigaddset
+sigdelset
+sigemptyset
+sigfillset
+sigismember
+signal
+// posix_spawn
+// __stack_chk_fail
+rename
+asprintf
+fclose
+fdopen
+feof
+ferror
+fflush
+fgetc
+fgetpos
+fgets
+fileno
+flockfile
+fopen
+fprintf
+fputc
+fputs
+fread
+fscanf
+fseek
+fsetpos
+ftell
+ftrylockfile
+funlockfile
+fwrite
+getc
+gets
+perror
+printf
+puts
+remove
+rewind
+snprintf
+sprintf
+sscanf
+ungetc
+vasprintf
+vfprintf
+vprintf
+vscanf
+vsnprintf
+vsprintf
+vsscanf
+clearenv
+get_environ_ptr
+getenv
+putenv
+setenv
+unsetenv
+__cxa_atexit
+abort
+abs
+arc4random
+arc4random_buf
+atof
+atoi
+atol
+atoll
+bsearch
+calloc
+exit
+free
+labs
+llabs
+malloc
+mblen
+mbstowcs
+mbtowc
+mkdtemp
+mkstemp
+mktemp
+posix_memalign
+qsort
+rand
+realloc
+srand
+strtod
+strtol
+strtoll
+strtoul
+strtoull
+wcstombs
+wctomb
+memccpy
+memchr
+memcmp
+memcpy
+memmove
+memset
+stpcpy
+strcasestr
+strcat
+strchr
+strchrnul
+strcmp
+strcoll
+strcpy
+strcspn
+strdup
+strerror
+strerror_r
+strlcpy
+strlen
+strncat
+strncmp
+strncpy
+strndup
+strnlen
+strpbrk
+strrchr
+strsep
+strspn
+strstr
+strtok
+strtok_r
+strxfrm
+ffs
+strcasecmp
+strncasecmp
+// boardctl
+epoll_close
+epoll_create
+epoll_create1
+epoll_ctl
+epoll_pwait
+epoll_wait
+// eventfd
+/* inotify_add_watch */
+/* inotify_init */
+/* inotify_init1 */
+/* inotify_rm_watch */
+ioctl
+mmap
+msync
+munmap
+// shm_open
+// shm_unlink
+mount
+umount2
+// prctl
+// getrandom
+getpriority
+setpriority
+pselect
+select
+sendfile
+/* shmat */
+/* shmctl */
+/* shmdt */
+/* shmget */
+// signalfd
+/* accept4 */
+/* bind */
+/* connect */
+/* getpeername */
+/* getsockname */
+/* getsockopt */
+/* listen */
+/* recv */
+/* recvfrom */
+/* recvmsg */
+/* send */
+/* sendmsg */
+/* sendto */
+/* setsockopt */
+/* shutdown */
+/* socket */
+/* socketpair */
+chmod
+fchmod
+fstat
+futimens
+lchmod
+lstat
+lutimens
+mkdir
+stat
+utimens
+mkfifo
+fstatfs
+statfs
+fstatvfs
+statvfs
+sysinfo
+// adjtime
+getitimer
+gettimeofday
+setitimer
+settimeofday
+/* timerfd_create */
+/* timerfd_gettime */
+/* timerfd_settime */
+readv
+writev
+preadv
+pwritev
+uname
+wait
+waitid
+waitpid
+setlogmask
+syslog
+vsyslog
+// cfgetspeed
+// cfsetspeed
+// tcflush
+// tcgetattr
+// tcsetattr
+clock
+clock_gettime
+clock_nanosleep
+clock_settime
+nanosleep
+time
+timer_create
+timer_delete
+timer_getoverrun
+timer_gettime
+timer_settime
+clock_getcpuclockid
+clock_getres
+ctime
+gmtime
+gmtime_r
+localtime
+localtime_r
+mktime
+strftime
+strptime
+asctime
+_exit
+chown
+close
+dup
+dup2
+// execve
+fchown
+fsync
+ftruncate
+getegid
+geteuid
+getgid
+gethostname
+getpid
+getppid
+getuid
+lchown
+link
+lseek
+pipe2
+pread
+pwrite
+read
+readlink
+rmdir
+setegid
+seteuid
+setgid
+// sethostname
+setuid
+symlink
+sync
+unlink
+write
+alarm
+chdir
+// crypt
+// crypt_r
+// daemon
+// execv
+fchdir
+// fork
+getcwd
+get_current_dir_name
+getopt
+getoptargp
+getopterrp
+getoptindp
+getoptoptp
+getpass
+isatty
+nice
+sleep
+swab
+sysconf
+truncate
+usleep
+btowc
+fgetwc
+fgetwc_unlocked
+fputwc
+fputwc_unlocked
+fputws
+fputws_unlocked
+getwc
+mbrlen
+mbrtowc
+mbsnrtowcs
+mbsrtowcs
+putwc
+putwc_unlocked
+putwchar
+swprintf
+// towlower
+// towupper
+ungetwc
+ungetwc_unlocked
+wcrtomb
+wcscat
+wcschr
+wcscmp
+wcscoll
+wcscpy
+wcscspn
+wcsftime
+wcslcat
+wcsncat
+wcsncmp
+wcsncpy
+wcslcpy
+wcslen
+wcsnrtombs
+wcspbrk
+wcsrchr
+wcsspn
+wcsstr
+wcsrtombs
+wcstod
+wcstof
+wcstok
+wcstol
+wcstold
+wcstoll
+wcstoul
+wcswcs
+wcswidth
+wcsxfrm
+wctob
+wcwidth
+wmemchr
+wmemcmp
+wmemcpy
+wmemmove
+wmemset
+iswalnum
+iswalpha
+iswblank
+iswcntrl
+iswctype
+iswdigit
+iswgraph
+iswlower
+iswprint
+iswpunct
+iswspace
+iswupper
+iswxdigit
+wctype
+gettid
+pthread_get_stacksize_np
+mm_free
+mm_initialize
+mm_mallinfo
+mm_malloc
+mm_calloc
+mm_realloc
+mm_zalloc
+mm_memalign
+mm_heapmember
+mm_uninitialize
+__aeabi_l2d
+__aeabi_l2f
+__aeabi_ul2d
+__aeabi_ul2f
+__aeabi_uldivmod
+__aeabi_ldivmod
+__aeabi_fadd
+__aeabi_fsub
+__aeabi_fmul
+__aeabi_fdiv
+__aeabi_fcmpeq
+__aeabi_fcmplt
+__aeabi_fcmple
+__aeabi_fcmpge
+__aeabi_fcmpgt
+__aeabi_dadd
+__aeabi_dsub
+__aeabi_dmul
+__aeabi_ddiv
+__aeabi_dcmpeq
+__aeabi_dcmplt
+__aeabi_dcmple
+__aeabi_dcmpge
+__aeabi_dcmpgt
+__aeabi_idivmod
+__aeabi_uidivmod
+__aeabi_d2lz
+__aeabi_f2lz
+__aeabi_d2ulz
+__aeabi_f2ulz
+__errno
+open
+// __errno
+// jyt_nuttx_lcd_capture
+jyt_dual_scree_root_pos_x_trans
+jyt_dual_scree_root_pos_y_trans
+jyt_dual_scree_node_pos_x_trans
+jyt_dual_screen_set_root_distance
+send2host
+jyt_get_bat_state
+ConfigIMUDataPeriod
+ConfigMAGDataPeriod
+jyt_timer_create_and_start
+jyt_timer_stop
+jyt_timer_restart
+jyt_timer_delete
+jyt_get_bt_info
+jyt_get_ft_info
+set_system_time_from_string
+hal_crc16_ccitt
+hal_crc16_ccitt_v1
+hal_crc32
+GetTimeUs
+osal_waiting_mq_msg
+osal_delete_mq_msg
+osal_send_mq_msg
+osal_new_mq_msg
+play_prompt
+up_flush_dcache
+up_invalidate_dcache
+floatair_pid_log_mask_check
+floatair_os_version_string
+// nuttx_hal_rtc_set
+// sys_otaMode_enter
+rpmsgttf_open_font
+rpmsgttf_close_font
+rpmsgttf_get_glyph_dsc
+rpmsgttf_get_glyph_bmp
+rpmsgttf_release_glyph
+rpmsgttf_set_size
