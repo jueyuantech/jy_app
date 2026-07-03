@@ -23,6 +23,12 @@ typedef enum
 lcd_state_t floatair_lcd_get_state(void);
 
 /**
+ * @brief 判断 LCD 是否处于灭屏状态。
+ * @return true 表示 LCD 处于灭屏状态，false 表示 LCD 处于亮屏状态。
+ */
+bool floatair_lcd_is_off(void);
+
+/**
  * @brief Set the LCD state
  * @param state LCD state to set
  */

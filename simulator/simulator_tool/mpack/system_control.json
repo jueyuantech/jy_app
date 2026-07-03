@@ -1,0 +1,194 @@
+[
+    {
+        "biz": "SystemControl",
+        "cmd": "getView",
+        "data": {
+        },
+        "id": 0,
+        "name": "SystemControl.getView",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "sendTouchEvent",
+        "data": {
+            "event": 1
+        },
+        "id": 0,
+        "name": "SystemControl.sendTouchEvent.click",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "sendTouchEvent",
+        "data": {
+            "event": 2
+        },
+        "id": 0,
+        "name": "SystemControl.sendTouchEvent.dclick",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "sendTouchEvent",
+        "data": {
+            "event": 3
+        },
+        "id": 0,
+        "name": "SystemControl.sendTouchEvent.longPress",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "sendTouchEvent",
+        "data": {
+            "event": 6
+        },
+        "id": 0,
+        "name": "SystemControl.sendTouchEvent.left",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "sendTouchEvent",
+        "data": {
+            "event": 7
+        },
+        "id": 0,
+        "name": "SystemControl.sendTouchEvent.right",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "openAssistant",
+        "data": {
+            "area": 0,
+            "msgType": 0
+        },
+        "id": 0,
+        "name": "SystemControl.openAssistant",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "updateAssistantSttInfo",
+        "data": {
+            "actionType": 0,
+            "area": 0,
+            "createdAt": 1776916800000,
+            "id": 1,
+            "isFinal": 0,
+            "msgId": "assistant_1",
+            "msgType": 0,
+            "transcribe": "正在听...",
+            "translate": "",
+            "user": "User A"
+        },
+        "id": 0,
+        "name": "SystemControl.updateAssistantSttInfo",
+        "type": "DATA_UNRELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "updateAssistantSttInfo",
+        "data": {
+            "actionType": 1,
+            "area": 0,
+            "createdAt": 1776916801000,
+            "id": 1,
+            "isFinal": 1,
+            "msgId": "assistant_1",
+            "msgType": 0,
+            "transcribe": "帮我打开高尔夫。",
+            "translate": "",
+            "user": "User A"
+        },
+        "id": 0,
+        "name": "SystemControl.updateAssistantSttInfo",
+        "type": "DATA_UNRELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "updateAssistantSttInfo",
+        "data": {
+            "actionType": 1,
+            "area": 1,
+            "createdAt": 1776916802000,
+            "id": 2,
+            "isFinal": 1,
+            "msgId": "assistant_2",
+            "msgType": 0,
+            "transcribe": "好的，正在打开高尔夫。",
+            "translate": "",
+            "user": "Assistant"
+        },
+        "id": 0,
+        "name": "SystemControl.updateAssistantSttInfo",
+        "type": "DATA_UNRELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "updateAssistantSttInfo",
+        "data": {
+            "actionType": 1,
+            "area": 0,
+            "createdAt": 1776916803000,
+            "id": 3,
+            "isFinal": 1,
+            "msgId": "assistant_3",
+            "msgType": 0,
+            "transcribe": "再帮我把亮度调高一点。",
+            "translate": "",
+            "user": "User A"
+        },
+        "id": 0,
+        "name": "SystemControl.updateAssistantSttInfo",
+        "type": "DATA_UNRELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "closeAssistant",
+        "data": {
+        },
+        "id": 0,
+        "name": "SystemControl.closeAssistant",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "sendHeartbeat",
+        "data": {
+        },
+        "id": 0,
+        "name": "SystemControl.sendHeartbeat",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "sendKeepAlive",
+        "data": {
+        },
+        "id": 0,
+        "name": "SystemControl.sendKeepAlive",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "sendHandshake",
+        "data": {
+        },
+        "id": 0,
+        "name": "SystemControl.sendHandshake",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "setUploadProgressVisible",
+        "data": {
+            "visible": 1
+        },
+        "id": 0,
+        "name": "SystemControl.setUploadProgressVisible",
+        "type": "DATA_RELIABLE"
+    }
+]

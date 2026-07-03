@@ -344,11 +344,30 @@ class PreviewRuntimeTests(unittest.TestCase):
         self.assertEqual(preview_runtime.OVERLAY_DEFAULT_MAX_ITEMS, 16)
         self.assertEqual(preview_runtime.OVERLAY_DEFAULT_POINT_SIZE, 6)
         self.assertEqual(preview_runtime.OVERLAY_DEFAULT_POINT_OPA, 255)
+        self.assertEqual(preview_runtime.OVERLAY_DEFAULT_LINE_WIDTH, 1)
+        self.assertEqual(preview_runtime.OVERLAY_DEFAULT_LINE_OPA, 255)
         self.assertEqual(preview_runtime.PAGED_TEXT_DEFAULT_MASK_OPA, 153)
         self.assertEqual(preview_runtime.PAGED_TEXT_DEFAULT_BORDER_WIDTH, 2)
         self.assertEqual(preview_runtime.PAGED_TEXT_DEFAULT_RADIUS, 6)
         self.assertEqual(preview_runtime.PAGED_TEXT_DEFAULT_OUTSET, 10)
         self.assertEqual(preview_runtime.PAGED_TEXT_DEFAULT_STEP_PERCENT, 100)
+        self.assertEqual(preview_runtime.PROGRESS_INDICATOR_DEFAULT_GAP, 10)
+        self.assertEqual(preview_runtime.PROGRESS_INDICATOR_DEFAULT_ICON_SIZE, 80)
+        self.assertEqual(preview_runtime.PROGRESS_INDICATOR_DEFAULT_ICON_SRC, "@image/connecting")
+
+    def test_overlay_preview_draws_line_with_configured_width(self):
+        image = Image.new("RGBA", (80, 60), (0, 0, 0, 255))
+        draw = ImageDraw.Draw(image)
+        node = {
+            "type": "overlay",
+            "max_items": 1,
+            "point": {"size": 0, "opa": "transparent"},
+            "line": {"width": 5, "opa": "cover"},
+        }
+
+        preview_runtime.draw_overlay(draw, node, preview_runtime.Box(0, 0, 80, 60), {}, {}, None)
+
+        self.assertEqual(image.getpixel((40, 30)), preview_runtime.FG_COLOR)
 
     def test_renders_roller_widget(self):
         doc = {
@@ -367,6 +386,44 @@ class PreviewRuntimeTests(unittest.TestCase):
         image = Image.open(io.BytesIO(png))
 
         self.assertGreater(len(set(image.getdata())), 1)
+
+    def test_renders_progress_indicator_widget(self):
+        doc = {
+            "name": "progress",
+            "root": {
+                "type": "progress_indicator",
+                "id": "loading",
+                "geometry": {"x": 0, "y": 0, "w": 120, "h": 120},
+                "gap": 8,
+                "icon": {"size": {"w": 40, "h": 40}},
+                "text": {
+                    "text": "68%",
+                    "size": {"w": "100%", "h": "content"},
+                    "align": "center",
+                    "overflow": "clip",
+                    "font": {"weight": 18},
+                },
+            },
+        }
+
+        png = preview_runtime.render_png(doc, width=120, height=120)
+        image = Image.open(io.BytesIO(png))
+
+        self.assertGreater(len(set(image.getdata())), 1)
+        self.assertEqual(preview_runtime.progress_indicator_text_config(doc["root"])["text"], "68%")
+        self.assertEqual(preview_runtime.progress_indicator_icon_config(doc["root"])["src"], "@image/connecting")
+        self.assertGreater(preview_runtime.estimate_content_height(doc["root"], 120), 40)
+
+    def test_resolves_pillow_resource_image(self):
+        source = Image.new("RGBA", (3, 2), (10, 20, 30, 255))
+        node = {"type": "img", "src": "@image/connecting"}
+        resources = {"_decoded_images": {"connecting": source}}
+
+        resolved = preview_runtime.resolve_resource_image(node, resources)
+
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved.size, (3, 2))
+        self.assertIsNot(resolved, source)
 
     def test_paged_text_content_height_uses_label_config(self):
         node = {

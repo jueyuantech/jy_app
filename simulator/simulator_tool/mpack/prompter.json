@@ -1,0 +1,102 @@
+[
+  {
+    "name": "SystemControl.setView",
+    "id": 0,
+    "biz": "SystemControl",
+    "cmd": "setView",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "viewName": "prompter"
+    }
+  },
+  {
+    "name": "prompter.getTextLayout",
+    "id": 5,
+    "biz": "prompter",
+    "cmd": "getTextLayout",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "prompter.setFontConfig",
+    "id": 5,
+    "biz": "prompter",
+    "cmd": "setFontConfig",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "fontConfig": {
+        "weight": 32,
+        "wordSpace": 0,
+        "rowSpace": 0
+      }
+    }
+  },
+  {
+    "name": "prompter.setFileListMenu",
+    "id": 5,
+    "biz": "prompter",
+    "cmd": "setFileListMenu",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "menuId": 1,
+      "defaultItemId": 1,
+      "itemCount": 2,
+      "items": [
+        {
+          "id": 1,
+          "label": "demo.txt"
+        },
+        {
+          "id": 2,
+          "label": "notes.txt"
+        }
+      ]
+    }
+  },
+  {
+    "name": "prompter.setPrompterFile",
+    "id": 5,
+    "biz": "prompter",
+    "cmd": "setPrompterFile",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "dir": "/jyt_d/apps/prompter",
+      "name": "demo.txt",
+      "size": 5,
+      "crc32": 0
+    }
+  },
+  {
+    "name": "prompter.seekTo",
+    "id": 5,
+    "biz": "prompter",
+    "cmd": "seekTo",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "offset": 0,
+      "length": 256,
+      "topMaskHeight": 0,
+      "bottomMaskHeight": 0
+    }
+  },
+  {
+    "name": "prompter.setTick",
+    "id": 5,
+    "biz": "prompter",
+    "cmd": "setTick",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "tick": 30
+    }
+  },
+  {
+    "name": "prompter.setState",
+    "id": 5,
+    "biz": "prompter",
+    "cmd": "setState",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "state": 1
+    }
+  }
+]

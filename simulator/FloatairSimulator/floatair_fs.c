@@ -55,7 +55,7 @@ static int fs_stat_path(const char* path, floatair_stat_t* st_out)
 
 #define SYSTEM_ROOT_PATH "/jyt_d"
 #define LVGL_SYSTEM_IMAGES_PATH "/romfs/system/images/"
-#define LVGL_SYSTEM_FONT_FILE   "/romfs/system/font/font.ttf"
+#define LVGL_SYSTEM_FONT_FILE   "/romfs/system/font/font.ttf" ///< 系统常规文字字体文件。
 #define LVGL_SYSTEM_I18N_PATH   "/jyt_d/system/i18n"
 #define SYSTEM_CONFIG_FILE "/jyt_d/system/config.json"
 

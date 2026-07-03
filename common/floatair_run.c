@@ -23,7 +23,7 @@
 #include "app_lcd.h"
 #include "app_def.h"
 #include "common/app_framework/app_stereo.h"
-#include "common/elf_common.h"
+#include "elf_common.h"
 #include "system/system_timer.h"
 #include "mpack.h"
 #include "common/app_framework/app_router.h"
@@ -225,9 +225,12 @@ static void app_msg_recv(void) {
                 }
                 floatair_err("handle ret false");
             } else {
-                //floatair_info("handle true, lv_timer_handler()");
-                lv_timer_handler(); // 先补刷一个，响应UI变化
-                refreshed = true;
+                if (!floatair_lcd_is_off()) {
+                    lv_timer_handler(); // 先补刷一个，响应UI变化
+                    refreshed = true;
+                } else {
+                    floatair_info("skip lv_timer_handler while lcd off");
+                }
             }
             /* The wrapped ELF message is heap-allocated by system_manager and
              * passed through the MQ as a raw pointer, so the consumer must

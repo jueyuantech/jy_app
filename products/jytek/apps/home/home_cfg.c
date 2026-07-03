@@ -10,6 +10,7 @@
 #include "home.h"
 #include "system/system_config_json.h"
 #include "floatair_fs.h"
+#include "ui_res.h"
 
 bool only_center_name    = false;
 
@@ -23,13 +24,13 @@ int32_t layout_gap = LVGL_UI_MARGIN_100;
 bool home_enable_app_float = true;
 
 const app_home_unit_t g_home_units_arr[] = {
-    {APP_NAME_PROMPTER, FLOATAIR_SYS_IMG("prompterB.jpg"), FLOATAIR_SYS_IMG("prompterS.jpg"), "IDLE_PROMP"},
-    {APP_NAME_TRANSLATE, FLOATAIR_SYS_IMG("translateB.jpg"), FLOATAIR_SYS_IMG("translateS.jpg"), "IDLE_TRANS"},
-    {APP_NAME_TRANSCRIBE, FLOATAIR_SYS_IMG("transcribeB.jpg"), FLOATAIR_SYS_IMG("transcribeS.jpg"), "IDLE_ASR"},
-    {APP_NAME_AI, FLOATAIR_SYS_IMG("assistantB.jpg"), FLOATAIR_SYS_IMG("assistantS.jpg"), "IDLE_AI"},
-    // {APP_NAME_READER, FLOATAIR_SYS_IMG("readerB.jpg"), FLOATAIR_SYS_IMG("readerS.jpg"), "IDLE_BOOK"},
-    {APP_NAME_NAVIGATION, FLOATAIR_SYS_IMG("navigationB.jpg"), FLOATAIR_SYS_IMG("navigationS.jpg"), "IDLE_NAVI"},
-    //{APP_NAME_MUSIC, FLOATAIR_SYS_IMG("musicB.jpg"), FLOATAIR_SYS_IMG("musicS.jpg"), "IDLE_MUSIC"},
+    {APP_NAME_PROMPTER, UI_RES_IMAGE_PROMPTERB, UI_RES_IMAGE_PROMPTERS, "IDLE_PROMP"},
+    {APP_NAME_TRANSLATE, UI_RES_IMAGE_TRANSLATEB, UI_RES_IMAGE_TRANSLATES, "IDLE_TRANS"},
+    {APP_NAME_TRANSCRIBE, UI_RES_IMAGE_TRANSCRIBEB, UI_RES_IMAGE_TRANSCRIBES, "IDLE_ASR"},
+    {APP_NAME_AI, UI_RES_IMAGE_ASSISTANTB, UI_RES_IMAGE_ASSISTANTS, "IDLE_AI"},
+    // {APP_NAME_READER, UI_RES_IMAGE_READERB, UI_RES_IMAGE_READERS, "IDLE_BOOK"},
+    {APP_NAME_NAVIGATION, UI_RES_IMAGE_NAVIGATIONB, UI_RES_IMAGE_NAVIGATIONS, "IDLE_NAVI"},
+    //{APP_NAME_MUSIC, UI_RES_IMAGE_MUSICB, UI_RES_IMAGE_MUSICS, "IDLE_MUSIC"},
 };
 
 const size_t g_home_units_count = sizeof(g_home_units_arr) / sizeof(g_home_units_arr[0]);

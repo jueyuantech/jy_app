@@ -52,6 +52,30 @@ static bool app_layers_obj_valid(lv_obj_t* obj) {
 }
 
 /**
+ * @brief 判断视差层是否存在可见内容对象。
+ * @param[in] layer 待检查的视差层对象。
+ * @return `true` 表示层内存在未隐藏的直接子对象。
+ */
+static bool app_layers_layer_has_visible_content(lv_obj_t* layer) {
+    uint32_t child_count = 0;
+
+    if (!app_layers_obj_valid(layer) || lv_obj_has_flag(layer, LV_OBJ_FLAG_HIDDEN)) {
+        return false;
+    }
+
+    child_count = lv_obj_get_child_count(layer);
+    for (uint32_t i = 0; i < child_count; i++) {
+        lv_obj_t* child = lv_obj_get_child(layer, (int32_t)i);
+
+        if (app_layers_obj_valid(child) && !lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * @brief 判断现有层级对象是否仍可复用。
  * @param[in] root 期望的根对象。
  * @return `true` 表示可以复用，`false` 表示需要重建。
@@ -317,6 +341,82 @@ static bool app_layers_area_intersect(lv_area_t* result, const lv_area_t* first,
 }
 
 /**
+ * @brief 在当前 draw buffer 内将左眼同位置像素复制到右眼区域。
+ * @param[in,out] buf 当前输出 draw buffer。
+ * @param[in] flush_area 当前 buffer 对应的显示区域；完整输出 buffer 时可为 `NULL`。
+ * @param[in] right_area 需要写入的右眼绝对坐标区域。
+ * @param[in] px_size 单像素字节数。
+ * @return `true` 表示复制成功，`false` 表示当前 buffer 不具备复制条件。
+ */
+static bool app_layers_copy_left_eye_to_right(lv_draw_buf_t* buf,
+                                              const lv_area_t* flush_area,
+                                              const lv_area_t* right_area,
+                                              uint32_t px_size) {
+    lv_area_t buf_area;
+    lv_area_t left_area;
+    int32_t left_origin_x = 0;
+    int32_t left_origin_y = 0;
+    int32_t right_origin_x = 0;
+    int32_t right_origin_y = 0;
+    int32_t width = 0;
+    int32_t height = 0;
+    size_t row_bytes = 0;
+    size_t src_last = 0;
+    size_t dst_last = 0;
+
+    if (buf == NULL || buf->data == NULL || right_area == NULL || px_size == 0u || buf->header.stride == 0u) {
+        return false;
+    }
+
+    if ((int32_t)buf->header.w == app_stereo_get_output_width() &&
+        (int32_t)buf->header.h == app_stereo_get_output_height()) {
+        lv_area_set(&buf_area, 0, 0, (int32_t)buf->header.w - 1, (int32_t)buf->header.h - 1);
+    } else if (flush_area != NULL &&
+               (int32_t)buf->header.w == lv_area_get_width(flush_area) &&
+               (int32_t)buf->header.h == lv_area_get_height(flush_area)) {
+        buf_area = *flush_area;
+    } else {
+        return false;
+    }
+
+    app_stereo_get_eye_origin(APP_STEREO_EYE_LEFT, &left_origin_x, &left_origin_y);
+    app_stereo_get_eye_origin(APP_STEREO_EYE_RIGHT, &right_origin_x, &right_origin_y);
+    left_area = *right_area;
+    lv_area_move(&left_area, left_origin_x - right_origin_x, left_origin_y - right_origin_y);
+
+    if (!app_layers_area_is_in(&left_area, &buf_area) ||
+        !app_layers_area_is_in(right_area, &buf_area)) {
+        return false;
+    }
+
+    width = lv_area_get_width(right_area);
+    height = lv_area_get_height(right_area);
+    if (width <= 0 || height <= 0) {
+        return false;
+    }
+
+    row_bytes = (size_t)width * px_size;
+    src_last = (size_t)(left_area.y1 - buf_area.y1 + height - 1) * buf->header.stride +
+               (size_t)(left_area.x1 - buf_area.x1) * px_size + row_bytes;
+    dst_last = (size_t)(right_area->y1 - buf_area.y1 + height - 1) * buf->header.stride +
+               (size_t)(right_area->x1 - buf_area.x1) * px_size + row_bytes;
+    if (src_last > buf->data_size || dst_last > buf->data_size) {
+        return false;
+    }
+
+    for (int32_t y = 0; y < height; y++) {
+        uint8_t* src = buf->data + (size_t)(left_area.y1 - buf_area.y1 + y) * buf->header.stride +
+                       (size_t)(left_area.x1 - buf_area.x1) * px_size;
+        uint8_t* dst = buf->data + (size_t)(right_area->y1 - buf_area.y1 + y) * buf->header.stride +
+                       (size_t)(right_area->x1 - buf_area.x1) * px_size;
+
+        memmove(dst, src, row_bytes);
+    }
+
+    return true;
+}
+
+/**
  * @brief app framework 右眼分层渲染回调。
  * @param[in] disp LVGL display。
  * @param[in,out] buf 当前输出 draw buffer。
@@ -336,6 +436,7 @@ static bool app_layers_render_eye_cb(lv_display_t* disp,
     uint32_t px_size = 0;
     size_t right_data_size = 0;
     lv_area_t right_eye_area;
+    lv_area_t right_target_area;
     lv_area_t right_flush_area;
     lv_area_t right_local_area;
     int32_t buf_origin_x = 0;
@@ -363,27 +464,43 @@ static bool app_layers_render_eye_cb(lv_display_t* disp,
                 right_origin_x + eye_w - 1,
                 right_origin_y + eye_h - 1);
 
+    right_target_area = flush_area != NULL ? *flush_area : right_eye_area;
+    if (!app_layers_area_intersect(&right_flush_area, &right_target_area, &right_eye_area)) {
+        return false;
+    }
+    right_local_area = right_flush_area;
+    lv_area_move(&right_local_area, -right_origin_x, -right_origin_y);
+
+    if (!app_layers_layer_has_visible_content(g_layers.app_float) &&
+        !app_layers_layer_has_visible_content(g_layers.popup) &&
+        app_layers_copy_left_eye_to_right(buf, flush_area, &right_flush_area, px_size)) {
+        return true;
+    }
+
     if ((int32_t)buf->header.w == app_stereo_get_output_width() &&
         (int32_t)buf->header.h == app_stereo_get_output_height()) {
-        lv_area_set(&right_local_area, 0, 0, eye_w - 1, eye_h - 1);
-        right_data_size = ((size_t)eye_h - 1u) * buf->header.stride + (size_t)eye_w * px_size;
-        if (buf->data_size <
-            (size_t)right_origin_y * buf->header.stride + (size_t)right_origin_x * px_size + right_data_size) {
+        right_data_offset = (size_t)right_flush_area.y1 * buf->header.stride +
+                            (size_t)right_flush_area.x1 * px_size;
+        right_data_size = ((size_t)lv_area_get_height(&right_flush_area) - 1u) * buf->header.stride +
+                          (size_t)lv_area_get_width(&right_flush_area) * px_size;
+        if (right_data_offset + right_data_size > buf->data_size) {
             return false;
         }
 
         right_buf = *buf;
-        right_buf.header.w = (uint32_t)eye_w;
-        right_buf.header.h = (uint32_t)eye_h;
-        right_buf.data = buf->data + (size_t)right_origin_y * buf->header.stride + (size_t)right_origin_x * px_size;
+        right_buf.header.w = (uint32_t)lv_area_get_width(&right_flush_area);
+        right_buf.header.h = (uint32_t)lv_area_get_height(&right_flush_area);
+        right_buf.data = buf->data + right_data_offset;
         right_buf.data_size = (uint32_t)right_data_size;
-        app_layers_clear_draw_buf(&right_buf, eye_w, eye_h, px_size);
+        app_layers_clear_draw_buf(&right_buf,
+                                  lv_area_get_width(&right_flush_area),
+                                  lv_area_get_height(&right_flush_area),
+                                  px_size);
         app_layers_redraw_right_eye_layers(disp, &right_buf, &right_local_area);
         return true;
     }
 
     if (flush_area == NULL ||
-        !app_layers_area_intersect(&right_flush_area, flush_area, &right_eye_area) ||
         !app_layers_area_is_in(&right_flush_area, flush_area)) {
         return false;
     }
@@ -395,8 +512,6 @@ static bool app_layers_render_eye_cb(lv_display_t* disp,
 
     buf_origin_x = flush_area->x1;
     buf_origin_y = flush_area->y1;
-    right_local_area = right_flush_area;
-    lv_area_move(&right_local_area, -right_origin_x, -right_origin_y);
     right_data_offset = (size_t)(right_flush_area.y1 - buf_origin_y) * buf->header.stride +
                         (size_t)(right_flush_area.x1 - buf_origin_x) * px_size;
     right_data_size = ((size_t)lv_area_get_height(&right_flush_area) - 1u) * buf->header.stride +

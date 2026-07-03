@@ -1,0 +1,30 @@
+{
+  "name": "prompter_file_transfer",
+  "root": {
+    "type": "container",
+    "id": "transfer_box",
+    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
+    "opa": "cover",
+    "visible": false,
+    "layout": {
+      "type": "vbox",
+      "spacing": 0,
+      "main_align": "center",
+      "cross_align": "center"
+    },
+    "scroll": { "enabled": false },
+    "children": [
+      {
+        "type": "progress_indicator",
+        "id": "transfer_indicator",
+        "size": { "w": "100%", "h": "content" },
+        "text": {
+          "text": "0%",
+          "size": { "w": "100%", "h": "content" },
+          "align": "center",
+          "overflow": "wrap"
+        }
+      }
+    ]
+  }
+}

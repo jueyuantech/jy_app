@@ -1,0 +1,229 @@
+[
+  {
+    "name": "SystemControl.setView",
+    "id": 0,
+    "biz": "SystemControl",
+    "cmd": "setView",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "viewName": "transcribe"
+    }
+  },
+  {
+    "name": "transcribe.clearView",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "clearView",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "transcribe.setFontConfig",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setFontConfig",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "fontConfig": {
+        "weight": 32,
+        "wordSpace": 0,
+        "rowSpace": 0
+      }
+    }
+  },
+  {
+    "name": "transcribe.updateSttInfo",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 1,
+      "area": 0,
+      "msgId": "transcribe_1",
+      "msgType": 0,
+      "actionType": 0,
+      "isFinal": 0,
+      "user": "User A",
+      "transcribe": "Testing microphone input...",
+      "createdAt": 1776916800000
+    }
+  },
+  {
+    "name": "transcribe.updateSttInfo",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 1,
+      "area": 0,
+      "msgId": "transcribe_1",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "Testing microphone input is complete.",
+      "createdAt": 1776916801000
+    }
+  },
+  {
+    "name": "transcribe.updateSttInfo",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 2,
+      "area": 0,
+      "msgId": "transcribe_2",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "Short sentence.",
+      "createdAt": 1776916802000
+    }
+  },
+  {
+    "name": "transcribe.updateSttInfo",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 3,
+      "area": 0,
+      "msgId": "transcribe_3",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "This is a longer transcribe message used to verify line wrapping and scrolling behavior on the glasses screen.",
+      "createdAt": 1776916803000
+    }
+  },
+  {
+    "name": "transcribe.updateSttInfo",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 4,
+      "area": 0,
+      "msgId": "transcribe_4",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "Numbers and symbols: 12345, 67.89%, A/B, example.com/path?x=1&y=2.",
+      "createdAt": 1776916804000
+    }
+  },
+  {
+    "name": "transcribe.updateSttInfo",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 5,
+      "area": 0,
+      "msgId": "transcribe_5",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User B",
+      "transcribe": "Another speaker joins the conversation.",
+      "createdAt": 1776916805000
+    }
+  },
+  {
+    "name": "transcribe.setTextMode",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setTextMode",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "textMode": 1
+    }
+  },
+  {
+    "name": "transcribe.setAudioTrackState",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setAudioTrackState",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "audioTrack": 1
+    }
+  },
+  {
+    "name": "transcribe.setTransMode",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setTransMode",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "transMode": 0
+    }
+  },
+  {
+    "name": "transcribe.setMaxLine",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setMaxLine",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "maxLine": 3
+    }
+  },
+  {
+    "name": "transcribe.setAudioSourceIndicator",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setAudioSourceIndicator",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "audioSourceIndicator": 1
+    }
+  },
+  {
+    "name": "transcribe.setMicDirectional",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setMicDirectional",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "micDirectional": 0
+    }
+  },
+  {
+    "name": "transcribe.setLanguageHint",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setLanguageHint",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "languageHint": {
+        "mode": 0,
+        "source": "en-US",
+        "target": ""
+      }
+    }
+  },
+  {
+    "name": "transcribe.textDirection",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "textDirection",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "textDirection": {
+        "source": 0,
+        "target": 0
+      }
+    }
+  }
+]

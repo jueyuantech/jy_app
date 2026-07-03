@@ -375,11 +375,71 @@ h2 {
   background: rgba(0, 0, 0, .18);
 }
 
+.node.progress_indicator {
+  font-family: FloatairSystem, "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+  background: transparent;
+  outline-color: rgba(95, 179, 255, .45);
+}
+
+.progressIndicatorIcon {
+  position: relative;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, .72);
+}
+
+.progressIndicatorIcon::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 999px;
+  border: 6px solid rgba(255, 255, 255, .18);
+  border-top-color: rgba(255, 255, 255, .9);
+}
+
+.progressIndicatorIcon .imageContent {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  transform-origin: center;
+}
+
+.progressIndicatorIcon.hasImage {
+  border-color: transparent;
+}
+
+.progressIndicatorIcon.hasImage::after {
+  display: none;
+}
+
+.progressIndicatorText {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.progressIndicatorText .labelContent {
+  display: block;
+}
+
 .overlayPoints {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 10px;
   align-items: center;
   justify-content: center;
+}
+
+.overlayLine {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .overlayPoints span {
@@ -393,6 +453,7 @@ h2 {
   display: grid;
   place-items: center;
   overflow: hidden;
+  z-index: 2;
 }
 
 .treeItem {

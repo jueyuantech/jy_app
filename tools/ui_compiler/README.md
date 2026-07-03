@@ -73,12 +73,13 @@ First version supports:
 - `button`
 - `overlay`
 - `paged_text`
+- `progress_indicator`
 - `roller`
 
 The generator uses `common/widgets` wrappers instead of direct LVGL object creation.
 
-`overlay` supports `max_items`, `point.size`, `point.opa`, and an embedded
-`text` label config for default overlay text style.
+`overlay` supports `max_items`, `point.size`, `point.opa`, `line.width`,
+`line.opa`, and an embedded `text` label config for default overlay text style.
 
 `paged_text` supports top-level geometry/size fields, embedded `label` config,
 optional `highlight` (`mask_opa`, `border_width`, `radius`, `outset`),
@@ -87,6 +88,11 @@ optional `highlight` (`mask_opa`, `border_width`, `radius`, `outset`),
 `roller` supports static `items`, embedded `label` config, `selected_font`,
 `overflow_mode` (`scroll` or `expand_height`), `row_height`, `row_gap`,
 `selected_pad_ver`, `radius`, `border_width`, `opa_normal`, and `opa_selected`.
+
+`progress_indicator` supports top-level geometry/size fields, `gap`, embedded
+`icon` image config (`src`, geometry/size, `opa`, offsets, `zoom`, `rotation`),
+and embedded `text` label config. It also accepts top-level `text` as a simple
+string and top-level `text_key` for the common percent/status-text case.
 
 ## Resource References
 

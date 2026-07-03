@@ -15,6 +15,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
+from PIL import Image
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -62,9 +64,13 @@ def read_preview_resources(root: Path) -> dict:
         if not isinstance(image, dict):
             continue
         symbol = image.get("symbol")
-        if not isinstance(symbol, str) or not symbol:
-            continue
-        decoded = read_lvgl_image(root, symbol)
+        if isinstance(symbol, str) and symbol:
+            decoded = read_lvgl_image(root, symbol)
+            if decoded is not None:
+                decoded_images[image_id] = decoded
+                continue
+        path = image.get("path")
+        decoded = read_file_image(root, path) if isinstance(path, str) and path else None
         if decoded is not None:
             decoded_images[image_id] = decoded
     if decoded_images:
@@ -105,6 +111,29 @@ def read_lvgl_image(root: Path, symbol: str):
     if not raw:
         return None
     return {"w": width, "h": height, "stride": stride, "cf": cf, "data": raw}
+
+
+def read_file_image(root: Path, resource_path: str) -> Image.Image | None:
+    path = resolve_resource_image_file(root, resource_path)
+    if path is None:
+        return None
+    try:
+        with Image.open(path) as image:
+            return image.convert("RGBA")
+    except OSError:
+        return None
+
+
+def resolve_resource_image_file(root: Path, resource_path: str) -> Path | None:
+    normalized = resource_path.replace("\\", "/").strip()
+    if not normalized:
+        return None
+    rel = normalized.lstrip("/")
+    root_resolved = root.resolve()
+    resolved = (root / rel).resolve()
+    if resolved != root_resolved and root_resolved not in resolved.parents:
+        return None
+    return resolved if resolved.is_file() else None
 
 
 def read_c_int_field(body: str, name: str) -> int:

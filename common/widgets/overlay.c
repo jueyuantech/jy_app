@@ -1,22 +1,34 @@
+/**
+ * @file overlay.c
+ * @brief 通用叠加层组件实现，统一管理点位、线段与文本标注对象。
+ */
 #include "overlay.h"
 
 #include <string.h>
 
+/* Overlay 点位默认直径。 */
 #define OVERLAY_POINT_DEFAULT_SIZE 6
+/* Overlay 点位默认透明度。 */
 #define OVERLAY_POINT_DEFAULT_OPA LV_OPA_COVER
-
+/* Overlay 线段默认线宽。 */
+#define OVERLAY_LINE_DEFAULT_WIDTH 1
+/* Overlay 线段默认透明度。 */
+#define OVERLAY_LINE_DEFAULT_OPA LV_OPA_COVER
 /**
  * @brief 通用叠加层组件内部数据结构。
  */
 struct overlay_t {
-    ui_widget_t base;     ///< 统一组件基类。
-    lv_obj_t** points;    ///< 点位对象数组。
-    label_t** texts;      ///< 文本对象数组。
-    uint16_t max_items;   ///< 可用点位/文本槽位总数。
-    uint16_t point_count; ///< 当前已追加的点位数量。
-    uint16_t text_count;  ///< 当前已追加的文本数量。
-    overlay_point_t point_cfg;///< 默认点位配置。
-    label_cfg_t text_cfg; ///< 默认文本配置。
+    ui_widget_t base;          ///< 统一组件基类。
+    lv_obj_t** points;         ///< 点位对象数组。
+    overlay_line_t* lines;     ///< 线段配置数组。
+    label_t** texts;           ///< 文本对象数组。
+    uint16_t max_items;        ///< 可用点位、线段、文本槽位总数。
+    uint16_t point_count;      ///< 当前已追加的点位数量。
+    uint16_t line_count;       ///< 当前已追加的线段数量。
+    uint16_t text_count;       ///< 当前已追加的文本数量。
+    overlay_point_t point_cfg; ///< 默认点位配置。
+    overlay_line_t line_cfg;   ///< 默认线段配置。
+    label_cfg_t text_cfg;      ///< 默认文本配置。
 };
 
 /**
@@ -27,6 +39,129 @@ struct overlay_t {
  */
 bool overlay_is_valid(overlay_t* overlay) {
     return overlay && ui_widget_is_valid(UI_WIDGET(overlay));
+}
+
+/**
+ * @brief 按需隐藏 LVGL 对象，避免重复隐藏制造无效刷新区域。
+ *
+ * @param obj 目标 LVGL 对象。
+ * @return 无返回值。
+ */
+static void overlay_hide_obj(lv_obj_t* obj) {
+    if (obj && !lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) {
+        lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+/**
+ * @brief 按需显示 LVGL 对象，避免重复显示制造无效刷新区域。
+ *
+ * @param obj 目标 LVGL 对象。
+ * @return 无返回值。
+ */
+static void overlay_show_obj(lv_obj_t* obj) {
+    if (obj && lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) {
+        lv_obj_remove_flag(obj, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+/**
+ * @brief 计算线段实际绘制参数。
+ *
+ * @param overlay 目标组件句柄。
+ * @param line 线段配置。
+ * @param width 输出实际线宽。
+ * @param opa 输出实际透明度。
+ * @return `true` 表示线段可见，`false` 表示无需绘制。
+ */
+static bool overlay_resolve_line_draw(const overlay_t* overlay,
+                                      const overlay_line_t* line,
+                                      int32_t* width,
+                                      lv_opa_t* opa) {
+    int32_t resolved_width;
+    uint8_t resolved_opa;
+
+    if (!overlay || !line || !width || !opa) {
+        return false;
+    }
+
+    resolved_width = line->width > 0
+                         ? line->width
+                         : (overlay->line_cfg.width > 0
+                                ? overlay->line_cfg.width
+                                : OVERLAY_LINE_DEFAULT_WIDTH);
+    resolved_opa = line->opa > 0
+                       ? line->opa
+                       : (overlay->line_cfg.opa > 0
+                              ? overlay->line_cfg.opa
+                              : OVERLAY_LINE_DEFAULT_OPA);
+    if (resolved_width <= 0 || resolved_opa == 0) {
+        return false;
+    }
+
+    *width = resolved_width;
+    *opa = (lv_opa_t)resolved_opa;
+    return true;
+}
+
+/**
+ * @brief 标记单条线段覆盖区域为脏区。
+ *
+ * @param overlay 目标组件句柄。
+ * @param line 线段配置。
+ * @return 无返回值。
+ */
+static void overlay_invalidate_line_area(overlay_t* overlay, const overlay_line_t* line) {
+    lv_obj_t* obj = NULL;
+    lv_area_t overlay_area;
+    lv_area_t line_area;
+    int32_t width = 0;
+    lv_opa_t opa = LV_OPA_TRANSP;
+    int32_t radius;
+    int32_t x0;
+    int32_t y0;
+    int32_t x1;
+    int32_t y1;
+
+    if (!overlay_is_valid(overlay) || !line ||
+        !overlay_resolve_line_draw(overlay, line, &width, &opa)) {
+        return;
+    }
+
+    obj = ui_widget_get_obj(UI_WIDGET(overlay));
+    if (!obj) {
+        return;
+    }
+
+    lv_obj_get_coords(obj, &overlay_area);
+    radius = width / 2;
+    x0 = overlay_area.x1 + line->start_x;
+    y0 = overlay_area.y1 + line->start_y;
+    x1 = overlay_area.x1 + line->end_x;
+    y1 = overlay_area.y1 + line->end_y;
+    line_area.x1 = LV_MIN(x0, x1) - radius;
+    line_area.y1 = LV_MIN(y0, y1) - radius;
+    line_area.x2 = LV_MAX(x0, x1) + radius;
+    line_area.y2 = LV_MAX(y0, y1) + radius;
+    lv_obj_invalidate_area(obj, &line_area);
+}
+
+/**
+ * @brief 批量标记线段覆盖区域为脏区。
+ *
+ * @param overlay 目标组件句柄。
+ * @param lines 线段数组。
+ * @param count 线段数量。
+ * @return 无返回值。
+ */
+static void overlay_invalidate_lines(overlay_t* overlay, const overlay_line_t* lines, uint16_t count) {
+    if (!lines) {
+        return;
+    }
+
+    for (uint16_t i = 0; i < count; ++i) {
+        overlay_invalidate_line_area(overlay, &lines[i]);
+    }
 }
 
 /**
@@ -76,12 +211,108 @@ static void overlay_on_delete(lv_event_t* e) {
     if (overlay->points) {
         lv_free(overlay->points);
     }
+    if (overlay->lines) {
+        lv_free(overlay->lines);
+    }
     if (overlay->texts) {
         lv_free(overlay->texts);
     }
 
     lv_free(overlay);
     lv_obj_set_user_data(obj, NULL);
+}
+
+/**
+ * @brief 使用 Bresenham 光栅化绘制线段，避开后端斜线绘制差异。
+ *
+ * @param layer LVGL 绘制层。
+ * @param x0 起点全局 X 坐标。
+ * @param y0 起点全局 Y 坐标。
+ * @param x1 终点全局 X 坐标。
+ * @param y1 终点全局 Y 坐标。
+ * @param width 线宽。
+ * @param opa 透明度。
+ * @return 无返回值。
+ */
+static void overlay_draw_raster_line(lv_layer_t* layer,
+                                     int32_t x0,
+                                     int32_t y0,
+                                     int32_t x1,
+                                     int32_t y1,
+                                     int32_t width,
+                                     lv_opa_t opa) {
+    lv_draw_rect_dsc_t rect_dsc;
+    int32_t dx = LV_ABS(x1 - x0);
+    int32_t sx = x0 < x1 ? 1 : -1;
+    int32_t dy = -LV_ABS(y1 - y0);
+    int32_t sy = y0 < y1 ? 1 : -1;
+    int32_t err = dx + dy;
+    int32_t radius = width / 2;
+
+    lv_draw_rect_dsc_init(&rect_dsc);
+    rect_dsc.bg_color = lv_color_white();
+    rect_dsc.bg_opa = opa;
+    rect_dsc.border_opa = LV_OPA_TRANSP;
+    rect_dsc.radius = width > 2 ? LV_RADIUS_CIRCLE : 0;
+
+    while (true) {
+        lv_area_t area;
+        area.x1 = x0 - radius;
+        area.y1 = y0 - radius;
+        area.x2 = x0 + radius;
+        area.y2 = y0 + radius;
+        lv_draw_rect(layer, &rect_dsc, &area);
+
+        if (x0 == x1 && y0 == y1) {
+            break;
+        }
+
+        int32_t e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x0 += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+/**
+ * @brief 在 overlay 根对象上直接绘制线段并打印最终坐标。
+ *
+ * @param e LVGL 绘制事件对象。
+ * @return 无返回值。
+ */
+static void overlay_on_draw_main(lv_event_t* e) {
+    lv_obj_t* obj = lv_event_get_current_target(e);
+    overlay_t* overlay = (overlay_t*)lv_obj_get_user_data(obj);
+    lv_layer_t* layer = lv_event_get_layer(e);
+    lv_area_t overlay_area;
+
+    if (!overlay_is_valid(overlay) || !overlay->lines || overlay->line_count == 0 || !layer) {
+        return;
+    }
+
+    lv_obj_get_coords(obj, &overlay_area);
+    for (uint16_t i = 0; i < overlay->line_count; ++i) {
+        const overlay_line_t* line = &overlay->lines[i];
+        int32_t resolved_width = 0;
+        lv_opa_t resolved_opa = LV_OPA_TRANSP;
+
+        if (!overlay_resolve_line_draw(overlay, line, &resolved_width, &resolved_opa)) {
+            continue;
+        }
+
+        overlay_draw_raster_line(layer,
+                                 overlay_area.x1 + line->start_x,
+                                 overlay_area.y1 + line->start_y,
+                                 overlay_area.x1 + line->end_x,
+                                 overlay_area.y1 + line->end_y,
+                                 resolved_width,
+                                 (lv_opa_t)resolved_opa);
+    }
 }
 
 /**
@@ -118,7 +349,7 @@ static bool overlay_apply_point(overlay_t* overlay, uint16_t index, const overla
     lv_obj_set_pos(overlay->points[index],
                    (lv_coord_t)(point->x - (point_size / 2)),
                    (lv_coord_t)(point->y - (point_size / 2)));
-    lv_obj_remove_flag(overlay->points[index], LV_OBJ_FLAG_HIDDEN);
+    overlay_show_obj(overlay->points[index]);
     return true;
 }
 
@@ -177,6 +408,8 @@ overlay_cfg_t overlay_default_cfg(void) {
     cfg.text.overflow = LABEL_OVERFLOW_CLIP;
     cfg.point.size = OVERLAY_POINT_DEFAULT_SIZE;
     cfg.point.opa = OVERLAY_POINT_DEFAULT_OPA;
+    cfg.line.width = OVERLAY_LINE_DEFAULT_WIDTH;
+    cfg.line.opa = OVERLAY_LINE_DEFAULT_OPA;
 
     cfg.max_items = 16;
 
@@ -228,21 +461,26 @@ overlay_t* overlay_create(lv_obj_t* parent, const overlay_cfg_t* cfg) {
 
     lv_obj_set_user_data(obj, overlay);
     lv_obj_add_event_cb(obj, overlay_on_delete, LV_EVENT_DELETE, NULL);
+    lv_obj_add_event_cb(obj, overlay_on_draw_main, LV_EVENT_DRAW_MAIN, NULL);
     lv_obj_remove_style_all(obj);
     overlay_apply_layer_cfg(overlay);
 
     overlay->max_items = cfg->max_items;
     overlay->point_count = 0;
+    overlay->line_count = 0;
     overlay->text_count = 0;
     overlay->point_cfg = cfg->point;
+    overlay->line_cfg = cfg->line;
     overlay->text_cfg = cfg->text;
     overlay->points = (lv_obj_t**)lv_malloc(sizeof(lv_obj_t*) * overlay->max_items);
+    overlay->lines = (overlay_line_t*)lv_malloc(sizeof(overlay_line_t) * overlay->max_items);
     overlay->texts = (label_t**)lv_malloc(sizeof(label_t*) * overlay->max_items);
-    if (!overlay->points || !overlay->texts) {
+    if (!overlay->points || !overlay->lines || !overlay->texts) {
         lv_obj_delete(obj);
         return NULL;
     }
     lv_memzero(overlay->points, sizeof(lv_obj_t*) * overlay->max_items);
+    lv_memzero(overlay->lines, sizeof(overlay_line_t) * overlay->max_items);
     lv_memzero(overlay->texts, sizeof(label_t*) * overlay->max_items);
 
     text_cfg = cfg->text;
@@ -295,14 +533,20 @@ void overlay_destroy(overlay_t* overlay) {
  */
 void overlay_set_points(overlay_t* overlay, const overlay_point_t* points, uint16_t count) {
     uint16_t i;
+    uint16_t point_count;
 
     if (!overlay_is_valid(overlay) || !overlay->points) {
         return;
     }
 
-    for (i = 0; i < overlay->max_items; ++i) {
+    point_count = (points && count < overlay->max_items) ? count : overlay->max_items;
+    if (!points) {
+        point_count = 0;
+    }
+
+    for (i = point_count; i < overlay->point_count && i < overlay->max_items; ++i) {
         if (overlay->points[i]) {
-            lv_obj_add_flag(overlay->points[i], LV_OBJ_FLAG_HIDDEN);
+            overlay_hide_obj(overlay->points[i]);
         }
     }
 
@@ -311,10 +555,55 @@ void overlay_set_points(overlay_t* overlay, const overlay_point_t* points, uint1
         return;
     }
 
-    for (i = 0; i < count && i < overlay->max_items; ++i) {
+    for (i = 0; i < point_count; ++i) {
         overlay_apply_point(overlay, i, &points[i]);
     }
-    overlay->point_count = (count < overlay->max_items) ? count : overlay->max_items;
+    overlay->point_count = point_count;
+}
+
+/**
+ * @brief 批量设置 overlay 线段。
+ *
+ * @param overlay 目标组件句柄。
+ * @param lines 线段数组。
+ * @param count 线段数量。
+ * @return 无返回值。
+ */
+void overlay_set_lines(overlay_t* overlay, const overlay_line_t* lines, uint16_t count) {
+    uint16_t line_count;
+    bool changed = false;
+
+    if (!overlay_is_valid(overlay) || !overlay->lines) {
+        return;
+    }
+
+    if (!lines) {
+        if (overlay->line_count > 0) {
+            overlay_invalidate_lines(overlay, overlay->lines, overlay->line_count);
+            overlay->line_count = 0;
+            lv_memzero(overlay->lines, sizeof(overlay_line_t) * overlay->max_items);
+        }
+        return;
+    }
+
+    line_count = (count < overlay->max_items) ? count : overlay->max_items;
+    changed = overlay->line_count != line_count ||
+              (line_count > 0 &&
+               memcmp(overlay->lines, lines, sizeof(overlay_line_t) * line_count) != 0);
+    if (!changed) {
+        return;
+    }
+
+    overlay_invalidate_lines(overlay, overlay->lines, overlay->line_count);
+    overlay_invalidate_lines(overlay, lines, line_count);
+
+    if (line_count > 0) {
+        lv_memcpy(overlay->lines, lines, sizeof(overlay_line_t) * line_count);
+    }
+    if (line_count < overlay->max_items) {
+        lv_memzero(&overlay->lines[line_count], sizeof(overlay_line_t) * (overlay->max_items - line_count));
+    }
+    overlay->line_count = line_count;
 }
 
 /**
@@ -350,12 +639,18 @@ bool overlay_add_point(overlay_t* overlay, const overlay_point_t* point) {
  */
 void overlay_set_texts(overlay_t* overlay, const label_cfg_t* texts, uint16_t count) {
     uint16_t i;
+    uint16_t text_count;
 
     if (!overlay_is_valid(overlay) || !overlay->texts) {
         return;
     }
 
-    for (i = 0; i < overlay->max_items; ++i) {
+    text_count = (texts && count < overlay->max_items) ? count : overlay->max_items;
+    if (!texts) {
+        text_count = 0;
+    }
+
+    for (i = text_count; i < overlay->text_count && i < overlay->max_items; ++i) {
         if (overlay->texts[i]) {
             ui_widget_set_visible(UI_WIDGET(overlay->texts[i]), false);
         }
@@ -366,10 +661,10 @@ void overlay_set_texts(overlay_t* overlay, const label_cfg_t* texts, uint16_t co
         return;
     }
 
-    for (i = 0; i < count && i < overlay->max_items; ++i) {
+    for (i = 0; i < text_count; ++i) {
         overlay_apply_text(overlay, i, &texts[i]);
     }
-    overlay->text_count = (count < overlay->max_items) ? count : overlay->max_items;
+    overlay->text_count = text_count;
 }
 
 /**
@@ -420,28 +715,37 @@ bool overlay_add_text_from_font(overlay_t* overlay, const char* text, int32_t fo
 }
 
 /**
- * @brief 清空所有点位与文本。
+ * @brief 清空所有点位、线段与文本。
  *
  * @param overlay 目标组件句柄。
  * @return 无返回值。
  */
 void overlay_clear(overlay_t* overlay) {
     uint16_t i;
+    bool had_content;
 
     if (!overlay_is_valid(overlay)) {
         return;
     }
 
+    had_content = overlay->point_count > 0 || overlay->line_count > 0 || overlay->text_count > 0;
     for (i = 0; i < overlay->max_items; ++i) {
         if (overlay->points[i]) {
-            lv_obj_add_flag(overlay->points[i], LV_OBJ_FLAG_HIDDEN);
+            overlay_hide_obj(overlay->points[i]);
         }
         if (overlay->texts[i]) {
             ui_widget_set_visible(UI_WIDGET(overlay->texts[i]), false);
         }
     }
+    if (overlay->lines) {
+        lv_memzero(overlay->lines, sizeof(overlay_line_t) * overlay->max_items);
+    }
     overlay->point_count = 0;
+    overlay->line_count = 0;
     overlay->text_count = 0;
+    if (had_content) {
+        lv_obj_invalidate(ui_widget_get_obj(UI_WIDGET(overlay)));
+    }
 }
 
 /**

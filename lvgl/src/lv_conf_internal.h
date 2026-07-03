@@ -3345,6 +3345,13 @@
                 #define LV_NUTTX_LCD_BUFFER_SIZE     60
             #endif
         #endif
+        #ifndef LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+            #ifdef CONFIG_LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+                #define LV_NUTTX_LCD_FLUSH_PARTIAL_AREA CONFIG_LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+            #else
+                #define LV_NUTTX_LCD_FLUSH_PARTIAL_AREA 0
+            #endif
+        #endif
     #endif
 
     /*Driver for /dev/input*/

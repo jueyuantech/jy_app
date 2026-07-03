@@ -251,6 +251,35 @@ static void roller_update_labels(roller_t* roller) {
 }
 
 /**
+ * @brief 计算固定行高下实际使用的行高。
+ *
+ * @param configured_height 调用方配置的行高；小于等于 0 表示按内容自适应。
+ * @param line_height 当前字体行高。
+ * @param pad_ver 上下留白。
+ * @param border_width 边框宽度。
+ * @return 返回可容纳字体与装饰的实际行高。
+ */
+static int32_t roller_resolve_row_height(int32_t configured_height,
+                                         int32_t line_height,
+                                         int32_t pad_ver,
+                                         int32_t border_width) {
+    int32_t min_height = line_height;
+
+    if (pad_ver > 0) {
+        min_height += pad_ver * 2;
+    }
+    if (border_width > 0) {
+        min_height += border_width * 2;
+    }
+
+    if (configured_height > min_height) {
+        return configured_height;
+    }
+
+    return min_height;
+}
+
+/**
  * @brief 刷新滚轮内部布局。
  *
  * @param roller 目标滚轮组件句柄。
@@ -289,8 +318,11 @@ static void roller_update_layout(roller_t* roller) {
     roller->pad = roller->cfg.selected_pad_ver >= 0 ? roller->cfg.selected_pad_ver : 0;
     roller->gap = roller->cfg.row_gap >= 0 ? roller->cfg.row_gap : (lh_normal / 3);
 
-    h_cur = roller->cfg.row_height > 0 ? roller->cfg.row_height : (lh_selected + 2 * roller->pad);
-    h_normal = roller->cfg.row_height > 0 ? roller->cfg.row_height : lh_normal;
+    h_cur = roller_resolve_row_height(roller->cfg.row_height,
+                                      lh_selected,
+                                      roller->pad,
+                                      roller->cfg.border_width);
+    h_normal = roller_resolve_row_height(roller->cfg.row_height, lh_normal, 0, 0);
     offset = h_cur / 2 + h_normal / 2 + roller->gap;
 
     if (roller->cfg.row_height > 0) {
@@ -635,7 +667,7 @@ bool roller_key_handler(roller_t* roller, lv_event_code_t code) {
         }
         return true;
     }
-    if (code == LV_EVENT_CLICKED || code == LV_EVENT_LONG_PRESSED) {
+    if (code == LV_EVENT_CLICKED) {
         selected = roller->selected % roller->count;
         if (roller->on_activate) {
             roller->on_activate(roller, selected, code, roller->callback_user_data);

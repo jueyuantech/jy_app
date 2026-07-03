@@ -261,16 +261,34 @@ char* system_config_get_curlang(void);
  */
 bool system_config_set_curlang(char* curlang);
 /**
- * @brief 获取首页应用名称。
- * @return 返回首页应用名称字符串。
+ * @brief 获取快捷启动应用配置。
+ * @return 返回快捷启动应用名称字符串；未配置时返回空字符串。
  */
-char* system_config_get_home_app(void);
+const char* system_config_get_quicklaunch(void);
 /**
- * @brief 设置首页应用名称。
- * @param[in] home_app 首页应用名称字符串。
+ * @brief 设置快捷启动应用配置。
+ * @param[in] quicklaunch 快捷启动应用名称字符串；传 `NULL` 表示清空。
  * @return `true` 表示保存成功，`false` 表示保存失败。
  */
-bool system_config_set_home_app(char* home_app);
+bool system_config_set_quicklaunch(const char* quicklaunch);
+/**
+ * @brief 获取 Home 当前配置显示的应用数量。
+ * @return 返回 `homeunits` 中的应用数量；为空时返回 0。
+ */
+size_t system_config_get_homeunits_count(void);
+/**
+ * @brief 获取 Home 当前配置显示的应用名称。
+ * @param[in] index 应用下标。
+ * @return 返回应用名称；下标越界时返回 `NULL`。
+ */
+const char* system_config_get_homeunit(size_t index);
+/**
+ * @brief 设置 Home 当前配置显示的应用名称列表。
+ * @param[in] homeunits 应用名称数组；传 `NULL` 且 `count=0` 表示清空。
+ * @param[in] count 应用数量。
+ * @return `true` 表示保存成功，`false` 表示保存失败。
+ */
+bool system_config_set_homeunits(const char* const* homeunits, size_t count);
 
 /**
  * @brief 加载系统配置文件。
@@ -317,6 +335,12 @@ bool system_heart_beat(void);
  * @return `true` 表示处理成功，`false` 表示处理失败。
  */
 bool system_keep_alive(void);
+/**
+ * @brief 判断 LCD 灭屏时是否允许处理指定 host 消息。
+ * @param[in] msg 已解析的 host 消息头。
+ * @return `true` 表示允许继续处理，`false` 表示应直接返回 `ErrNotReady`。
+ */
+bool system_host_message_allowed_when_lcd_off(const msg_pack_t* msg);
 /**
  * @brief 判断当前 popup 状态下是否允许处理指定 host 消息。
  * @param[in] msg 已解析的 host 消息头。

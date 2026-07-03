@@ -71,6 +71,18 @@ void home_set_play_audio(bool play);
  * @return 返回 Home 页面描述符。
  */
 const app_page_t* home_page_get(void);
+/**
+ * @brief 判断指定 App 是否属于当前产品 Home 支持范围。
+ * @param[in] app_name App 名称。
+ * @return `true` 表示支持，`false` 表示不支持。
+ */
+bool home_is_supported_app(const char* app_name);
+/**
+ * @brief 判断指定 App 是否可作为 Home quicklaunch 目标。
+ * @param[in] app_name App 名称。
+ * @return `true` 表示合法，`false` 表示非法。
+ */
+bool home_is_valid_quicklaunch_app(const char* app_name);
 
 /**
  * @brief Show home icons view

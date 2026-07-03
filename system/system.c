@@ -10,6 +10,7 @@
 #include "system/system.h"
 #include "common/app_framework/app_router.h"
 #include "system/system_config_json.h"
+#include "system/system_runtime_ui.h"
 #include "system/system_timer.h"
 #include "app_lcd.h"
 #include "floatair_fs.h"
@@ -282,6 +283,7 @@ void system_set_sys_state(uint8_t state) {
     } else {
         floatair_lcd_set_state(LCD_ON);
         app_sleep_timer_reset();
+        system_ui_flush_pending_after_screen_on();
     }
  }
 

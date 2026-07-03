@@ -21,6 +21,7 @@
 #include "floatair_dbg.h"
 #include "lvgl.h"
 #include "common/widgets/status_bar.h"
+#include "ui_res.h"
 
 static lv_obj_t* s_center_img = NULL;
 static lv_obj_t* s_init_label = NULL;
@@ -74,7 +75,7 @@ static void music_page_create(lv_obj_t* root, const app_page_data_t* data) {
 
     s_center_img = lv_image_create(s_init_cont);
     lv_obj_set_size(s_center_img, 80, 80);
-    lv_image_set_src(s_center_img, FLOATAIR_SYS_IMG("musicB.jpg"));
+    lv_image_set_src(s_center_img, UI_RES_IMAGE_MUSICB);
 
     s_init_label = lv_label_create(s_init_cont);
     obj_set_text_font(s_init_label, get_system_font());

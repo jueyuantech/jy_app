@@ -22,6 +22,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include "ui_res.h"
 
 typedef struct {
     system_notification_entry_t entry;
@@ -32,10 +33,10 @@ static size_t s_notification_queue_count = 0;
 static notification_item_t s_active_notification = {0};
 
 /**
- * @brief 通知更新可见内容后保持系统处于亮屏状态。
+ * @brief 通知操作 LVGL 前保持系统处于亮屏状态。
  *
- * 通知可能在 LCD 已息屏时到达，这里复用系统亮屏入口，保证亮度、
- * 时间刷新和息屏定时器行为与其他唤醒路径一致。
+ * 通知可能在 LCD 已息屏时到达，必须先复用系统亮屏入口，保证后续
+ * Notify、通知列表等 LVGL 操作都发生在 LCD ON 之后。
  * @return 无返回值。
  */
 static void system_notification_keep_screen_awake(void) {
@@ -136,9 +137,9 @@ static void system_notification_apply_default_icon(system_notification_entry_t* 
     }
 
     if (entry->mode == NOTIFY_MODE_CALL) {
-        image_path = FLOATAIR_SYS_IMG("incoming_call.jpg");
+        image_path = UI_RES_IMAGE_INCOMING_CALL;
     } else if (entry->mode == NOTIFY_MODE_MESSAGE) {
-        image_path = FLOATAIR_SYS_IMG("im_message.jpg");
+        image_path = UI_RES_IMAGE_IM_MESSAGE;
     }
 
     system_notification_set_image_path(entry, image_path);
@@ -157,7 +158,7 @@ static void system_notification_apply_missed_call_icon(system_notification_entry
         return;
     }
 
-    system_notification_set_image_path(entry, FLOATAIR_SYS_IMG("incoming_call.jpg"));
+    system_notification_set_image_path(entry, UI_RES_IMAGE_INCOMING_CALL);
 }
 
 /**
@@ -272,7 +273,9 @@ bool system_notification_remove_at(size_t index) {
 }
 
 void system_notification_clear(void) {
-    notify_dismiss();
+    if (system_get_sys_state() != 0) {
+        notify_dismiss();
+    }
     memset(&s_active_notification, 0, sizeof(s_active_notification));
     memset(s_notification_queue, 0, sizeof(s_notification_queue));
     s_notification_queue_count = 0;
@@ -374,20 +377,16 @@ bool system_notification_show_call(const char* title, const char* message) {
     }
 
     s_active_notification = item;
+    system_notification_keep_screen_awake();
     if (!system_notification_show_item(&s_active_notification)) {
         return false;
     }
 
-    system_notification_keep_screen_awake();
     return true;
 }
 
 bool system_notification_show_missed_call(const char* message) {
     notification_item_t item = {0};
-
-    /* 未接来电只保留列表项，不保留当前悬浮通知弹框。 */
-    notify_dismiss();
-    memset(&s_active_notification, 0, sizeof(s_active_notification));
 
     item.entry.mode = NOTIFY_MODE_MESSAGE;
     item.entry.duration_ms = notify_default_cfg().duration_ms;
@@ -398,8 +397,14 @@ bool system_notification_show_missed_call(const char* message) {
         return false;
     }
 
+    /* 未接来电只保留列表项，不保留当前悬浮通知弹框。 */
+    if (system_get_sys_state() != 0) {
+        notify_dismiss();
+    }
+    memset(&s_active_notification, 0, sizeof(s_active_notification));
+
     system_notification_enqueue(&item);
-    if (notify_list_is_open()) {
+    if (system_get_sys_state() != 0 && notify_list_is_open()) {
         notify_list_view_reload();
         return true;
     }
@@ -410,10 +415,18 @@ bool system_notification_show_missed_call(const char* message) {
 
 void system_notification_dismiss_call(void) {
     notify_mode_t active_mode = NOTIFY_MODE_MESSAGE;
-    bool has_active_call_notify = notify_get_active_mode(&active_mode) &&
-                                  active_mode == NOTIFY_MODE_CALL;
+    bool has_active_call_notify = false;
     bool has_cached_call_notify = s_active_notification.entry.mode == NOTIFY_MODE_CALL;
 
+    if (system_get_sys_state() == 0) {
+        if (has_cached_call_notify) {
+            memset(&s_active_notification, 0, sizeof(s_active_notification));
+        }
+        return;
+    }
+
+    has_active_call_notify = notify_get_active_mode(&active_mode) &&
+                             active_mode == NOTIFY_MODE_CALL;
     if (has_active_call_notify || has_cached_call_notify) {
         notify_dismiss();
         memset(&s_active_notification, 0, sizeof(s_active_notification));
@@ -466,11 +479,7 @@ bool system_notification_add_entry(const system_notification_entry_t* entry) {
                   item.entry.duration_ms);
 
     should_queue_silently = system_notification_should_queue_silently(&item, true);
-    list_open = notify_list_is_open();
     system_notification_enqueue(&item);
-    if (list_open) {
-        notify_list_view_reload();
-    }
 
     if (should_queue_silently) {
         floatair_info("user notification queued silently: id=%" PRIu32 " mode=%d",
@@ -479,11 +488,16 @@ bool system_notification_add_entry(const system_notification_entry_t* entry) {
         return true;
     }
 
+    system_notification_keep_screen_awake();
+    list_open = notify_list_is_open();
+    if (list_open) {
+        notify_list_view_reload();
+    }
+
     if (list_open) {
         if (item.entry.mode == NOTIFY_MODE_MESSAGE) {
             floatair_info("notification queued without popup on notify_list popup: mode=%d",
                           (int)item.entry.mode);
-            system_notification_keep_screen_awake();
             return true;
         }
     }
@@ -512,7 +526,6 @@ bool system_notification_add_entry(const system_notification_entry_t* entry) {
         return false;
     }
 
-    system_notification_keep_screen_awake();
     return true;
 }
 
@@ -532,6 +545,24 @@ bool system_notification_update_entry(const system_notification_entry_t* entry) 
                   item.entry.duration_ms);
 
     should_queue_silently = system_notification_should_queue_silently(&item, true);
+    if (should_queue_silently && system_get_sys_state() == 0) {
+        for (size_t i = 0; i < s_notification_queue_count; i++) {
+            if (s_notification_queue[i].entry.id == item.entry.id) {
+                (void)system_notification_remove_at(i);
+                break;
+            }
+        }
+        system_notification_enqueue(&item);
+        if (s_active_notification.entry.id == item.entry.id) {
+            memset(&s_active_notification, 0, sizeof(s_active_notification));
+        }
+        floatair_info("user notification update queued silently: id=%" PRIu32,
+                      item.entry.id);
+        return true;
+    }
+    if (!should_queue_silently) {
+        system_notification_keep_screen_awake();
+    }
     if (notify_get_active_mode(NULL) && s_active_notification.entry.id == item.entry.id) {
         bool queue_updated = false;
 
@@ -546,16 +577,18 @@ bool system_notification_update_entry(const system_notification_entry_t* entry) 
             system_notification_enqueue(&item);
         }
 
-        if (notify_list_is_open()) {
-            notify_list_view_reload();
-        }
-
         if (should_queue_silently) {
-            notify_dismiss();
+            if (system_get_sys_state() != 0) {
+                notify_dismiss();
+            }
             memset(&s_active_notification, 0, sizeof(s_active_notification));
             floatair_info("user notification update queued silently: id=%" PRIu32,
                           item.entry.id);
             return true;
+        }
+
+        if (notify_list_is_open()) {
+            notify_list_view_reload();
         }
 
         s_active_notification = item;
@@ -569,7 +602,6 @@ bool system_notification_update_entry(const system_notification_entry_t* entry) 
             return false;
         }
 
-        system_notification_keep_screen_awake();
         return true;
     }
 
@@ -580,11 +612,7 @@ bool system_notification_update_entry(const system_notification_entry_t* entry) 
         }
     }
 
-    list_open = notify_list_is_open();
     system_notification_enqueue(&item);
-    if (list_open) {
-        notify_list_view_reload();
-    }
 
     if (should_queue_silently) {
         floatair_info("user notification update queued silently: id=%" PRIu32 " mode=%d",
@@ -593,11 +621,15 @@ bool system_notification_update_entry(const system_notification_entry_t* entry) 
         return true;
     }
 
+    list_open = notify_list_is_open();
+    if (list_open) {
+        notify_list_view_reload();
+    }
+
     if (list_open) {
         if (item.entry.mode == NOTIFY_MODE_MESSAGE) {
             floatair_info("notification queued without popup on notify_list popup: mode=%d",
                           (int)item.entry.mode);
-            system_notification_keep_screen_awake();
             return true;
         }
     }
@@ -626,7 +658,6 @@ bool system_notification_update_entry(const system_notification_entry_t* entry) 
         return false;
     }
 
-    system_notification_keep_screen_awake();
     return true;
 }
 
@@ -638,6 +669,13 @@ bool system_notification_remove_id(uint32_t id) {
             continue;
         }
         i++;
+    }
+
+    if (system_get_sys_state() == 0) {
+        if (s_active_notification.entry.id == id) {
+            memset(&s_active_notification, 0, sizeof(s_active_notification));
+        }
+        return true;
     }
 
     if (notify_get_active_mode(NULL) && s_active_notification.entry.id == id) {
@@ -755,11 +793,7 @@ static bool system_notification_add(mpack_node_t node, msg_pack_t* msg) {
     is_user_notification = (type == 0U);
     should_queue_silently =
         system_notification_should_queue_silently(&item, is_user_notification);
-    list_open = notify_list_is_open();
     system_notification_enqueue(&item);
-    if (list_open) {
-        notify_list_view_reload();
-    }
 
     if (should_queue_silently) {
         floatair_info("user notification queued silently: id=%" PRIu32 " type=%u",
@@ -768,11 +802,16 @@ static bool system_notification_add(mpack_node_t node, msg_pack_t* msg) {
         return app_mpack_send_ack(msg, Dp_ErrNone);
     }
 
+    system_notification_keep_screen_awake();
+    list_open = notify_list_is_open();
+    if (list_open) {
+        notify_list_view_reload();
+    }
+
     if (list_open) {
         if (item.entry.mode == NOTIFY_MODE_MESSAGE) {
             floatair_info("notification queued without popup on notify_list popup: mode=%d",
                           (int)item.entry.mode);
-            system_notification_keep_screen_awake();
             return app_mpack_send_ack(msg, Dp_ErrNone);
         }
     }
@@ -801,7 +840,6 @@ static bool system_notification_add(mpack_node_t node, msg_pack_t* msg) {
         return app_mpack_send_ack(msg, ErrBizErr);
     }
 
-    system_notification_keep_screen_awake();
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
@@ -912,6 +950,25 @@ static bool system_notification_update(mpack_node_t node, msg_pack_t* msg) {
     is_user_notification = (type == 0U);
     should_queue_silently =
         system_notification_should_queue_silently(&item, is_user_notification);
+    if (should_queue_silently && system_get_sys_state() == 0) {
+        for (size_t i = 0; i < s_notification_queue_count; i++) {
+            if (s_notification_queue[i].entry.id == item.entry.id) {
+                (void)system_notification_remove_at(i);
+                break;
+            }
+        }
+        system_notification_enqueue(&item);
+        if (s_active_notification.entry.id == item.entry.id) {
+            memset(&s_active_notification, 0, sizeof(s_active_notification));
+        }
+        floatair_info("user notification update queued silently: id=%" PRIu32 " type=%u",
+                      item.entry.id,
+                      (unsigned)type);
+        return app_mpack_send_ack(msg, Dp_ErrNone);
+    }
+    if (!should_queue_silently) {
+        system_notification_keep_screen_awake();
+    }
     if (notify_get_active_mode(NULL) && s_active_notification.entry.id == item.entry.id) {
         bool queue_updated = false;
 
@@ -926,17 +983,19 @@ static bool system_notification_update(mpack_node_t node, msg_pack_t* msg) {
             system_notification_enqueue(&item);
         }
 
-        if (notify_list_is_open()) {
-            notify_list_view_reload();
-        }
-
         if (should_queue_silently) {
-            notify_dismiss();
+            if (system_get_sys_state() != 0) {
+                notify_dismiss();
+            }
             memset(&s_active_notification, 0, sizeof(s_active_notification));
             floatair_info("user notification update queued silently: id=%" PRIu32 " type=%u",
                           item.entry.id,
                           (unsigned)type);
             return app_mpack_send_ack(msg, Dp_ErrNone);
+        }
+
+        if (notify_list_is_open()) {
+            notify_list_view_reload();
         }
 
         s_active_notification = item;
@@ -950,7 +1009,6 @@ static bool system_notification_update(mpack_node_t node, msg_pack_t* msg) {
             return app_mpack_send_ack(msg, ErrBizErr);
         }
 
-        system_notification_keep_screen_awake();
         return app_mpack_send_ack(msg, Dp_ErrNone);
     }
 
@@ -961,11 +1019,7 @@ static bool system_notification_update(mpack_node_t node, msg_pack_t* msg) {
         }
     }
 
-    list_open = notify_list_is_open();
     system_notification_enqueue(&item);
-    if (list_open) {
-        notify_list_view_reload();
-    }
 
     if (should_queue_silently) {
         floatair_info("user notification update queued silently: id=%" PRIu32 " type=%u",
@@ -974,11 +1028,15 @@ static bool system_notification_update(mpack_node_t node, msg_pack_t* msg) {
         return app_mpack_send_ack(msg, Dp_ErrNone);
     }
 
+    list_open = notify_list_is_open();
+    if (list_open) {
+        notify_list_view_reload();
+    }
+
     if (list_open) {
         if (item.entry.mode == NOTIFY_MODE_MESSAGE) {
             floatair_info("notification queued without popup on notify_list popup: mode=%d",
                           (int)item.entry.mode);
-            system_notification_keep_screen_awake();
             return app_mpack_send_ack(msg, Dp_ErrNone);
         }
     }
@@ -1007,7 +1065,6 @@ static bool system_notification_update(mpack_node_t node, msg_pack_t* msg) {
         return app_mpack_send_ack(msg, ErrBizErr);
     }
 
-    system_notification_keep_screen_awake();
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
@@ -1018,6 +1075,13 @@ static bool system_notification_remove(mpack_node_t node, msg_pack_t* msg) {
 
     if (!app_msg_get_u32(node, false, "id", &id)) {
         return app_mpack_send_ack(msg, ErrBadParam);
+    }
+
+    if (system_get_sys_state() == 0) {
+        if (s_active_notification.entry.id == id) {
+            memset(&s_active_notification, 0, sizeof(s_active_notification));
+        }
+        return app_mpack_send_ack(msg, Dp_ErrNone);
     }
 
     if (notify_get_active_mode(NULL) && s_active_notification.entry.id == id) {

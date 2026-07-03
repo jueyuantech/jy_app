@@ -45,6 +45,29 @@ static bool system_touch_input_blocked(uint8_t event, const char* source) {
 }
 
 /**
+ * @brief 判断灭屏状态下是否应拦截触控输入。
+ * @param[in] event 当前触控事件值。
+ * @param[in] source 事件来源描述。
+ * @param[in] double_click_wakes `true` 表示当前事件是可亮屏的双击事件。
+ * @return `true` 表示已拦截，`false` 表示可继续分发。
+ */
+static bool system_touch_lcd_off_blocked(uint8_t event, const char* source, bool double_click_wakes) {
+    if (floatair_lcd_get_state() != LCD_OFF) {
+        return false;
+    }
+
+    if (double_click_wakes) {
+        floatair_info("lcd off, wake by %s double-click event %u", source, (unsigned)event);
+        system_set_sys_state(1);
+        system_report_sys_state(1);
+        return true;
+    }
+
+    floatair_info("lcd off, ignore %s touch event %u", source, (unsigned)event);
+    return true;
+}
+
+/**
  * @brief 更新当前佩戴状态，用于在未佩戴时屏蔽触控板输入。
  * @param[in] worn `true` 表示已佩戴，`false` 表示未佩戴。
  * @return 无返回值。
@@ -203,6 +226,12 @@ static bool system_runtime_input_send_event_to_app(uint32_t raw_event, lv_event_
 bool system_touch_event(uint8_t event) {
     lv_event_code_t code = system_runtime_touch_event_to_lvgl(event);
 
+    if (system_touch_lcd_off_blocked(event,
+                                     "remote",
+                                     event == SYSTEM_TOUCH_EVENT_DCLICKED)) {
+        return true;
+    }
+
     if (system_runtime_input_try_top_event(code)) {
         return true;
     }
@@ -231,6 +260,12 @@ bool system_touch_event_convert(uint8_t event) {
     lv_event_code_t code = system_runtime_force_event_to_lvgl(event);
 
     if (system_touch_input_blocked(event, "force")) {
+        return true;
+    }
+
+    if (system_touch_lcd_off_blocked(event,
+                                     "force",
+                                     event == SET_FORCE_DOUBLE_CLICK)) {
         return true;
     }
 
@@ -264,6 +299,8 @@ bool system_touch_event_convert(uint8_t event) {
  * @return `true` 表示事件已处理，`false` 表示处理失败。
  */
 bool system_imu_event_convert_to_touch(uint8_t event) {
+    uint8_t next_state = 0;
+
     if (event != SET_IMU_SINGLE_TAP && event != SET_IMU_DOUBLE_TAP) {
         floatair_err("imu event %d not support", event);
         return false;
@@ -273,29 +310,10 @@ bool system_imu_event_convert_to_touch(uint8_t event) {
         case SET_IMU_SINGLE_TAP:
             return true;
         case SET_IMU_DOUBLE_TAP:
-            if (floatair_lcd_get_state() == LCD_OFF) {
-                floatair_lcd_set_state(LCD_ON);
-                system_report_sys_state(1);
-                app_sleep_timer_reset();
-                return true;
-            }
-
-            if (system_runtime_input_try_top_event(LV_EVENT_DCLICKED)) {
-                return true;
-            }
-
-            if (system_try_intercept_popup_event(LV_EVENT_DCLICKED)) {
-                return true;
-            }
-
-            const char* current_app = app_router_get_app();
-            if (current_app != NULL && strcmp(current_app, APP_NAME_HOME) == 0) {
-                floatair_lcd_set_state(LCD_OFF);
-                system_report_sys_state(0);
-                return true;
-            }
-
-            return system_runtime_input_send_event_to_app(SET_FORCE_DOUBLE_CLICK, LV_EVENT_DCLICKED);
+            next_state = (floatair_lcd_get_state() == LCD_OFF) ? 1 : 0;
+            system_set_sys_state(next_state);
+            system_report_sys_state(next_state);
+            return true;
         default:
             return true;
     }

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Notification.addNotification",
+    "id": 0,
+    "biz": "Notification",
+    "cmd": "addNotification",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 1,
+      "type": 0,
+      "title": "Title",
+      "msg": "Message",
+      "level": 1,
+      "action": 0,
+      "duration": 5
+    }
+  },
+  {
+    "name": "Notification.updateNotification",
+    "id": 0,
+    "biz": "Notification",
+    "cmd": "updateNotification",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 1,
+      "type": 0,
+      "title": "Title Updated",
+      "msg": "Message Updated",
+      "level": 1,
+      "action": 0,
+      "duration": 5
+    }
+  },
+  {
+    "name": "Notification.removeNotification",
+    "id": 0,
+    "biz": "Notification",
+    "cmd": "removeNotification",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 1
+    }
+  }
+]

@@ -135,6 +135,41 @@ int jyt_get_bat_state(void* arg) {
     return 0;
 }
 
+/**
+ * @brief 模拟器双屏融合偏移参数缓存。
+ */
+static FUSION_PARA_T g_simulator_fusion_para = {0};
+
+/**
+ * @brief 模拟器读写双屏融合偏移参数。
+ *
+ * @param mode 0 表示读取，1 表示写入。
+ * @param para 双屏融合偏移参数。
+ * @return 成功返回 0，失败返回 -1。
+ */
+int jyt_lr_xy_ctrl(uint8_t mode, FUSION_PARA_T* para) {
+    if (para == NULL) {
+        floatair_err("fusion para is NULL");
+        return -1;
+    }
+    if (mode == 0U) {
+        *para = g_simulator_fusion_para;
+        return 0;
+    }
+    if (mode == 1U) {
+        g_simulator_fusion_para = *para;
+        floatair_info("fusion para lX=%d lY=%d rX=%d rY=%d",
+                      (int)para->left_offset_x,
+                      (int)para->left_offset_y,
+                      (int)para->right_offset_x,
+                      (int)para->right_offset_y);
+        return 0;
+    }
+
+    floatair_err("fusion mode invalid: %u", (unsigned)mode);
+    return -1;
+}
+
 /* ---------------- Linux 内部消息队列 ---------------- */
 typedef struct MQNode {
     JYT_ELF_MQ_MSG* msg;

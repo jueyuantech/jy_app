@@ -1,0 +1,55 @@
+[
+  {
+    "name": "SystemControl.setView",
+    "id": 0,
+    "biz": "SystemControl",
+    "cmd": "setView",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "viewName": "navigation"
+    }
+  },
+  {
+    "name": "navigation.clearView",
+    "id": 4,
+    "biz": "navigation",
+    "cmd": "clearView",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "navigation.updateNav",
+    "id": 4,
+    "biz": "navigation",
+    "cmd": "updateNav",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "navMode": 1,
+      "nextRoadName": "Road",
+      "curStepRetainDistance": "100m",
+      "remainDistance": "1.2km",
+      "remainTime": "8min",
+      "speed": "20km/h"
+    }
+  },
+  {
+    "name": "navigation.updateBpm",
+    "id": 4,
+    "biz": "navigation",
+    "cmd": "updateBpm",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "bpm": "80"
+    }
+  },
+  {
+    "name": "navigation.updateSpo",
+    "id": 4,
+    "biz": "navigation",
+    "cmd": "updateSpo",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "spo": "98"
+    }
+  }
+]

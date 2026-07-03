@@ -1,6 +1,6 @@
 /**
  * @file lv_nuttx_lcd.h
- *
+ * @brief NuttX LCD display driver integration for LVGL.
  */
 
 #ifndef LV_NUTTX_LCD_H
@@ -23,6 +23,10 @@ extern "C" {
 /*********************
  *      DEFINES
  *********************/
+
+#ifndef LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+#define LV_NUTTX_LCD_FLUSH_PARTIAL_AREA 0 /**< 是否按 LVGL 当前脏区外接矩形提交 LCD 刷屏区域。 */
+#endif
 
 /**********************
  *      TYPEDEFS

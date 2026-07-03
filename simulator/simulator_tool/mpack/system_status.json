@@ -1,0 +1,52 @@
+[
+  {
+    "name": "SystemStatus.getAll",
+    "id": 0,
+    "biz": "SystemStatus",
+    "cmd": "getAll",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemStatus.getSysState",
+    "id": 0,
+    "biz": "SystemStatus",
+    "cmd": "getSysState",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemStatus.setSysState",
+    "id": 0,
+    "biz": "SystemStatus",
+    "cmd": "setSysState",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "sysState": 1
+    }
+  },
+  {
+    "name": "SystemStatus.getChargeState",
+    "id": 0,
+    "biz": "SystemStatus",
+    "cmd": "getChargeState",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemStatus.getBattery",
+    "id": 0,
+    "biz": "SystemStatus",
+    "cmd": "getBattery",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemStatus.getRomUsage",
+    "id": 0,
+    "biz": "SystemStatus",
+    "cmd": "getRomUsage",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  }
+]

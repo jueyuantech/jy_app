@@ -176,12 +176,6 @@ static void system_runtime_state_refresh_btconn_state(bool connected) {
                   (int)changed,
                   current_app,
                   (int)!connected);
-    if (floatair_lcd_get_state() == LCD_OFF) {
-        floatair_lcd_set_state(LCD_ON);
-        system_report_sys_state(1);
-        app_sleep_timer_reset();
-    }
-
     if (changed && !connected) {
         system_runtime_state_reset_call_flow();
         system_notification_clear();

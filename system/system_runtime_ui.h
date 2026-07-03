@@ -107,6 +107,11 @@ void system_ui_refresh_display_distance_level(void);
  */
 bool system_ui_refresh_screen_now(void);
 /**
+ * @brief 亮屏后统一补刷灭屏期间延迟的系统 UI 更新。
+ * @return 无返回值。
+ */
+void system_ui_flush_pending_after_screen_on(void);
+/**
  * @brief 获取指定位置的状态栏对象。
  * @param[in] pos 状态栏位置。
  * @return 返回对应位置的状态栏对象；不支持时返回 `NULL`。

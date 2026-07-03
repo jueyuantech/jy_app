@@ -18,13 +18,16 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
 
 DEFAULT_SOURCE = Path("./uimain")
-SYMBOL_FILE = REPO_ROOT / "bes28" / "SymbolTable.def"
+DEFAULT_SYMBOL_FILE = REPO_ROOT / "bes28" / "SymbolTable.def"
 LFSC_DIR = REPO_ROOT / "lfsc"
 LFSD_DIR = REPO_ROOT / "lfsd"
+LFSD_OVERLAY = REPO_ROOT / "lfsd_overlay"
 STRING_POOL_CSV = REPO_ROOT / "StringPool.csv"
 STRING_POOL_SCRIPT = REPO_ROOT / "scripts" / "StringPool.py"
 LFSC_BIN = Path("./nuttx_lfsc.bin")
 LFSD_BIN = Path("./nuttx_lfsd.bin")
+LFSD_LEFT_BIN = Path("./nuttx_lfsd_left.bin")
+LFSD_RIGHT_BIN = Path("./nuttx_lfsd_right.bin")
 ROMFS_DIR = REPO_ROOT / "romfs"
 ROMFS_BIN = Path("./nuttx_romfs.bin")
 ROMFS_SIZE = 16 * 1024 * 1024  # 0x1000000
@@ -60,6 +63,8 @@ class RomfsNode:
 class FilesystemOutputs:
     lfsc: Path
     lfsd: Path
+    lfsd_left: Path
+    lfsd_right: Path
     romfs: Path
 
 
@@ -67,6 +72,8 @@ def default_filesystem_outputs() -> FilesystemOutputs:
     return FilesystemOutputs(
         lfsc=LFSC_BIN,
         lfsd=LFSD_BIN,
+        lfsd_left=LFSD_LEFT_BIN,
+        lfsd_right=LFSD_RIGHT_BIN,
         romfs=ROMFS_BIN,
     )
 
@@ -443,6 +450,27 @@ def generate_i18n_json(lfsd_dir: Path) -> None:
         print(result.stdout, end="")
 
 
+def process_overlays(lfsd_source_dir: Path, lfsd_left_bin: Path, lfsd_right_bin: Path) -> None:
+    if not LFSD_OVERLAY.is_dir():
+        print_info(f"Overlay目录不存在: {LFSD_OVERLAY}，跳过overlay处理")
+        return
+
+    for side in ("left", "right"):
+        overlay_dir = LFSD_OVERLAY / side
+        if not overlay_dir.is_dir():
+            continue
+
+        print_info(f"处理{side} overlay...")
+        with tempfile.TemporaryDirectory(prefix=f"lfsd_{side}_") as temp_dir:
+            temp_path = Path(temp_dir)
+            copy_tree_contents(lfsd_source_dir, temp_path)
+            copy_tree_contents(overlay_dir, temp_path)
+            output = lfsd_left_bin if side == "left" else lfsd_right_bin
+            create_lfs_image(temp_path, output, fs_size=LFSD_SIZE)
+
+    print_success("Overlay LFS文件生成完成")
+
+
 def create_romfs_image(source_dir: Path, output_file: Path, volume_label: str = "romfs") -> None:
     if not source_dir.is_dir():
         raise FileNotFoundError(f"ROMFS source directory not found: {source_dir}")
@@ -486,6 +514,7 @@ def create_filesystem(
         copy_tree_contents(LFSD_DIR, lfsd_source_dir)
         generate_i18n_json(lfsd_source_dir)
         create_lfs_image(lfsd_source_dir, outputs.lfsd, fs_size=LFSD_SIZE)
+        process_overlays(lfsd_source_dir, outputs.lfsd_left, outputs.lfsd_right)
 
     create_romfs_image(romfs_dir, outputs.romfs)
 
@@ -496,6 +525,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Cross-platform filesystem packaging for ARM builds")
     parser.add_argument("--source", default=str(DEFAULT_SOURCE), help="Path to the built ELF file")
     parser.add_argument("--romfs-dir", default=str(ROMFS_DIR), help="ROMFS source directory")
+    parser.add_argument("--symbol-file", default=str(DEFAULT_SYMBOL_FILE), help="Symbol table used for undefined symbol verification")
     parser.add_argument("--max-size", type=int, default=MAX_FILE_SIZE, help="Maximum ELF file size in bytes")
     parser.add_argument("--no-symbol-check", action="store_true", help="Skip undefined symbol verification")
     return parser.parse_args()
@@ -522,7 +552,7 @@ def main() -> int:
 
     try:
         if not args.no_symbol_check:
-            check_symbols(source_file, SYMBOL_FILE)
+            check_symbols(source_file, Path(args.symbol_file))
 
         check_file_size(source_file, args.max_size)
         create_filesystem(source_file, outputs, romfs_dir)

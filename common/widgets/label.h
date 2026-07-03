@@ -28,6 +28,7 @@ typedef enum {
     LABEL_ALIGN_LEFT = 0,   ///< 文本左对齐。
     LABEL_ALIGN_CENTER,     ///< 文本居中对齐。
     LABEL_ALIGN_RIGHT,      ///< 文本右对齐。
+    LABEL_ALIGN_AUTO,       ///< 文本按基础方向自动对齐。
 } label_align_t;
 
 /**

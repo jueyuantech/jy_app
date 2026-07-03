@@ -21,6 +21,7 @@
 #include "system/system_timer.h"
 #include "common/widgets/status_bar.h"
 #include "system/system_res.h"
+#include "ui_res.h"
 
 #define USERGUILD_FONT_SIZE_M 36
 #define USERGUILD_FONT_SIZE_S 20
@@ -194,49 +195,49 @@ static void update_guide_ui(guide_mode_t mode) {
     bool skip_ui = false;
     switch (mode) {
         case GUIDE_MODE_CLICK:
-            img_src = FLOATAIR_SYS_IMG("guide_press.jpg");
+            img_src = UI_RES_IMAGE_GUIDE_PRESS;
             op = "GUILD_CLICK";
             func = "GUILD_CLICK_FUNC";
             break;
         case GUIDE_MODE_CLICK_DONE:
-            img_src = FLOATAIR_SYS_IMG("guide_suc.jpg");
+            img_src = UI_RES_IMAGE_GUIDE_SUC;
             op = "GUILD_SUC";
             hide_func = true;
             break;
         case GUIDE_MODE_LONGPRESS:
-            img_src = FLOATAIR_SYS_IMG("guide_press.jpg");
+            img_src = UI_RES_IMAGE_GUIDE_PRESS;
             op = "GUILD_LONGPRESS_RIGHT";
             func = "GUILD_LONGPRESS_FUNC";
             break;
         case GUIDE_MODE_LONGPRESS_DONE:
-            img_src = FLOATAIR_SYS_IMG("guide_suc.jpg");
+            img_src = UI_RES_IMAGE_GUIDE_SUC;
             op = "GUILD_SUC";
             hide_func = true;
             break;
         case GUIDE_MODE_SCROLL:
             guide_scroll_left_ok = false;
             guide_scroll_right_ok = false;
-            img_src = FLOATAIR_SYS_IMG("guide_scroll.jpg");
+            img_src = UI_RES_IMAGE_GUIDE_SCROLL;
             op = "GUILD_STROLL";
             func = "GUILD_STROLL_FUNC";
             break;
         case GUIDE_MODE_SCROLL_DONE:
-            img_src = FLOATAIR_SYS_IMG("guide_suc.jpg");
+            img_src = UI_RES_IMAGE_GUIDE_SUC;
             op = "GUILD_SUC";
             hide_func = true;
             break;
         case GUIDE_MODE_DCLICK:
-            img_src = FLOATAIR_SYS_IMG("guide_press.jpg");
+            img_src = UI_RES_IMAGE_GUIDE_PRESS;
             op = "GUILD_DCLICK";
             func = "GUILD_DCLICK_FUNC";
             break;
         case GUIDE_MODE_DCLICK_DONE:
-            img_src = FLOATAIR_SYS_IMG("guide_suc.jpg");
+            img_src = UI_RES_IMAGE_GUIDE_SUC;
             op = "GUILD_SUC";
             hide_func = true;
             break;
         case GUIDE_MODE_FINISH:
-            img_src = FLOATAIR_SYS_IMG("guide_suc.jpg");
+            img_src = UI_RES_IMAGE_GUIDE_SUC;
             op = "GUILD_SUC";
             hide_func = true;
             system_config_set_userguide_finish(true);

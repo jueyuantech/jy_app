@@ -23,6 +23,7 @@ typedef enum {
     UI_WIDGET_TYPE_ROLLER,
     UI_WIDGET_TYPE_MSGBOX,
     UI_WIDGET_TYPE_PAGED_TEXT, ///< 分页文本组件。
+    UI_WIDGET_TYPE_PROGRESS_INDICATOR, ///< 图文状态提示组件。
 } ui_widget_type_t;
 
 typedef struct ui_widget_t ui_widget_t;
@@ -252,6 +253,9 @@ static inline void ui_widget_set_visible(ui_widget_t* widget, bool visible)
     lv_obj_t* obj = ui_widget_get_obj(widget);
 
     if (!obj) {
+        return;
+    }
+    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN) == !visible) {
         return;
     }
 

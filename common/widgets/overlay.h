@@ -1,3 +1,7 @@
+/**
+ * @file overlay.h
+ * @brief 通用叠加层组件接口，支持在父容器上绘制点位、线段与文本标注。
+ */
 #ifndef COMMON_WIDGETS_OVERLAY_H
 #define COMMON_WIDGETS_OVERLAY_H
 
@@ -28,12 +32,25 @@ typedef struct {
 } overlay_point_t;
 
 /**
+ * @brief 单个 overlay 线段数据。
+ */
+typedef struct {
+    int32_t start_x; ///< 线段起点 X 坐标。
+    int32_t start_y; ///< 线段起点 Y 坐标。
+    int32_t end_x;   ///< 线段终点 X 坐标。
+    int32_t end_y;   ///< 线段终点 Y 坐标。
+    int32_t width;   ///< 线宽；传 0 时使用默认线宽。
+    uint8_t opa;     ///< 线段透明度；传 0 时使用默认透明度。
+} overlay_line_t;
+
+/**
  * @brief 叠加层组件配置。
  */
 typedef struct {
     label_cfg_t text;         ///< 标注文本默认配置。
     overlay_point_t point;    ///< 默认点位配置；`x/y` 不参与默认样式计算。
-    uint16_t max_items;       ///< 最多可同时显示的点位/文本数量。
+    overlay_line_t line;      ///< 默认线段配置；坐标不参与默认样式计算。
+    uint16_t max_items;       ///< 最多可同时显示的点位、线段、文本数量。
 } overlay_cfg_t;
 
 /**
@@ -79,6 +96,16 @@ void overlay_destroy(overlay_t* overlay);
 void overlay_set_points(overlay_t* overlay, const overlay_point_t* points, uint16_t count);
 
 /**
+ * @brief 批量设置 overlay 线段。
+ *
+ * @param overlay 目标组件句柄。
+ * @param lines 线段数组。
+ * @param count 线段数量。
+ * @return 无返回值。
+ */
+void overlay_set_lines(overlay_t* overlay, const overlay_line_t* lines, uint16_t count);
+
+/**
  * @brief 追加一个 overlay 点位到下一个可用槽位。
  *
  * @param overlay 目标组件句柄。
@@ -117,7 +144,7 @@ bool overlay_add_text(overlay_t* overlay, const label_cfg_t* text);
 bool overlay_add_text_from_font(overlay_t* overlay, const char* text, int32_t font_size);
 
 /**
- * @brief 清空所有点位与文本。
+ * @brief 清空所有点位、线段与文本。
  *
  * @param overlay 目标组件句柄。
  * @return 无返回值。

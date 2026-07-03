@@ -4,6 +4,8 @@ import uuid
 import unittest
 from pathlib import Path
 
+from PIL import Image
+
 from tools.ui_designer import server
 
 
@@ -16,6 +18,7 @@ class UiDesignerServerTests(unittest.TestCase):
         (self.root / "system" / "popups").mkdir(parents=True)
         (self.root / "apps" / "demo").mkdir(parents=True)
         (self.root / "images").mkdir(parents=True)
+        (self.root / "romfs" / "system" / "images").mkdir(parents=True)
         (self.root / "lfsd" / "system" / "font").mkdir(parents=True)
         (self.root / "lfsd" / "system" / "config.json").write_text(
             json.dumps({"fontinfo": {"weight": 26, "wordSpace": 1, "rowSpace": 2}}),
@@ -23,8 +26,18 @@ class UiDesignerServerTests(unittest.TestCase):
         )
         (self.root / "lfsd" / "system" / "font" / "font.ttf").write_bytes(b"font")
         (self.root / "ui.res.json").write_text(
-            json.dumps({"name": "ui", "images": {"robot": {"symbol": "img_robot", "type": "lv_image_dsc_t"}}}),
+            json.dumps({
+                "name": "ui",
+                "images": {
+                    "robot": {"symbol": "img_robot", "type": "lv_image_dsc_t"},
+                    "connecting": {"path": "/romfs/system/images/connecting.jpg"},
+                },
+            }),
             encoding="utf-8",
+        )
+        Image.new("RGB", (2, 2), (20, 30, 40)).save(
+            self.root / "romfs" / "system" / "images" / "connecting.jpg",
+            format="JPEG",
         )
         (self.root / "StringPool.csv").write_text(
             "StringID,en-US,zh-CN\nHELLO,Hello,你好\nEMPTY,,\n",
@@ -87,6 +100,13 @@ lv_image_dsc_t img_robot = {
         self.assertEqual(robot["h"], 1)
         self.assertEqual(robot["cf"], "LV_COLOR_FORMAT_I1")
         self.assertEqual(robot["data"][-1], 1)
+
+    def test_reads_resource_path_image_for_preview(self):
+        resources = server.read_preview_resources(self.root)
+
+        connecting = resources["_decoded_images"]["connecting"]
+        self.assertIsInstance(connecting, Image.Image)
+        self.assertEqual(connecting.size, (2, 2))
 
     def test_reads_default_font_info(self):
         font = server.read_default_font_info(self.root)

@@ -1,0 +1,32 @@
+[
+    {
+        "biz": "SystemControl",
+        "cmd": "setView",
+        "data": {
+            "viewName": "gallery"
+        },
+        "id": 0,
+        "name": "SystemControl.setView",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "gallery",
+        "cmd": "setGalleryFile",
+        "data": {
+            "dir": "/jyt_d/apps/gallery",
+            "name": "demo.jpg"
+        },
+        "id": 7,
+        "name": "gallery.setGalleryFile",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "gallery",
+        "cmd": "clearView",
+        "data": {
+        },
+        "id": 7,
+        "name": "gallery.clearView",
+        "type": "DATA_RELIABLE"
+    }
+]

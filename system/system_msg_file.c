@@ -14,6 +14,7 @@
 #include "message.h"
 #include "system/system.h"
 #include "system/system_def.h"
+#include "system/system_file_transfer.h"
 #include "floatair_fs.h"
 #include "lvgl.h"
 
@@ -228,6 +229,104 @@ static uint32_t write_length = 0;
 static uint32_t last_pkt = 0;
 static uint32_t last_pkt_len = 0;
 static char last_full_path[SYSTEM_MAX_PATH_LEN] = {0};
+static system_file_transfer_progress_cb_t s_file_transfer_progress_cb = NULL;
+static void* s_file_transfer_progress_user_data = NULL;
+static bool s_file_transfer_in_progress = false;                  ///< 当前是否有文件正在写入传输。
+static bool s_upload_progress_visible = false;                    ///< 上传进度是否允许由业务页面显示。
+static char s_file_transfer_progress_path[SYSTEM_MAX_PATH_LEN] = {0}; ///< 最近传输进度对应的文件路径。
+static uint32_t s_file_transfer_progress_written = 0;             ///< 最近一次传输进度的已写入字节数。
+static uint32_t s_file_transfer_progress_total = 0;               ///< 最近一次传输进度的文件总字节数。
+
+void system_file_transfer_set_progress_callback(system_file_transfer_progress_cb_t cb,
+                                                void* user_data) {
+    s_file_transfer_progress_cb = cb;
+    s_file_transfer_progress_user_data = user_data;
+}
+
+void system_file_transfer_clear_progress_callback(system_file_transfer_progress_cb_t cb,
+                                                  void* user_data) {
+    if (s_file_transfer_progress_cb == cb &&
+        s_file_transfer_progress_user_data == user_data) {
+        s_file_transfer_progress_cb = NULL;
+        s_file_transfer_progress_user_data = NULL;
+    }
+}
+
+/**
+ * @brief 查询系统文件传输是否正在进行。
+ * @return `true` 表示正在传输，`false` 表示未传输。
+ */
+bool system_file_transfer_is_in_progress(void) {
+    return s_file_transfer_in_progress;
+}
+
+/**
+ * @brief 查询上传进度是否允许被页面显示。
+ * @return `true` 表示允许显示，`false` 表示需要隐藏。
+ */
+bool system_file_transfer_is_upload_progress_visible(void) {
+    return s_upload_progress_visible;
+}
+
+/**
+ * @brief 使用最近一次文件传输进度刷新已注册的业务回调。
+ * @return 无返回值。
+ */
+static void system_file_transfer_refresh_progress_callback(void) {
+    if (s_file_transfer_progress_cb == NULL ||
+        s_file_transfer_progress_path[0] == '\0' ||
+        s_file_transfer_progress_total == 0) {
+        return;
+    }
+
+    s_file_transfer_progress_cb(s_file_transfer_progress_path,
+                                s_file_transfer_progress_written,
+                                s_file_transfer_progress_total,
+                                s_file_transfer_progress_user_data);
+}
+
+/**
+ * @brief 设置上传进度显隐许可。
+ * @param visible `true` 表示允许显示，`false` 表示隐藏。
+ * @return `true` 表示设置成功，`false` 表示当前不在传输中。
+ */
+bool system_file_transfer_set_upload_progress_visible(bool visible) {
+    if (!s_file_transfer_in_progress) {
+        return false;
+    }
+
+    s_upload_progress_visible = visible;
+    system_file_transfer_refresh_progress_callback();
+    return true;
+}
+
+/**
+ * @brief 记录并通知文件写入进度。
+ * @param path 正在写入的文件完整路径。
+ * @param written 已写入字节数。
+ * @param total 文件总字节数。
+ * @return 无返回值。
+ */
+static void system_file_transfer_notify_progress(const char* path,
+                                                 uint32_t written,
+                                                 uint32_t total) {
+    bool transfer_done = (total > 0 && written >= total);
+
+    if (path != NULL) {
+        strncpy(s_file_transfer_progress_path, path, sizeof(s_file_transfer_progress_path) - 1);
+        s_file_transfer_progress_path[sizeof(s_file_transfer_progress_path) - 1] = '\0';
+    }
+    s_file_transfer_progress_written = written;
+    s_file_transfer_progress_total = total;
+    s_file_transfer_in_progress = (total > 0);
+
+    system_file_transfer_refresh_progress_callback();
+
+    if (transfer_done) {
+        s_file_transfer_in_progress = false;
+        s_upload_progress_visible = false;
+    }
+}
 
 static bool system_file_write_file(mpack_node_t node, msg_pack_t* msg) {
     floatair_assert(msg != NULL, "msg is NULL");
@@ -340,6 +439,11 @@ static bool system_file_write_file(mpack_node_t node, msg_pack_t* msg) {
         last_pkt_len = 0;
         strncpy(last_full_path, full_path, sizeof(last_full_path) - 1);
         last_full_path[sizeof(last_full_path) - 1] = '\0';
+        s_upload_progress_visible = false;
+        s_file_transfer_in_progress = false;
+        s_file_transfer_progress_path[0] = '\0';
+        s_file_transfer_progress_written = 0;
+        s_file_transfer_progress_total = 0;
     } else {
         if (last_full_path[0] == '\0' || strncmp(last_full_path, full_path, sizeof(last_full_path)) != 0) {
             floatair_err("path mismatch[%s][%s]", last_full_path, full_path);
@@ -421,6 +525,9 @@ static bool system_file_write_file(mpack_node_t node, msg_pack_t* msg) {
             return app_mpack_send_ack(msg, ErrBadCRC);
         }
         floatair_dbg("last pkt %" PRIu32 " is last", cur);
+        system_file_transfer_notify_progress(full_path, size, size);
+    } else {
+        system_file_transfer_notify_progress(full_path, write_length, size);
     }
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }

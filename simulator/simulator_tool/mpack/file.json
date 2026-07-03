@@ -1,0 +1,87 @@
+[
+  {
+    "name": "File.getFileList",
+    "id": 0,
+    "biz": "File",
+    "cmd": "getFileList",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "dir": "/jyt_d/apps/gallery",
+      "type": 1
+    }
+  },
+  {
+    "name": "File.writeFile",
+    "id": 0,
+    "biz": "File",
+    "cmd": "writeFile",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "type": 1,
+      "dir": "/jyt_d/apps/prompter",
+      "name": "$file.name()",
+      "size": "$file.size()",
+      "crc32": "$file.crc()",
+      "pkt": {
+        "total": "$file.chunkTotal(1024)",
+        "cur": "$file.chunkCur(1024)",
+        "crc32": "$file.chunkCrc(1024)",
+        "bytes": "$file.chunkBytes(1024)"
+      }
+    }
+  },
+  {
+    "name": "File.writeFileByBinary",
+    "id": 0,
+    "biz": "File",
+    "cmd": "writeFileByBinary",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "type": 1,
+      "dir": "/jyt_d/apps/prompter",
+      "name": "$file.name()",
+      "size": "$file.size()",
+      "crc32": "$file.crc()",
+      "pkt": {
+        "total": "$file.chunkTotal(1024)",
+        "cur": "$file.chunkCur(1024)",
+        "crc32": "$file.chunkCrc(1024)",
+        "bytes": "$file.chunkBytes(1024)"
+      }
+    }
+  },
+  {
+    "name": "File.removeFile",
+    "id": 0,
+    "biz": "File",
+    "cmd": "removeFile",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "type": 0,
+      "dir": "/jyt_d/apps/prompter",
+      "name": "demo.txt"
+    }
+  },
+  {
+    "name": "File.isFileExist",
+    "id": 0,
+    "biz": "File",
+    "cmd": "isFileExist",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "type": 0,
+      "dir": "/jyt_d/apps/prompter",
+      "name": "demo.txt"
+    }
+  },
+  {
+    "name": "File.clearFolder",
+    "id": 0,
+    "biz": "File",
+    "cmd": "clearFolder",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "dir": "/jyt_d/apps/prompter"
+    }
+  }
+]

@@ -31,8 +31,8 @@
  * @brief 系统字体注册项，记录注册字号和对应字体对象。
  */
 typedef struct {
-    uint32_t size;
-    lv_font_t* font;
+    uint32_t size;          ///< 注册字号。
+    lv_font_t* font;        ///< 系统常规文字字体对象。
 } system_font_entry_t;
 
 static app_font_info_t s_system_font_info = {0};
@@ -145,28 +145,39 @@ bool app_font_wordspace_valid(int32_t word_space) {
 
 /**
  * @brief 创建一个应用层 Tiny TTF 字体对象。
+ *
+ * @param[in] font_size 字号。
+ * @param[in] cache_cnt Tiny TTF 缓存数量。
+ * @return 成功时返回字体对象，失败时返回 `NULL`。
  */
 lv_font_t* app_font_create(int32_t font_size, size_t cache_cnt) {
     lv_font_t* font = NULL;
+    const char* font_file = floatair_fs_get_system_font_file();
+
+    if (font_file == NULL || font_file[0] == '\0') {
+        floatair_err("font file is empty size[%" PRId32 "]", font_size);
+        return NULL;
+    }
 
 #if defined(CONFIG_RPMSG_TTF_CLIENT)
-    font = rpmsgttf_create_font(floatair_fs_get_system_font_file(),
+    font = rpmsgttf_create_font(font_file,
                                 font_size,
                                 LV_FONT_KERNING_NORMAL,
                                 cache_cnt);
 #else
-    font = lv_tiny_ttf_create_file_ex(floatair_fs_get_system_font_file(),
+    font = lv_tiny_ttf_create_file_ex(font_file,
                                       font_size,
                                       LV_FONT_KERNING_NORMAL,
                                       cache_cnt);
 #endif
     if (font == NULL) {
-        floatair_err("font create failed size[%" PRId32 "]", font_size);
+        floatair_err("font create failed file[%s] size[%" PRId32 "]", font_file, font_size);
         return NULL;
     }
 
-    floatair_info("font (%p) create size[%" PRId32 "] cache=%" PRIu32,
+    floatair_info("font (%p) create file[%s] size[%" PRId32 "] cache=%" PRIu32,
                   font,
+                  font_file,
                   font_size,
                   (uint32_t)cache_cnt);
     return font;

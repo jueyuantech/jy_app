@@ -11,10 +11,15 @@ const ROLLER_DEFAULT_SELECTED_PAD_VER = 2;
 const OVERLAY_DEFAULT_MAX_ITEMS = 16;
 const OVERLAY_DEFAULT_POINT_SIZE = 6;
 const OVERLAY_DEFAULT_POINT_OPA = 255;
+const OVERLAY_DEFAULT_LINE_WIDTH = 1;
+const OVERLAY_DEFAULT_LINE_OPA = 255;
 const PAGED_TEXT_DEFAULT_BORDER_WIDTH = 2;
 const PAGED_TEXT_DEFAULT_RADIUS = 6;
 const PAGED_TEXT_DEFAULT_OUTSET = 10;
 const PAGED_TEXT_DEFAULT_STEP_PERCENT = 100;
+const PROGRESS_INDICATOR_DEFAULT_GAP = 10;
+const PROGRESS_INDICATOR_DEFAULT_ICON_SIZE = 80;
+const PROGRESS_INDICATOR_DEFAULT_ICON_SRC = "@image/connecting";
 
 const state = {
   files: [],
@@ -111,6 +116,7 @@ function widgetName(type) {
     roller: "滚轮",
     paged_text: "分页文本",
     overlay: "覆盖层",
+    progress_indicator: "进度提示",
   }[type] || type;
 }
 
@@ -138,6 +144,42 @@ function buttonLabelText(node) {
   if (label.text !== undefined) return label.text;
   if (label.text_key) return localeStrings()[label.text_key] || `{${label.text_key}}`;
   return "按钮";
+}
+
+function progressIndicatorTextSource(node) {
+  const text = node.text && typeof node.text === "object" && !Array.isArray(node.text)
+    ? node.text
+    : {};
+  if (Object.keys(text).length) return text;
+  if (typeof node.text === "string") return { text: node.text };
+  if (node.text_key) return { text_key: node.text_key };
+  return { text: "0%" };
+}
+
+function progressIndicatorText(node) {
+  const text = progressIndicatorTextSource(node);
+  if (text.text !== undefined) return text.text;
+  if (text.text_key) return localeStrings()[text.text_key] || `{${text.text_key}}`;
+  return "0%";
+}
+
+function editableProgressIndicatorText(node) {
+  if (!node.text || typeof node.text !== "object" || Array.isArray(node.text)) {
+    node.text = progressIndicatorTextSource(node);
+  }
+  delete node.text_key;
+  return node.text;
+}
+
+function progressIndicatorIconSource(node) {
+  const icon = node.icon && typeof node.icon === "object" && !Array.isArray(node.icon)
+    ? node.icon
+    : {};
+  if (Object.keys(icon).length) return icon;
+  return {
+    src: PROGRESS_INDICATOR_DEFAULT_ICON_SRC,
+    size: { w: PROGRESS_INDICATOR_DEFAULT_ICON_SIZE, h: PROGRESS_INDICATOR_DEFAULT_ICON_SIZE },
+  };
 }
 
 function editableButtonLabel(node) {
@@ -479,6 +521,16 @@ function applyLabelStyle(el, cfg) {
   }
 }
 
+function applyProgressIndicatorRootStyle(el, node) {
+  el.style.display = "flex";
+  el.style.flexDirection = "column";
+  el.style.alignItems = "center";
+  el.style.justifyContent = "center";
+  el.style.gap = `${node.gap ?? PROGRESS_INDICATOR_DEFAULT_GAP}px`;
+  el.style.background = "transparent";
+  el.style.borderColor = "transparent";
+}
+
 function applyTextOverflowStyle(el, cfg) {
   const overflow = cfg.overflow || "clip";
   el.style.overflow = "hidden";
@@ -584,6 +636,8 @@ function renderNode(node, path, parentHasLayout, parentLayout = "") {
     renderPagedTextContent(el, node);
   } else if (node.type === "overlay") {
     renderOverlayContent(el, node);
+  } else if (node.type === "progress_indicator") {
+    renderProgressIndicatorContent(el, node);
   }
 
   el.addEventListener("click", (event) => {
@@ -710,8 +764,16 @@ function renderPagedTextContent(el, node) {
 function renderOverlayContent(el, node) {
   const maxItems = Math.max(1, node.max_items === undefined ? OVERLAY_DEFAULT_MAX_ITEMS : Number(node.max_items) || 1);
   const point = node.point && typeof node.point === "object" && !Array.isArray(node.point) ? node.point : {};
+  const line = node.line && typeof node.line === "object" && !Array.isArray(node.line) ? node.line : {};
   const size = point.size === undefined ? OVERLAY_DEFAULT_POINT_SIZE : Number(point.size) || OVERLAY_DEFAULT_POINT_SIZE;
   const alpha = opaToCss(point.opa, OVERLAY_DEFAULT_POINT_OPA);
+  const lineWidth = line.width === undefined ? OVERLAY_DEFAULT_LINE_WIDTH : Number(line.width) || OVERLAY_DEFAULT_LINE_WIDTH;
+  const lineAlpha = opaToCss(line.opa, OVERLAY_DEFAULT_LINE_OPA);
+  const lineEl = document.createElement("div");
+  lineEl.className = "overlayLine";
+  lineEl.style.height = `${lineWidth}px`;
+  lineEl.style.background = `rgba(255, 255, 255, ${lineAlpha})`;
+  el.append(lineEl);
   const points = document.createElement("div");
   points.className = "overlayPoints";
   for (let i = 0; i < maxItems; i++) {
@@ -729,6 +791,46 @@ function renderOverlayContent(el, node) {
     label.append(createTextContent(labelText(node.text), node.text));
     el.append(label);
   }
+}
+
+function renderProgressIndicatorContent(el, node) {
+  applyProgressIndicatorRootStyle(el, node);
+
+  const iconCfg = progressIndicatorIconSource(node);
+  const icon = document.createElement("div");
+  icon.className = "progressIndicatorIcon";
+  icon.style.width = valueToCss((iconCfg.size || iconCfg.geometry || {}).w, `${PROGRESS_INDICATOR_DEFAULT_ICON_SIZE}px`);
+  icon.style.height = valueToCss((iconCfg.size || iconCfg.geometry || {}).h, `${PROGRESS_INDICATOR_DEFAULT_ICON_SIZE}px`);
+  const name = imageName(iconCfg.src);
+  if (name) {
+    icon.classList.add("hasImage");
+    const imageLayer = document.createElement("div");
+    imageLayer.className = "imageContent";
+    imageLayer.style.backgroundImage = `url(/api/resource/image?name=${encodeURIComponent(name)})`;
+    const zoom = iconCfg.zoom !== undefined ? (Number(iconCfg.zoom) || 256) / 256 : 1;
+    const rotation = iconCfg.rotation !== undefined ? (Number(iconCfg.rotation) || 0) / 10 : 0;
+    const offsetX = Number(iconCfg.offset_x) || 0;
+    const offsetY = Number(iconCfg.offset_y) || 0;
+    imageLayer.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom}) rotate(${rotation}deg)`;
+    icon.append(imageLayer);
+  }
+  if (iconCfg.opa !== undefined) {
+    icon.style.opacity = opaToCss(iconCfg.opa);
+  }
+  el.append(icon);
+
+  const labelCfg = progressIndicatorTextSource(node);
+  const label = document.createElement("div");
+  label.className = "progressIndicatorText";
+  label.style.width = valueToCss((labelCfg.size || labelCfg.geometry || {}).w, "100%");
+  label.style.height = valueToCss((labelCfg.size || labelCfg.geometry || {}).h, "auto");
+  applyLabelStyle(label, {
+    ...labelCfg,
+    align: labelCfg.align || "center",
+    overflow: labelCfg.overflow || "clip",
+  });
+  label.append(createTextContent(progressIndicatorText(node), labelCfg));
+  el.append(label);
 }
 
 function renderCanvas() {
@@ -860,6 +962,18 @@ function createNode(type, x, y, parent) {
     node.label = { text: "", align: "left", overflow: "wrap" };
   } else if (type === "overlay") {
     node.point = { size: OVERLAY_DEFAULT_POINT_SIZE, opa: "cover" };
+    node.line = { width: OVERLAY_DEFAULT_LINE_WIDTH, opa: "cover" };
+  } else if (type === "progress_indicator") {
+    node.icon = {
+      src: PROGRESS_INDICATOR_DEFAULT_ICON_SRC,
+      size: { w: PROGRESS_INDICATOR_DEFAULT_ICON_SIZE, h: PROGRESS_INDICATOR_DEFAULT_ICON_SIZE },
+    };
+    node.text = {
+      text: "0%",
+      size: { w: "100%", h: "content" },
+      align: "center",
+      overflow: "clip",
+    };
   }
   return node;
 }
@@ -867,6 +981,7 @@ function createNode(type, x, y, parent) {
 function defaultNodeWidth(type) {
   if (type === "container") return 160;
   if (type === "roller" || type === "paged_text" || type === "overlay") return 240;
+  if (type === "progress_indicator") return 180;
   if (type === "button") return 120;
   return 96;
 }
@@ -876,6 +991,7 @@ function defaultNodeHeight(type) {
   if (type === "roller") return "content";
   if (type === "paged_text") return 160;
   if (type === "overlay") return 80;
+  if (type === "progress_indicator") return "content";
   if (type === "button") return 48;
   return 40;
 }
@@ -1286,13 +1402,73 @@ function appendPagedTextGroups(node) {
 
 function appendOverlayGroups(node) {
   const point = node.point || {};
+  const line = node.line || {};
   const controls = [
     ...propInput("最大项数", node.max_items, (v) => setOptionalObjectNumber(node, "max_items", v), "number"),
     ...propInput("点大小", point.size, (v) => setOptionalObjectNumber(ensureNestedObject(node, "point"), "size", v), "number"),
     ...propInput("点透明度", point.opa, (v) => setOptionalOpaValue(ensureNestedObject(node, "point"), "opa", v)),
+    ...propInput("线宽", line.width, (v) => setOptionalObjectNumber(ensureNestedObject(node, "line"), "width", v), "number"),
+    ...propInput("线透明度", line.opa, (v) => setOptionalOpaValue(ensureNestedObject(node, "line"), "opa", v)),
   ];
   els.props.append(makeGroup("覆盖层", pairs(controls)));
   appendLabelConfigGroups("覆盖文字", node.text || {}, () => ensureNestedObject(node, "text"));
+}
+
+function imageResourceOptions() {
+  const imageOptions = [{ label: "", value: "" }];
+  Object.keys((state.resources && state.resources.images) || {}).forEach((name) => {
+    imageOptions.push({ label: `@image/${name}`, value: `@image/${name}` });
+  });
+  return imageOptions;
+}
+
+function appendImageConfigGroups(title, node, getTarget, options = {}) {
+  const imageOptions = imageResourceOptions();
+  els.props.append(makeGroup(title, pairs(propSelect("资源", node.src || "", imageOptions, (v) => {
+    const target = getTarget();
+    if (v) target.src = v; else delete target.src;
+    markDirty();
+    renderAll();
+  }))));
+  if (options.includeSize) {
+    const box = node.geometry || node.size || {};
+    const boxControls = [
+      ...propInput("w", box.w, (v) => {
+        const target = getTarget();
+        const size = ensureObject(target, "size");
+        delete target.geometry;
+        setNumber(size, "w", v);
+      }),
+      ...propInput("h", box.h, (v) => {
+        const target = getTarget();
+        const size = ensureObject(target, "size");
+        delete target.geometry;
+        setNumber(size, "h", v);
+      }),
+    ];
+    els.props.append(makeGroup(`${title}尺寸`, pairs(boxControls)));
+  }
+  els.props.append(makeGroup(`${title}外观`, pairs([
+    ...propInput("透明度", node.opa, (v) => setOptionalOpaValue(getTarget(), "opa", v)),
+  ])));
+  const transformControls = [
+    ...propInput("X 偏移", node.offset_x, (v) => setOptionalObjectNumber(getTarget(), "offset_x", v), "number"),
+    ...propInput("Y 偏移", node.offset_y, (v) => setOptionalObjectNumber(getTarget(), "offset_y", v), "number"),
+    ...propInput("缩放", node.zoom, (v) => setOptionalObjectNumber(getTarget(), "zoom", v), "number"),
+    ...propInput("旋转", node.rotation, (v) => setOptionalObjectNumber(getTarget(), "rotation", v), "number"),
+  ];
+  els.props.append(makeGroup(`${title}变换`, pairs(transformControls)));
+}
+
+function appendProgressIndicatorGroups(node) {
+  const controls = [
+    ...propInput("图文间距", node.gap, (v) => setOptionalObjectNumber(node, "gap", v), "number"),
+  ];
+  els.props.append(makeGroup("进度提示", pairs(controls)));
+  appendImageConfigGroups("图标", progressIndicatorIconSource(node), () => ensureNestedObject(node, "icon"), {
+    includeSize: true,
+  });
+  appendLabelConfigGroups("提示文字", progressIndicatorTextSource(node), () => editableProgressIndicatorText(node));
 }
 
 function renderProps() {
@@ -1329,7 +1505,9 @@ function renderProps() {
   els.props.append(makeGroup(boxName, pairs(boxControls)));
   appendObjectAlignGroup(node);
   appendLayoutItemGroup(node);
-  appendStyleGroup(node);
+  if (node.type !== "progress_indicator") {
+    appendStyleGroup(node);
+  }
 
   if ((node.type || "container") === "container") {
     const layout = node.layout || {};
@@ -1371,22 +1549,7 @@ function renderProps() {
   }
 
   if (node.type === "img") {
-    const imageOptions = [{ label: "", value: "" }];
-    Object.keys((state.resources && state.resources.images) || {}).forEach((name) => {
-      imageOptions.push({ label: `@image/${name}`, value: `@image/${name}` });
-    });
-    els.props.append(makeGroup("图片", pairs(propSelect("资源", node.src || "", imageOptions, (v) => {
-      if (v) node.src = v; else delete node.src;
-      markDirty();
-      renderAll();
-    }))));
-    const transformControls = [
-      ...propInput("X 偏移", node.offset_x, (v) => setOptionalObjectNumber(node, "offset_x", v), "number"),
-      ...propInput("Y 偏移", node.offset_y, (v) => setOptionalObjectNumber(node, "offset_y", v), "number"),
-      ...propInput("缩放", node.zoom, (v) => setOptionalObjectNumber(node, "zoom", v), "number"),
-      ...propInput("旋转", node.rotation, (v) => setOptionalObjectNumber(node, "rotation", v), "number"),
-    ];
-    els.props.append(makeGroup("图片变换", pairs(transformControls)));
+    appendImageConfigGroups("图片", node, () => node);
   }
 
   if (node.type === "button") {
@@ -1403,6 +1566,10 @@ function renderProps() {
 
   if (node.type === "overlay") {
     appendOverlayGroups(node);
+  }
+
+  if (node.type === "progress_indicator") {
+    appendProgressIndicatorGroups(node);
   }
 }
 

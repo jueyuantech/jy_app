@@ -16,9 +16,13 @@
 #include "message.h"
 #include "system/system.h"
 #include "common/app_framework/app_router.h"
-#include "system/system_config_json.h"
+#include "system/popups/assistant/assistant.h"
 #include "system/system_def.h"
 #include "sys_adapter.h"
+#include "ui_res.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 static lv_obj_t* idlepbl  = NULL;
 static lv_obj_t* idlepbr = NULL;
@@ -36,6 +40,7 @@ static bool s_home_route_pending = false;
 static char s_home_pending_app[MSG_STR_MAX_LEN] = {0};
 static size_t s_home_units_count = 0;
 static const app_home_unit_t* s_home_units_cur = NULL;
+static app_home_unit_t* s_home_units_filtered = NULL;
 
 /**
  * @brief 创建 Home 选中项浮层容器。
@@ -112,6 +117,74 @@ static void home_layout_update(void) {
     }
 }
 
+static void home_units_release_filtered(void) {
+    if (s_home_units_filtered != NULL) {
+        free(s_home_units_filtered);
+        s_home_units_filtered = NULL;
+    }
+}
+
+static const app_home_unit_t* home_units_find_supported(const char* name) {
+    if (!home_is_supported_app(name)) {
+        return NULL;
+    }
+    for (size_t i = 0; i < g_home_units_count; ++i) {
+        if (g_home_units_arr[i].name != NULL && strcmp(g_home_units_arr[i].name, name) == 0) {
+            return &g_home_units_arr[i];
+        }
+    }
+    return NULL;
+}
+
+static bool home_units_contains_name(const app_home_unit_t* units, size_t count, const char* name) {
+    if (units == NULL || name == NULL) {
+        return false;
+    }
+    for (size_t i = 0; i < count; ++i) {
+        if (units[i].name != NULL && strcmp(units[i].name, name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool home_units_build_from_config(void) {
+    size_t configured_count = system_config_get_homeunits_count();
+    app_home_unit_t* filtered = NULL;
+    size_t filtered_count = 0;
+
+    if (configured_count == 0) {
+        return false;
+    }
+    filtered = (app_home_unit_t*)malloc(sizeof(app_home_unit_t) * configured_count);
+    if (filtered == NULL) {
+        floatair_warn("alloc home units filtered failed");
+        return false;
+    }
+    for (size_t i = 0; i < configured_count; ++i) {
+        const char* configured_name = system_config_get_homeunit(i);
+        const app_home_unit_t* unit = home_units_find_supported(configured_name);
+
+        if (unit == NULL) {
+            floatair_warn("home unit not supported: %s",
+                          configured_name != NULL ? configured_name : "NULL");
+            continue;
+        }
+        if (home_units_contains_name(filtered, filtered_count, unit->name)) {
+            continue;
+        }
+        filtered[filtered_count++] = *unit;
+    }
+    if (filtered_count == 0) {
+        free(filtered);
+        return false;
+    }
+    s_home_units_filtered = filtered;
+    s_home_units_cur = s_home_units_filtered;
+    s_home_units_count = filtered_count;
+    return true;
+}
+
 static const app_home_unit_t* home_units_at(size_t index) {
     if (!s_home_units_cur) return NULL;
     return (index < s_home_units_count) ? &s_home_units_cur[index] : NULL;
@@ -155,10 +228,10 @@ static void home_uints_update(void) {
         lv_image_set_src(idle_img_right, next->smallicon);
     }
     if (lv_obj_is_valid(idlepbl)) {
-        lv_image_set_src(idlepbl, FLOATAIR_SYS_IMG("idlemore_left.jpg"));
+        lv_image_set_src(idlepbl, UI_RES_IMAGE_IDLEMORE_LEFT);
     }
     if (lv_obj_is_valid(idlepbr)) {
-        lv_image_set_src(idlepbr, FLOATAIR_SYS_IMG("idlemore_right.jpg"));
+        lv_image_set_src(idlepbr, UI_RES_IMAGE_IDLEMORE_RIGHT);
     }
     if (lv_obj_is_valid(idle_text_center)) lv_label_set_text(idle_text_center, app_get_str(unit->icontext));
     floatair_info("home_uints_update: %s", s_home_units_cur[home_select].name);
@@ -276,9 +349,31 @@ static void home_unit_dclick(void) {
     floatair_info("home_unit_dclick: %s", unit->name);
 }
 
+/**
+ * @brief 处理 Home 页面长按，固定打开语音助手。
+ * @return 无返回值。
+ */
+static void home_unit_long_press(void) {
+    if (!assistant_open()) {
+        floatair_warn("home long press open assistant failed");
+    }
+}
+
 static bool home_uints_init(void) {
+    home_units_release_filtered();
     s_home_units_cur = g_home_units_arr;
     s_home_units_count = g_home_units_count;
+    if (!home_units_build_from_config()) {
+        s_home_units_cur = g_home_units_arr;
+        s_home_units_count = g_home_units_count;
+    }
+    if (s_home_units_count == 0) {
+        s_home_units_cur = NULL;
+        home_select = 0;
+        s_home_units_initialized = false;
+        floatair_err("home units init failed: no available units");
+        return false;
+    }
     home_select = 0;
     s_home_units_initialized = true;
     return true;
@@ -318,8 +413,10 @@ static void touch_event_handle(lv_event_t* event) {
             home_unit_right();
             break;
         case LV_EVENT_CLICKED:
-        case LV_EVENT_LONG_PRESSED:
             home_unit_click();
+            break;
+        case LV_EVENT_LONG_PRESSED:
+            home_unit_long_press();
             break;
         case LV_EVENT_DCLICKED:
             home_unit_dclick();

@@ -29,8 +29,9 @@ extern "C" {
 #define TEXTMODE_HISTORY                            1 ///< history text mode
 #define TEXTMODE_MEETING                            2 ///< meeting text mode
 
-#define AUDIOSOURCE_GLASSES                         0  ///< audio source glasses
-#define AUDIOSOURCE_PHONE                           1  ///< audio source phone
+#define AUDIOSOURCE_GLASSES                         0     ///< 眼镜端收音。
+#define AUDIOSOURCE_PHONE                           1     ///< 手机端收音。
+#define AUDIOSOURCE_INVALID                         0xFF  ///< 音频来源未下发，不显示来源图标。
 
 #define OMNIDIRECTIONAL                            0  ///< omnidirectional
 #define DIRECTIONAL                                1  ///< directional
@@ -74,7 +75,7 @@ typedef struct {
     uint8_t textMode; ///< 文本展示模式。
     uint8_t micDirectional; ///< 麦克风指向模式。
     uint8_t language_hint; ///< 语言提示开关。
-    uint8_t audioSourceIndicator; ///< 音频来源指示。
+    uint8_t audioSourceIndicator; ///< 音频来源指示，未下发时为 AUDIOSOURCE_INVALID。
     uint8_t sourceTextDirection; ///< 源语言文本方向。
     uint8_t targetTextDirection; ///< 目标语言文本方向。
  } stt_config_t;

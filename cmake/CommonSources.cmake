@@ -78,7 +78,7 @@ endif()
 
 set(_app_build_header "${CMAKE_BINARY_DIR}/generated/app_build_config.h")
 file(WRITE "${_app_build_header}" "#pragma once\n")
-foreach(_app IN ITEMS ai gallery guide home music navigation ota poweroff poweron prompter reader transcribe translate langselection)
+foreach(_app IN ITEMS ai gallery guide home music navigation prompter reader transcribe translate langselection imagefusion)
     string(TOUPPER "${_app}" _app_upper)
     list(FIND _apps_deny "${_app}" _idx)
     if(_idx EQUAL -1)

@@ -8,12 +8,19 @@
 #include "sys_adapter.h"
 #include <inttypes.h>
 
-stt_config_t stt_config = {0};
+stt_config_t stt_config = {
+    .audioSourceIndicator = AUDIOSOURCE_INVALID,
+};
 static uint32_t s_stt_font_size = 24;
 stt_info_t *stt_info_buf = NULL;
 lv_style_t stt_stylecur;
 lv_style_t stt_stylehis;
 lv_style_t stt_stylebolder;
+
+static void stt_config_reset(void) {
+    memset(&stt_config, 0, sizeof(stt_config));
+    stt_config.audioSourceIndicator = AUDIOSOURCE_INVALID;
+}
 
 #define STT_FLOW_Q8_PENDING_LOW 8   ///< Q-8 轻度堆积阈值，开始隔帧跳过普通 STT 更新。
 #define STT_FLOW_Q8_PENDING_MID 16  ///< Q-8 中度堆积阈值，提高普通 STT 更新跳过比例。
@@ -878,7 +885,7 @@ void stt_service_init(char *config_file) {
     if (!stt_set_font_size(font_info.weight)) {
         return;
     }
-    memset(&stt_config, 0, sizeof(stt_config));
+    stt_config_reset();
     stt_buffer_init();
 }
 
@@ -920,7 +927,7 @@ bool stt_service_suspend(stt_service_snapshot_t* snapshot) {
     snapshot->buffer = stt_info_buf;
 
     stt_info_buf = NULL;
-    memset(&stt_config, 0, sizeof(stt_config));
+    stt_config_reset();
     s_stt_font_size = 24;
     return true;
 }

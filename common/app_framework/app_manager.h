@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-#define APP_MANAGER_MAX_APPS 16       ///< 可注册 App 最大数量
+#define APP_MANAGER_MAX_APPS 20       ///< 可注册 App 最大数量
 #define APP_PAGE_STACK_MAX 8          ///< 单个 App 页面栈最大深度
 
 typedef struct app_page_t app_page_t;

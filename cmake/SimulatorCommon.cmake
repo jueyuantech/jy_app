@@ -33,6 +33,7 @@ function(jy_app_prepare_simulator_common)
         BUILD_NATIVE=1
         LV_USE_WINDOWS=0
         LV_COLOR_DEPTH=16
+        LV_DRAW_SW_COMPLEX=1
         LV_FS_DEFAULT_DRIVE_LETTER='A'
         LV_USE_TINY_TTF=1
         LV_TINY_TTF_FILE_SUPPORT=1
@@ -44,6 +45,8 @@ function(jy_app_prepare_simulator_common)
         LV_FONT_DEFAULT=&lv_font_unscii_8
         LV_USE_FONT_PLACEHOLDER=1
         LV_TXT_ENC=LV_TXT_ENC_UTF8
+        CONFIG_LV_USE_BIDI=1
+        CONFIG_LV_USE_ARABIC_PERSIAN_CHARS=1
         LV_TXT_BREAK_CHARS=" ,"
         LV_TXT_LINE_BREAK_LONG_LEN=0
         LV_WIDGETS_HAS_DEFAULT_VALUE=1

@@ -12,22 +12,19 @@
 typedef void (*floatair_minute_cb_t)(void);
 
 #define APP_NAME_ASSISTANT "assistant"
-/** AI 应用名称。 */
 #define APP_NAME_AI "ai"
 #define APP_NAME_GALLERY "gallery"
 #define APP_NAME_HOME "home"
 #define APP_NAME_GUIDE "guide"
 #define APP_NAME_MUSIC "music"
 #define APP_NAME_NAVIGATION "navigation"
-#define APP_NAME_OTA "ota"
-#define APP_NAME_POWEROFF "poweroff"
-#define APP_NAME_POWERON "poweron"
 #define APP_NAME_PROMPTER "prompter"
 #define APP_NAME_READER "reader"
 #define APP_NAME_TRANSCRIBE "transcribe"
 #define APP_NAME_TRANSLATE "translate"
 #define APP_NAME_SYSTEM "system"
 #define APP_NAME_LANGSELECTION "langselection"
+#define APP_NAME_IMAGEFUSION "imagefusion"
 
 #define FLOATAIR_ROOT_IMAGE_DISTANCE_NORMAL (0)
 #define FLOATAIR_ROOT_IMAGE_DISTANCE_FAR (-10)

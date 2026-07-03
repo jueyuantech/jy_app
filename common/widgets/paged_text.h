@@ -107,6 +107,13 @@ void paged_text_set_font_info(paged_text_t* paged_text, const app_font_info_t* f
 void paged_text_set_align(paged_text_t* paged_text, label_align_t align);
 
 /**
+ * @brief 设置文本基础方向。
+ * @param paged_text 目标组件句柄。
+ * @param base_dir 文本基础方向，支持 `LV_BASE_DIR_AUTO` 自动检测。
+ */
+void paged_text_set_base_dir(paged_text_t* paged_text, lv_base_dir_t base_dir);
+
+/**
  * @brief 设置翻页步进策略。
  * @param paged_text 目标组件句柄。
  * @param mode 翻页步进策略。

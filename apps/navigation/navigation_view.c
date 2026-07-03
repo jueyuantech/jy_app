@@ -20,6 +20,7 @@
 #include "floatair_dbg.h"
 #include "lvgl.h"
 #include "common/widgets/status_bar.h"
+#include "ui_res.h"
 
 static lv_obj_t* navigation_init_label = NULL;
 static lv_obj_t* navigation_init_img = NULL;
@@ -59,7 +60,7 @@ static bool navigation_drive_icon_ensure(void) {
         return false;
     }
     if (!navigation_drive_icon_valid()) {
-        s_img_drive = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("icon_walk.jpg"), STATUS_BAR_WIDGET_ALIGN_CENTER);
+        s_img_drive = status_bar_add_image(status_bar, UI_RES_IMAGE_ICON_WALK, STATUS_BAR_WIDGET_ALIGN_CENTER);
         if (s_img_drive != NULL) {
             lv_obj_add_flag(s_img_drive, LV_OBJ_FLAG_HIDDEN);
         }
@@ -113,7 +114,7 @@ static void navigation_page_create(lv_obj_t* root, const app_page_data_t* data) 
     lv_obj_set_size(navigation_init_img, LVGL_UI_ICONW_80, LVGL_UI_ICONH_80);
     lv_obj_set_size(navigation_init_label, LV_PCT(100), get_system_font_height() * 2 + get_system_font_row_space() * 3);
 
-    lv_image_set_src(navigation_init_img, FLOATAIR_SYS_IMG("navigationB.jpg"));
+    lv_image_set_src(navigation_init_img, UI_RES_IMAGE_NAVIGATIONB);
     lv_label_set_text(navigation_init_label, app_get_str("OPEN_IDLE_NAVI"));
 
     const lv_font_t* font_sys = get_system_font();
@@ -203,7 +204,7 @@ static void navigation_page_create(lv_obj_t* root, const app_page_data_t* data) 
     lv_obj_add_flag(s_heart_frame, LV_OBJ_FLAG_HIDDEN);
 
     s_img_heart = lv_image_create(s_heart_frame);
-    lv_image_set_src(s_img_heart, FLOATAIR_SYS_IMG("icon_hr.jpg"));
+    lv_image_set_src(s_img_heart, UI_RES_IMAGE_ICON_HR);
 
     s_lbl_heart = lv_label_create(s_heart_frame);
     obj_set_text_font(s_lbl_heart, font_sys);
@@ -222,7 +223,7 @@ static void navigation_page_create(lv_obj_t* root, const app_page_data_t* data) 
     lv_obj_add_flag(s_spo_frame, LV_OBJ_FLAG_HIDDEN);
 
     s_img_spo = lv_image_create(s_spo_frame);
-    lv_image_set_src(s_img_spo, FLOATAIR_SYS_IMG("icon_spo.jpg"));
+    lv_image_set_src(s_img_spo, UI_RES_IMAGE_ICON_SPO);
 
     s_lbl_spo = lv_label_create(s_spo_frame);
     obj_set_text_font(s_lbl_spo, font_sys);
@@ -328,10 +329,10 @@ void navigation_map_update_info(int navMode,
         lv_obj_remove_flag(s_img_drive, LV_OBJ_FLAG_HIDDEN);
         const char* icon_src = NULL;
         switch (navMode) {
-            case DRIVE_TYPE_WALK: icon_src = FLOATAIR_SYS_IMG("icon_walk.jpg"); break;
-            case DRIVE_TYPE_BICY: icon_src = FLOATAIR_SYS_IMG("icon_bicycle.jpg"); break;
-            case DRIVE_TYPE_CAR:  icon_src = FLOATAIR_SYS_IMG("icon_car.jpg"); break;
-            default: icon_src = FLOATAIR_SYS_IMG("icon_car.jpg"); break;
+            case DRIVE_TYPE_WALK: icon_src = UI_RES_IMAGE_ICON_WALK; break;
+            case DRIVE_TYPE_BICY: icon_src = UI_RES_IMAGE_ICON_BICYCLE; break;
+            case DRIVE_TYPE_CAR:  icon_src = UI_RES_IMAGE_ICON_CAR; break;
+            default: icon_src = UI_RES_IMAGE_ICON_CAR; break;
         }
         if (icon_src) {
             lv_image_set_src(s_img_drive, icon_src);

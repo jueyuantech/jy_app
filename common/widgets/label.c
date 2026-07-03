@@ -75,6 +75,8 @@ static void label_notify_layout_changed_if_size_changed(label_t* label,
  */
 static lv_text_align_t label_to_lv_align(label_align_t align) {
     switch (align) {
+    case LABEL_ALIGN_AUTO:
+        return LV_TEXT_ALIGN_AUTO;
     case LABEL_ALIGN_LEFT:
         return LV_TEXT_ALIGN_LEFT;
     case LABEL_ALIGN_RIGHT:
@@ -194,12 +196,18 @@ static void label_apply_max_lines(label_t* label) {
     }
 
     if (label->max_lines == 0) {
+        if (lv_obj_get_style_max_height(label->base.obj, LV_PART_MAIN) == LV_COORD_MAX) {
+            return;
+        }
         lv_obj_set_style_max_height(label->base.obj, LV_COORD_MAX, 0);
         return;
     }
 
     font = lv_obj_get_style_text_font(label->base.obj, LV_PART_MAIN);
     if (!font) {
+        if (lv_obj_get_style_max_height(label->base.obj, LV_PART_MAIN) == LV_COORD_MAX) {
+            return;
+        }
         lv_obj_set_style_max_height(label->base.obj, LV_COORD_MAX, 0);
         return;
     }
@@ -213,6 +221,10 @@ static void label_apply_max_lines(label_t* label) {
     space_bottom = lv_obj_get_style_space_bottom(label->base.obj, LV_PART_MAIN);
     max_height += space_top + space_bottom;
 
+    if (lv_obj_get_style_max_height(label->base.obj, LV_PART_MAIN) == max_height) {
+        return;
+    }
+
     lv_obj_set_style_max_height(label->base.obj, (lv_coord_t)max_height, 0);
 }
 
@@ -223,16 +235,16 @@ static void label_apply_max_lines(label_t* label) {
  *
  * @param label 目标组件句柄。
  * @param font_info 字体配置；传 `NULL` 时回退为系统默认字体。
- * @return 无返回值。
+ * @return `true` 表示字体或间距发生变化，`false` 表示保持不变。
  */
-static void label_apply_font(label_t* label, const app_font_info_t* font_info) {
+static bool label_apply_font(label_t* label, const app_font_info_t* font_info) {
     const lv_font_t* font = get_system_font();
+    int32_t word_space = font_info ? (int32_t)font_info->wordSpace : 0;
+    int32_t row_space = font_info ? (int32_t)font_info->rowSpace : 0;
 
     if (!label_handle_is_valid(label)) {
-        return;
+        return false;
     }
-
-    label_release_font(label);
 
     if (font_info && app_fontsize_valid((int32_t)font_info->weight)) {
         label->font = get_font_by_size_near(font_info->weight);
@@ -241,17 +253,21 @@ static void label_apply_font(label_t* label, const app_font_info_t* font_info) {
         }
     }
 
+    if (lv_obj_get_style_text_font(label->base.obj, LV_PART_MAIN) == font &&
+        lv_obj_get_style_text_letter_space(label->base.obj, LV_PART_MAIN) == word_space &&
+        lv_obj_get_style_text_line_space(label->base.obj, LV_PART_MAIN) == row_space) {
+        return false;
+    }
+
+    label_release_font(label);
     if (font) {
         label->font = font;
         lv_obj_set_style_text_font(label->base.obj, font, 0);
     }
 
-    lv_obj_set_style_text_letter_space(label->base.obj,
-                                       font_info ? (int32_t)font_info->wordSpace : 0,
-                                       0);
-    lv_obj_set_style_text_line_space(label->base.obj,
-                                     font_info ? (int32_t)font_info->rowSpace : 0,
-                                     0);
+    lv_obj_set_style_text_letter_space(label->base.obj, word_space, 0);
+    lv_obj_set_style_text_line_space(label->base.obj, row_space, 0);
+    return true;
 }
 
 /**
@@ -456,6 +472,13 @@ void label_set_padding(label_t* label, int32_t pad_hor, int32_t pad_ver) {
         return;
     }
 
+    if (lv_obj_get_style_pad_left(label->base.obj, LV_PART_MAIN) == pad_hor &&
+        lv_obj_get_style_pad_right(label->base.obj, LV_PART_MAIN) == pad_hor &&
+        lv_obj_get_style_pad_top(label->base.obj, LV_PART_MAIN) == pad_ver &&
+        lv_obj_get_style_pad_bottom(label->base.obj, LV_PART_MAIN) == pad_ver) {
+        return;
+    }
+
     lv_obj_set_style_pad_hor(label->base.obj, (lv_coord_t)pad_hor, 0);
     lv_obj_set_style_pad_ver(label->base.obj, (lv_coord_t)pad_ver, 0);
 }
@@ -469,6 +492,10 @@ void label_set_padding(label_t* label, int32_t pad_hor, int32_t pad_ver) {
  */
 void label_set_radius(label_t* label, int32_t radius) {
     if (!label_handle_is_valid(label)) {
+        return;
+    }
+
+    if (lv_obj_get_style_radius(label->base.obj, LV_PART_MAIN) == radius) {
         return;
     }
 
@@ -487,6 +514,10 @@ void label_set_border_width(label_t* label, int32_t border_width) {
         return;
     }
 
+    if (lv_obj_get_style_border_width(label->base.obj, LV_PART_MAIN) == border_width) {
+        return;
+    }
+
     lv_obj_set_style_border_width(label->base.obj, (lv_coord_t)border_width, 0);
 }
 
@@ -502,6 +533,11 @@ void label_set_opacity(label_t* label, uint8_t opa) {
         return;
     }
 
+    if (lv_obj_get_style_text_opa(label->base.obj, LV_PART_MAIN) == (lv_opa_t)opa &&
+        lv_obj_get_style_border_opa(label->base.obj, LV_PART_MAIN) == (lv_opa_t)opa) {
+        return;
+    }
+
     lv_obj_set_style_text_opa(label->base.obj, (lv_opa_t)opa, 0);
     lv_obj_set_style_border_opa(label->base.obj, (lv_opa_t)opa, 0);
 }
@@ -514,11 +550,18 @@ void label_set_opacity(label_t* label, uint8_t opa) {
  * @return 无返回值。
  */
 void label_set_align(label_t* label, label_align_t align) {
+    lv_text_align_t lv_align;
+
     if (!label_handle_is_valid(label)) {
         return;
     }
 
-    lv_obj_set_style_text_align(label->base.obj, label_to_lv_align(align), 0);
+    lv_align = label_to_lv_align(align);
+    if (lv_obj_get_style_text_align(label->base.obj, LV_PART_MAIN) == lv_align) {
+        return;
+    }
+
+    lv_obj_set_style_text_align(label->base.obj, lv_align, 0);
 }
 
 /**
@@ -529,11 +572,18 @@ void label_set_align(label_t* label, label_align_t align) {
  * @return 无返回值。
  */
 void label_set_overflow(label_t* label, label_overflow_t overflow) {
+    lv_label_long_mode_t long_mode;
+
     if (!label_handle_is_valid(label)) {
         return;
     }
 
-    lv_label_set_long_mode(label->base.obj, label_to_lv_long_mode(overflow));
+    long_mode = label_to_lv_long_mode(overflow);
+    if (lv_label_get_long_mode(label->base.obj) == long_mode) {
+        return;
+    }
+
+    lv_label_set_long_mode(label->base.obj, long_mode);
 }
 
 /**
@@ -545,6 +595,9 @@ void label_set_overflow(label_t* label, label_overflow_t overflow) {
  */
 void label_set_max_lines(label_t* label, uint32_t max_lines) {
     if (!label_handle_is_valid(label)) {
+        return;
+    }
+    if (label->max_lines == max_lines) {
         return;
     }
 
@@ -561,9 +614,10 @@ void label_set_max_lines(label_t* label, uint32_t max_lines) {
  * @return 无返回值。
  */
 void label_set_font_info(label_t* label, const app_font_info_t* font_info) {
-    label_apply_font(label, font_info);
-    label_apply_max_lines(label);
-    label_notify_layout_changed(label);
+    if (label_apply_font(label, font_info)) {
+        label_apply_max_lines(label);
+        label_notify_layout_changed(label);
+    }
 }
 
 /**
@@ -589,6 +643,9 @@ lv_obj_t* label_get_parent(label_t* label) {
  */
 void label_apply_cfg(label_t* label, const label_cfg_t* cfg) {
     label_cfg_t default_cfg;
+    lv_color_t text_color;
+    lv_color_t bg_color;
+    lv_color_t border_color;
 
     if (!label_handle_is_valid(label)) {
         return;
@@ -604,11 +661,22 @@ void label_apply_cfg(label_t* label, const label_cfg_t* cfg) {
     label_set_padding(label, cfg->pad_hor, cfg->pad_ver);
     label_set_radius(label, cfg->radius);
     label_set_border_width(label, cfg->border_width);
-    lv_obj_set_style_text_color(label->base.obj, lv_color_white(), 0);
-    lv_obj_set_style_bg_color(label->base.obj, lv_color_black(), 0);
-    lv_obj_set_style_border_color(label->base.obj, lv_color_white(), 0);
+    text_color = lv_color_white();
+    bg_color = lv_color_black();
+    border_color = lv_color_white();
+    if (!lv_color_eq(lv_obj_get_style_text_color(label->base.obj, LV_PART_MAIN), text_color)) {
+        lv_obj_set_style_text_color(label->base.obj, text_color, 0);
+    }
+    if (!lv_color_eq(lv_obj_get_style_bg_color(label->base.obj, LV_PART_MAIN), bg_color)) {
+        lv_obj_set_style_bg_color(label->base.obj, bg_color, 0);
+    }
+    if (!lv_color_eq(lv_obj_get_style_border_color(label->base.obj, LV_PART_MAIN), border_color)) {
+        lv_obj_set_style_border_color(label->base.obj, border_color, 0);
+    }
     label_set_opacity(label, cfg->opa);
-    lv_obj_set_style_bg_opa(label->base.obj, LV_OPA_COVER, 0);
+    if (lv_obj_get_style_bg_opa(label->base.obj, LV_PART_MAIN) != LV_OPA_COVER) {
+        lv_obj_set_style_bg_opa(label->base.obj, LV_OPA_COVER, 0);
+    }
     label_set_align(label, cfg->align);
     label_set_overflow(label, cfg->overflow);
     label_set_font_info(label, &cfg->font);

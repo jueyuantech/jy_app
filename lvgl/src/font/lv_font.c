@@ -65,6 +65,20 @@ bool lv_font_get_glyph_dsc(const lv_font_t * font_p, lv_font_glyph_dsc_t * dsc_o
     LV_ASSERT_NULL(font_p);
     LV_ASSERT_NULL(dsc_out);
 
+    if(letter == 0x200c || letter == 0x200d ||
+       (letter >= 0xfe00 && letter <= 0xfe0f) ||
+       (letter >= 0xe0100 && letter <= 0xe01ef)) {
+        dsc_out->box_w = 0;
+        dsc_out->adv_w = 0;
+        dsc_out->box_h = 0;
+        dsc_out->ofs_x = 0;
+        dsc_out->ofs_y = 0;
+        dsc_out->format = LV_FONT_GLYPH_FORMAT_NONE;
+        dsc_out->is_placeholder = false;
+        dsc_out->resolved_font = font_p;
+        return true;
+    }
+
 #if LV_USE_FONT_PLACEHOLDER
     const lv_font_t * placeholder_font = NULL;
 #endif

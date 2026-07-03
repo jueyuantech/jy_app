@@ -5,8 +5,8 @@
 #pragma once
 
 #include "common/widgets/container.h"
-#include "common/widgets/img.h"
 #include "common/widgets/label.h"
+#include "common/widgets/progress_indicator.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,15 +48,25 @@ container_t* stt_view_create_plain_container(lv_obj_t* parent,
                                              lv_coord_t height);
 
 /**
- * @brief 创建连接等待图标。
+ * @brief 创建居中的图文状态提示组件。
  *
  * @param parent 父对象。
- * @return 创建成功返回图片组件句柄，失败返回 `NULL`。
+ * @return 创建成功返回图文状态提示组件句柄，失败返回 `NULL`。
  */
-img_t* stt_view_create_center_image(lv_obj_t* parent);
+progress_indicator_t* stt_view_create_status_hint(lv_obj_t* parent);
+
+/**
+ * @brief 应用图文状态提示的系统文字样式。
+ *
+ * @param indicator 目标图文状态提示组件。
+ * @return 无返回值。
+ */
+void stt_view_apply_status_hint_text_theme(progress_indicator_t* indicator);
 
 /**
  * @brief 应用说明类文本样式。
+ *
+ * 说明、等待、语言提示等非 STT 协议文本使用系统字体。
  *
  * @param label 目标文本组件。
  * @param align 文本对齐方式。

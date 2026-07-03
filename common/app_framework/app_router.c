@@ -28,15 +28,6 @@
 #if APP_BUILD_NAVIGATION
 #include "navigation/navigation.h"
 #endif
-#if APP_BUILD_OTA
-#include "ota/ota.h"
-#endif
-#if APP_BUILD_POWEROFF
-#include "poweroff/poweroff.h"
-#endif
-#if APP_BUILD_POWERON
-#include "poweron/poweron.h"
-#endif
 #if APP_BUILD_PROMPTER
 #include "prompter/prompter.h"
 #endif
@@ -57,12 +48,17 @@
 #if APP_BUILD_LANGSELECTION
 #include "langselection/langselection.h"
 #endif
+#if APP_BUILD_IMAGEFUSION
+#include "imagefusion/imagefusion.h"
+#endif
 
 #include <string.h>
 
 static char g_router_curapp[MSG_STR_MAX_LEN] = {0};                  ///< 当前显示的 app 名称
 static app_router_entry_t g_router_entry_mode = APP_ROUTER_ENTRY_LOCAL;  ///< 当前 app 进入方式
 static bool g_router_initialized = false;                            ///< 路由初始化状态
+static bool g_router_quicklaunch_consumed = false;                   ///< quicklaunch 是否已在本次生命周期触发
+static char g_router_last_quicklaunch[MSG_STR_MAX_LEN] = {0};        ///< 用于检测 quicklaunch 变更并重置触发状态
 
 /**
  * @brief 清理底部状态栏上遗留的自定义组件。
@@ -106,13 +102,23 @@ static bool app_router_should_block_by_bt_disconnect(void) {
  * @return 返回首页应用名称；配置异常时返回 `NULL`。
  */
 static const char* app_router_resolve_home(void) {
-    char* home = system_config_get_home_app();
+    const char* home = APP_NAME_HOME;
+    const char* quicklaunch = system_config_get_quicklaunch();
 
-    floatair_assert(home != NULL, "home app name is null");
+    if (strcmp(quicklaunch, g_router_last_quicklaunch) != 0) {
+        snprintf(g_router_last_quicklaunch, sizeof(g_router_last_quicklaunch), "%s", quicklaunch);
+        g_router_quicklaunch_consumed = false;
+    }
     if (!system_config_get_langselection_finish()) {
         home = APP_NAME_LANGSELECTION;
     } else if (system_config_get_userguide() && !system_config_get_userguide_finish()) {
         home = APP_NAME_GUIDE;
+    }
+    if (strcmp(home, APP_NAME_HOME) == 0 &&
+        !g_router_quicklaunch_consumed &&
+        home_is_valid_quicklaunch_app(quicklaunch)) {
+        g_router_quicklaunch_consumed = true;
+        home = quicklaunch;
     }
 
     return home;
@@ -163,24 +169,6 @@ static bool app_router_register_apps(void) {
         return false;
     }
 #endif
-#if APP_BUILD_OTA
-    if (!ota_app_register()) {
-        floatair_err("ota app register failed");
-        return false;
-    }
-#endif
-#if APP_BUILD_POWEROFF
-    if (!poweroff_app_register()) {
-        floatair_err("poweroff app register failed");
-        return false;
-    }
-#endif
-#if APP_BUILD_POWERON
-    if (!poweron_app_register()) {
-        floatair_err("poweron app register failed");
-        return false;
-    }
-#endif
 #if APP_BUILD_READER
     if (!reader_app_register()) {
         floatair_err("reader app register failed");
@@ -202,6 +190,12 @@ static bool app_router_register_apps(void) {
 #if APP_BUILD_TRANSCRIBE
     if (!transcribe_app_register()) {
         floatair_err("transcribe app register failed");
+        return false;
+    }
+#endif
+#if APP_BUILD_IMAGEFUSION
+    if (!imagefusion_app_register()) {
+        floatair_err("imagefusion app register failed");
         return false;
     }
 #endif
@@ -249,6 +243,8 @@ bool app_router_deinit(void) {
 void app_router_reset_state(void) {
     memset(g_router_curapp, 0, sizeof(g_router_curapp));
     g_router_entry_mode = APP_ROUTER_ENTRY_LOCAL;
+    g_router_quicklaunch_consumed = false;
+    g_router_last_quicklaunch[0] = '\0';
     floatair_info("app router reset");
 }
 
@@ -260,9 +256,6 @@ bool app_router_call_home(void) {
         return false;
     }
 
-    floatair_lcd_set_state(LCD_ON);
-    system_report_sys_state(1);
-    app_sleep_timer_reset();
     return app_router_set_app(home, APP_ROUTER_ENTRY_LOCAL);
 }
 

@@ -295,6 +295,15 @@ bool app_mpack_msg_handle(char* msg, size_t msg_size) {
     }
     header = mpackmsg;
     header_valid = true;
+    if (floatair_lcd_get_state() == LCD_OFF &&
+        !system_host_message_allowed_when_lcd_off(&mpackmsg)) {
+        floatair_warn("block host mpack while lcd off, id=%" PRIu32 " biz=%s cmd=%s",
+                      mpackmsg.id,
+                      mpackmsg.biz,
+                      mpackmsg.cmd);
+        ret = app_mpack_send_ack(&mpackmsg, ErrNotReady);
+        goto out;
+    }
     {
         app_t* current_app = app_manager_current();
         if (current_app != NULL &&
@@ -750,14 +759,19 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
         case SET_IED_REMOVED:
         {
             bool is_wear_on = (event_type == SET_IED_WEAR_ON);
-            floatair_info("IED_WEAR_ON ignore[%d]", is_wear_on);
+            floatair_info("wear detection update[%d]", is_wear_on);
 
-            // system_runtime_input_set_wearing_state(is_wear_on);
-            // system_ui_set_wear_detection_visible(is_wear_on);
-            // if (is_wear_on && system_get_sys_state() == 0) {
-            //     system_set_sys_state(1);
-            //     (void)system_report_sys_state(1);
-            // }
+            system_runtime_input_set_wearing_state(is_wear_on);
+            if (system_config_get_wear_detection_enabled()) {
+                system_ui_set_wear_detection_visible(is_wear_on);
+                if (is_wear_on && system_get_sys_state() == 0) {
+                    system_set_sys_state(1);
+                    (void)system_report_sys_state(1);
+                } else if (!is_wear_on && system_get_sys_state() != 0) {
+                    system_set_sys_state(0);
+                    (void)system_report_sys_state(0);
+                }
+            }
             ret = true;
             break;
         }

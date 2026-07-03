@@ -702,6 +702,28 @@ void paged_text_set_align(paged_text_t* paged_text, label_align_t align) {
 }
 
 /**
+ * @brief 设置内部文本组件基础方向并重新分页。
+ * @param[in] paged_text 目标分页文本组件。
+ * @param[in] base_dir 文本基础方向。
+ * @return 无返回值。
+ */
+void paged_text_set_base_dir(paged_text_t* paged_text, lv_base_dir_t base_dir) {
+    lv_obj_t* label_obj = NULL;
+
+    if (!paged_text_handle_is_valid(paged_text)) {
+        return;
+    }
+
+    label_obj = label_get_obj(paged_text->label);
+    if (label_obj == NULL) {
+        return;
+    }
+
+    lv_obj_set_style_base_dir(label_obj, base_dir, 0);
+    paged_text_refresh(paged_text);
+}
+
+/**
  * @brief 设置翻页步进策略并重新分页。
  * @param[in] paged_text 目标分页文本组件。
  * @param[in] mode 翻页步进策略。

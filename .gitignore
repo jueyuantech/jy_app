@@ -1,40 +1,56 @@
-# Build outputs
 *build*
 /install/
-/lfsc/
-
 !simulator/FloatairSimulator/build_all.sh
 !simulator/FloatairSimulator/build_all.bat
-
-# Local configuration and workspace files
+.config.old
 .vscode/
 .idea/
-**/.DS_Store
-
-# Generated text files outside resource overlays
 *.txt
 !lfsd/**
 !romfs/**
-
-# Product overlay outputs
 /StringPool.csv
 /apps/home/home_cfg.c
 /lfsd/apps/logo/logo.png
-/lfsd/lfsd
+/lfsd/apps/golf/
 /build_apps_denylist.txt
 /ui.res.json
 /romfs/system/images/*
 !/romfs/system/images/.gitkeep
-
-# Downloaded SDKs and local caches
-/.os_sdk_cache/
-
-# Runtime logs and Python cache
+download/
+lfs-env/
+lfsc/
+simulator/test/app
+simulator/test/jyt_d
+lfsd/lfsd
+simulator/test/simulator
+simulator/test/right/app
+simulator/test/right/jyt_d
+simulator/test/right/libsim_intercept.so
+simulator/test/right/run_simple.sh
+simulator/test/right/simulator
+simulator/test/right/ui_lr.py
+simulator/test/right/ui.py
+simulator/test/libsim_intercept.so
+**/.vs/
+**/*.vcxproj.user
+simulator/FloatairVS/FloatairVS
+simulator/FloatairVS/Debug
+simulator/test/dist
+simulator/test/*.spec
+simulator/FloatairMac/build/
+build_mac
+**/.DS_Store
 *.log
-*.pyc
-__pycache__/
-
-# Bundled simulator dependencies kept under source control.
+simulator/simulator_tool/simulator_tool_mac.spec
+simulator/simulator_tool/simulator_tool.spec
+simulator/simulator_tool/simulator_tool_linux.spec
+simulator/simulator_tool/simulator_tool_win.spec
 !simulator/FloatairSimulator/mingw/SDL2/
 !simulator/FloatairSimulator/mingw/SDL2/**/
 !simulator/FloatairSimulator/mingw/SDL2/**
+AGENTS.md
+.codex
+.omx/
+*.pyc
+.os_sdk_cache/
+.cache/

@@ -10,18 +10,21 @@
 
 #include "app_def.h"
 #include "common/app_framework/app_manager.h"
-#include "common/elf_common.h"
+#include "elf_common.h"
 #include "floatair_dbg.h"
 #include "floatair_fs.h"
 #include "system/system.h"
 #include "system/system_config_json.h"
+#include "system/system_file_transfer.h"
 #include "system/system_res.h"
 #include "system/system_runtime_ui.h"
 #include "common/widgets/label.h"
 #include "common/widgets/msgbox.h"
 #include "common/widgets/paged_text.h"
+#include "common/widgets/progress_indicator.h"
 #include "common/widgets/roller.h"
 #include "prompter_entry_overlay_ui.h"
+#include "prompter_file_transfer_ui.h"
 #include "prompter_file_roller_ui.h"
 #include "prompter_page_text_preview_ui.h"
 
@@ -33,11 +36,13 @@
 
 typedef enum {
     PROMPTER_VIEW_MODE_INIT = 0, ///< 初始化态，展示手机端下发的文件列表菜单或空态文案。
+    PROMPTER_VIEW_MODE_TRANSFER, ///< 文件传输态，展示全屏进度提示。
     PROMPTER_VIEW_MODE_TEXT,     ///< 正文态，展示分页后的提词文本。
 } prompter_view_mode_t;
 
 static prompter_view_mode_t s_view_mode = PROMPTER_VIEW_MODE_INIT;
 static prompter_entry_overlay_ui_t s_entry_overlay_ui;
+static prompter_file_transfer_ui_t s_file_transfer_ui;
 static prompter_file_roller_ui_t s_file_roller_ui;
 static prompter_page_text_preview_ui_t s_text_preview_ui;
 
@@ -372,18 +377,36 @@ static bool prompter_bind_fonts_on_load(void) {
 }
 
 /**
- * @brief 按当前视图模式同步初始化态和正文态组件显隐。
+ * @brief 刷新文件传输态进度提示。
+ *
+ * @param percent 文件传输百分比。
+ * @return 无返回值。
+ */
+static void prompter_transfer_set_progress(uint32_t percent) {
+    if (s_file_transfer_ui.transfer_indicator == NULL) {
+        return;
+    }
+    if (percent > 100U) {
+        percent = 100U;
+    }
+    progress_indicator_set_percent(s_file_transfer_ui.transfer_indicator, (int32_t)percent);
+}
+
+/**
+ * @brief 按当前视图模式同步初始化态、文件传输态和正文态组件显隐。
  * @return 无返回值。
  */
 static void prompter_view_apply_visibility(void) {
     bool init_mode = (s_view_mode == PROMPTER_VIEW_MODE_INIT);
+    bool transfer_mode = (s_view_mode == PROMPTER_VIEW_MODE_TRANSFER);
     bool show_empty = init_mode && s_menu_count == 0;
     bool show_menu = init_mode && s_menu_count > 0;
 
     ui_widget_set_visible(UI_WIDGET(s_entry_overlay_ui.overlay_box), show_empty);
     ui_widget_set_visible(UI_WIDGET(s_entry_overlay_ui.init_label), show_empty);
     ui_widget_set_visible(UI_WIDGET(s_file_roller_ui.file_menu_box), show_menu);
-    ui_widget_set_visible(UI_WIDGET(s_text_preview_ui.preview_box), !init_mode);
+    ui_widget_set_visible(UI_WIDGET(s_file_transfer_ui.transfer_box), transfer_mode);
+    ui_widget_set_visible(UI_WIDGET(s_text_preview_ui.preview_box), s_view_mode == PROMPTER_VIEW_MODE_TEXT);
     if (init_mode) {
         paged_text_hide_highlight_window(s_text_preview_ui.text_view);
     }
@@ -400,6 +423,61 @@ static void prompter_view_set_mode(prompter_view_mode_t mode) {
     }
     s_view_mode = mode;
     prompter_view_apply_visibility();
+}
+
+/**
+ * @brief 处理系统文件写入进度通知。
+ *
+ * 只有当前正在 Prompter 页面且写入的是文本文件时，才展示全屏传输态。
+ *
+ * @param path 正在写入的文件完整路径。
+ * @param written 已写入字节数。
+ * @param total 文件总字节数。
+ * @param user_data 用户数据。
+ * @return 无返回值。
+ */
+static void prompter_on_file_transfer_progress(const char* path,
+                                               uint32_t written,
+                                               uint32_t total,
+                                               void* user_data) {
+    uint32_t percent = 0;
+    LV_UNUSED(user_data);
+
+    if (path == NULL || total == 0 ||
+        strcmp(app_router_get_app(), APP_NAME_PROMPTER) != 0 ||
+        !prompter_has_txt_suffix(path)) {
+        return;
+    }
+
+    if (written > total) {
+        written = total;
+    }
+    percent = (uint32_t)(((uint64_t)written * 100U) / (uint64_t)total);
+    if (percent > 100U) {
+        percent = 100U;
+    }
+
+    prompter_transfer_set_progress(percent);
+    if (written == total) {
+        if (s_view_mode == PROMPTER_VIEW_MODE_TRANSFER) {
+            prompter_view_mode_t next_mode =
+                (s_file_path[0] != '\0') ? PROMPTER_VIEW_MODE_TEXT : PROMPTER_VIEW_MODE_INIT;
+
+            prompter_view_set_mode(next_mode);
+        }
+        return;
+    }
+
+    if (system_file_transfer_is_upload_progress_visible()) {
+        if (s_view_mode != PROMPTER_VIEW_MODE_TRANSFER) {
+            prompter_view_set_mode(PROMPTER_VIEW_MODE_TRANSFER);
+        }
+    } else if (s_view_mode == PROMPTER_VIEW_MODE_TRANSFER) {
+        prompter_view_mode_t next_mode =
+            (s_file_path[0] != '\0') ? PROMPTER_VIEW_MODE_TEXT : PROMPTER_VIEW_MODE_INIT;
+
+        prompter_view_set_mode(next_mode);
+    }
 }
 
 /**
@@ -634,18 +712,16 @@ static void touch_event_handle(lv_event_t* event) {
                 init_move_selection(1);
                 break;
             case LV_EVENT_CLICKED:
-            case LV_EVENT_LONG_PRESSED:
                 init_report_cur_event();
                 break;
             default:
                 break;
         }
-    } else {
+    } else if (s_view_mode == PROMPTER_VIEW_MODE_TEXT) {
         switch (code) {
             case LV_EVENT_GESTURE_LEFT:
             case LV_EVENT_GESTURE_RIGHT:
             case LV_EVENT_CLICKED:
-            case LV_EVENT_LONG_PRESSED:
                 (void)system_report_touch_event(code);
                 break;
             default:
@@ -707,7 +783,11 @@ static void prompter_build_ui_from_json(lv_obj_t* root) {
                     "prompter file roller ui create failed");
     floatair_assert(prompter_page_text_preview_init_ui(root, &s_text_preview_ui),
                     "prompter page text preview ui create failed");
+    floatair_assert(prompter_file_transfer_init_ui(root, &s_file_transfer_ui),
+                    "prompter file transfer ui create failed");
 
+    paged_text_set_base_dir(s_text_preview_ui.text_view, LV_BASE_DIR_AUTO);
+    paged_text_set_align(s_text_preview_ui.text_view, LABEL_ALIGN_AUTO);
     prompter_apply_runtime_ui_config();
     prompter_menu_sync_roller();
 }
@@ -783,6 +863,7 @@ static void prompter_page_create(lv_obj_t* root, const app_page_data_t* data) {
     floatair_assert(prompter_font != NULL, "font is NULL");
 
     prompter_build_ui_from_json(root);
+    system_file_transfer_set_progress_callback(prompter_on_file_transfer_progress, NULL);
 
     s_view_mode = (s_file_path[0] != '\0') ? PROMPTER_VIEW_MODE_TEXT : PROMPTER_VIEW_MODE_INIT;
     prompter_view_apply_visibility();
@@ -809,6 +890,8 @@ static void prompter_page_appear(lv_obj_t* root) {
 static void prompter_page_destroy(void) {
     (void)system_request_keyword_spotting_enabled(system_config_get_keyword_spotting_enabled());
 
+    system_file_transfer_clear_progress_callback(prompter_on_file_transfer_progress, NULL);
+
     msgbox_destroy(s_prompter_exit_msgbox);
     s_prompter_exit_msgbox = NULL;
 
@@ -816,6 +899,7 @@ static void prompter_page_destroy(void) {
     prompter_menu_release();
 
     memset(&s_entry_overlay_ui, 0, sizeof(s_entry_overlay_ui));
+    memset(&s_file_transfer_ui, 0, sizeof(s_file_transfer_ui));
     memset(&s_file_roller_ui, 0, sizeof(s_file_roller_ui));
     memset(&s_text_preview_ui, 0, sizeof(s_text_preview_ui));
 

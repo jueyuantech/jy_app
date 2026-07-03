@@ -1749,6 +1749,15 @@ menu "LVGL configuration"
 			depends on LV_USE_NUTTX_LCD && LV_NUTTX_LCD_CUSTOM_BUFFER
 			default 60
 
+		config LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+			bool "Flush NuttX LCD with current dirty-area bounding box"
+			depends on LV_USE_NUTTX_LCD
+			default n
+			help
+			  When enabled, LVGL still renders with the existing display mode, but
+			  the NuttX LCD driver submits the bounding box of the current flush
+			  areas to LCDDEVIO_PUTAREA. When disabled, it submits the full screen.
+
 		config LV_USE_NUTTX_TOUCHSCREEN
 			bool "Use NuttX touchscreen driver"
 			depends on LV_USE_NUTTX

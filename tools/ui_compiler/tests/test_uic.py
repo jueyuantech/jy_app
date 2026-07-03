@@ -316,6 +316,7 @@ class UicTests(unittest.TestCase):
                 "geometry": {"x": 0, "y": 0, "w": "100%", "h": "100%"},
                 "max_items": 8,
                 "point": {"size": 10, "opa": "60%"},
+                "line": {"width": 3, "opa": "cover"},
                 "text": {
                     "size": {"w": 120, "h": "content"},
                     "text_key": "OVERLAY_LABEL",
@@ -340,6 +341,8 @@ class UicTests(unittest.TestCase):
         self.assertIn("layer_cfg.max_items = 8;", source)
         self.assertIn("layer_cfg.point.size = 10;", source)
         self.assertIn("layer_cfg.point.opa = LV_OPA_60;", source)
+        self.assertIn("layer_cfg.line.width = 3;", source)
+        self.assertIn("layer_cfg.line.opa = LV_OPA_COVER;", source)
         self.assertIn("layer_cfg.text.w = 120;", source)
         self.assertIn('layer_cfg.text.text = app_get_str("OVERLAY_LABEL");', source)
         self.assertIn("layer_cfg.text.align = LABEL_ALIGN_CENTER;", source)
@@ -405,6 +408,71 @@ class UicTests(unittest.TestCase):
         self.assertIn("body_cfg.step_percent = 75;", source)
         self.assertIn("ui->body = paged_text_create(root_obj, &body_cfg);", source)
         self.assertIn("lv_obj_t* body_obj = paged_text_get_obj(ui->body);", source)
+
+    def test_generates_progress_indicator_widget_config(self):
+        tmp_path = self.temp_dir()
+        ui = {
+            "name": "transfer_status",
+            "resources": "transfer_status.res.json",
+            "root": {
+                "type": "progress_indicator",
+                "id": "progress",
+                "geometry": {"x": 10, "y": 20, "w": 200, "h": "content"},
+                "gap": 14,
+                "icon": {
+                    "src": "@image/spinner",
+                    "size": {"w": 64, "h": 64},
+                    "opa": "60%",
+                    "offset_x": 2,
+                    "offset_y": -1,
+                    "zoom": 300,
+                    "rotation": 45,
+                },
+                "text": {
+                    "text_key": "TRANSFER_PROGRESS",
+                    "size": {"w": "100%", "h": "content"},
+                    "align": "center",
+                    "overflow": "wrap",
+                    "font": {"weight": 24, "wordSpace": 1, "rowSpace": 2},
+                    "max_lines": 2,
+                },
+                "visible": False,
+            },
+        }
+        ui_path = tmp_path / "transfer_status.ui.json"
+        self.write_json(ui_path, ui)
+
+        generated = uic.compile_ui_file(ui_path, tmp_path / "generated")
+
+        header = generated.header.read_text(encoding="utf-8")
+        source = generated.source.read_text(encoding="utf-8")
+        self.assertIn('#include "common/widgets/progress_indicator.h"', header)
+        self.assertIn("progress_indicator_t* progress;", header)
+        self.assertIn('#include "transfer_status_res.h"', source)
+        self.assertIn('#include "app_def.h"', source)
+        self.assertIn("progress_indicator_cfg_t progress_cfg = progress_indicator_default_cfg();", source)
+        self.assertIn("progress_cfg.x = 10;", source)
+        self.assertIn("progress_cfg.y = 20;", source)
+        self.assertIn("progress_cfg.w = 200;", source)
+        self.assertIn("progress_cfg.h = LV_SIZE_CONTENT;", source)
+        self.assertIn("progress_cfg.gap = 14;", source)
+        self.assertIn("progress_cfg.icon.w = 64;", source)
+        self.assertIn("progress_cfg.icon.h = 64;", source)
+        self.assertIn("progress_cfg.icon.opa = LV_OPA_60;", source)
+        self.assertIn("progress_cfg.icon.offset_x = 2;", source)
+        self.assertIn("progress_cfg.icon.offset_y = -1;", source)
+        self.assertIn("progress_cfg.icon.zoom = 300;", source)
+        self.assertIn("progress_cfg.icon.rotation = 45;", source)
+        self.assertIn("progress_cfg.icon.src = TRANSFER_STATUS_RES_IMAGE_SPINNER;", source)
+        self.assertIn("progress_cfg.text.w = LV_PCT(100);", source)
+        self.assertIn('progress_cfg.text.text = app_get_str("TRANSFER_PROGRESS");', source)
+        self.assertIn("progress_cfg.text.align = LABEL_ALIGN_CENTER;", source)
+        self.assertIn("progress_cfg.text.overflow = LABEL_OVERFLOW_WRAP;", source)
+        self.assertIn("progress_cfg.text.font.weight = 24;", source)
+        self.assertIn("progress_cfg.text.max_lines = 2;", source)
+        self.assertIn("ui->progress = progress_indicator_create(parent, &progress_cfg);", source)
+        self.assertIn("lv_obj_t* progress_obj = progress_indicator_get_obj(ui->progress);", source)
+        self.assertIn("ui_widget_set_visible(UI_WIDGET(ui->progress), false);", source)
 
     def test_emits_scroll_options_after_container_layout(self):
         tmp_path = self.temp_dir()

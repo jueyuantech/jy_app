@@ -253,9 +253,6 @@ static void touch_event_handle(lv_event_t* event) {
     if (consumed != NULL) {
         *consumed = true;
     }
-    if (code == LV_EVENT_CLICKED) {
-        return;
-    }
     if (s_lang_roller != NULL && roller_key_handler(s_lang_roller, code)) {
         return;
     }
@@ -437,6 +434,7 @@ static bool langselection_system_event_allowed(uint16_t event_type) {
         case SET_JYP_HOST_CONNECTED:
         case SET_JYT_TIMER_TRIGGER:
         case SET_JYT_BT_VISIBLE_CHANGED:
+        case SET_JYT_REFRESH_UI_REQ:
             return true;
         default:
             return false;

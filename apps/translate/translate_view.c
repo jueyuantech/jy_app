@@ -12,6 +12,7 @@
 #include "common/widgets/container.h"
 #include "common/widgets/img.h"
 #include "common/widgets/label.h"
+#include "common/widgets/progress_indicator.h"
 #include "common/widgets/status_bar.h"
 #include "system/stt_common.h"
 #include "system/system.h"
@@ -19,6 +20,7 @@
 #include "system/system_res.h"
 #include "system/system_runtime_ui.h"
 #include "floatair_fs.h"
+#include "ui_res.h"
 
 /**
  * @brief 翻译页面当前展示模式。
@@ -42,8 +44,7 @@ typedef struct {
     label_t* second_label;  ///< 第二段文本标签。
 } translate_stt_row_t;
 
-static label_t* translate_init_label = NULL;
-static img_t* translate_init_img = NULL;
+static progress_indicator_t* translate_init_hint = NULL;
 static label_t* translate_notice_op = NULL;
 static lv_obj_t* translate_audio_source = NULL;
 static lv_obj_t* translate_mic_direction = NULL;
@@ -88,9 +89,9 @@ static bool translate_status_bar_ensure_widgets(void) {
     }
     if (!translate_status_bar_widgets_valid()) {
         status_bar_clear_custom_widgets(status_bar);
-        translate_audio_source = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("sound_phone.jpg"), STATUS_BAR_WIDGET_ALIGN_LEFT);
-        translate_waveicon = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("sound_wave.jpg"), STATUS_BAR_WIDGET_ALIGN_RIGHT);
-        translate_mic_direction = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("micphone.jpg"), STATUS_BAR_WIDGET_ALIGN_RIGHT);
+        translate_audio_source = status_bar_add_image(status_bar, UI_RES_IMAGE_SOUND_PHONE, STATUS_BAR_WIDGET_ALIGN_LEFT);
+        translate_waveicon = status_bar_add_image(status_bar, UI_RES_IMAGE_SOUND_WAVE, STATUS_BAR_WIDGET_ALIGN_RIGHT);
+        translate_mic_direction = status_bar_add_image(status_bar, UI_RES_IMAGE_MICPHONE, STATUS_BAR_WIDGET_ALIGN_RIGHT);
     }
 
     return translate_status_bar_widgets_valid();
@@ -102,26 +103,23 @@ static bool translate_status_bar_ensure_widgets(void) {
  */
 static void translate_view_sync_layout(void) {
     lv_obj_t* root = translate_root;
+    lv_obj_t* init_hint_obj = NULL;
 
     if (root == NULL || !lv_obj_is_valid(root)) {
         return;
     }
 
-    if (translate_init_img != NULL) {
-        lv_obj_align(ui_widget_get_obj(UI_WIDGET(translate_init_img)), LV_ALIGN_CENTER, 0, 0);
-    }
-    if (translate_init_label != NULL && translate_init_img != NULL) {
-        lv_obj_set_width(label_get_obj(translate_init_label), (lv_coord_t)config_lcd.ui_width);
-        lv_obj_align_to(label_get_obj(translate_init_label),
-                        ui_widget_get_obj(UI_WIDGET(translate_init_img)),
-                        LV_ALIGN_OUT_BOTTOM_MID,
-                        0,
-                        10);
+    if (translate_init_hint != NULL) {
+        init_hint_obj = progress_indicator_get_obj(translate_init_hint);
+        if (init_hint_obj != NULL) {
+            lv_obj_set_size(init_hint_obj, (lv_coord_t)config_lcd.ui_width, LV_SIZE_CONTENT);
+            lv_obj_align(init_hint_obj, LV_ALIGN_CENTER, 0, 0);
+        }
     }
     if (translate_notice_op != NULL) {
         lv_obj_set_size(label_get_obj(translate_notice_op),
                         (lv_coord_t)config_lcd.ui_width,
-                        stt_get_font_height());
+                        get_system_font_height());
         lv_obj_align(label_get_obj(translate_notice_op), LV_ALIGN_BOTTOM_MID, 0, 0);
     }
     if (translate_lang != NULL) {
@@ -140,8 +138,7 @@ static void translate_view_sync_layout(void) {
  */
 static void translate_mode_go_none(void) {
     translate_mode = VIEW_MODE_FUNC_NONE;
-    ui_widget_set_visible(UI_WIDGET(translate_init_label), false);
-    ui_widget_set_visible(UI_WIDGET(translate_init_img), false);
+    ui_widget_set_visible(UI_WIDGET(translate_init_hint), false);
     ui_widget_set_visible(UI_WIDGET(translate_notice_op), false);
     if (translate_audio_source != NULL && lv_obj_is_valid(translate_audio_source)) {
         lv_obj_add_flag(translate_audio_source, LV_OBJ_FLAG_HIDDEN);
@@ -163,14 +160,14 @@ static void translate_mode_go_none(void) {
  */
 static void translate_mode_go_description(void) {
     translate_mode = VIEW_MODE_FUNC_DESCRIPTION;
-    ui_widget_set_visible(UI_WIDGET(translate_init_label), true);
-    if (translate_init_label != NULL) {
-        lv_label_set_text_fmt(label_get_obj(translate_init_label),
-                              "%s%s",
-                              app_get_str("TRANS_GUIDE"),
-                              app_get_str("SYSTEM_APP"));
+    ui_widget_set_visible(UI_WIDGET(translate_init_hint), true);
+    if (translate_init_hint != NULL) {
+        progress_indicator_set_text_fmt(translate_init_hint,
+                                        "%s%s",
+                                        app_get_str("TRANS_GUIDE"),
+                                        app_get_str("SYSTEM_APP"));
+        progress_indicator_set_icon_visible(translate_init_hint, false);
     }
-    ui_widget_set_visible(UI_WIDGET(translate_init_img), false);
     ui_widget_set_visible(UI_WIDGET(translate_notice_op), true);
     if (translate_notice_op != NULL) {
         lv_label_set_text_fmt(label_get_obj(translate_notice_op),
@@ -200,16 +197,13 @@ static void translate_mode_go_description(void) {
  */
 static void translate_mode_go_wait(void) {
     translate_mode = VIEW_MODE_FUNC_WAIT;
-    ui_widget_set_visible(UI_WIDGET(translate_init_label), true);
-    if (translate_init_label != NULL) {
-        lv_label_set_text_fmt(label_get_obj(translate_init_label),
-                              "%s%s",
-                              app_get_str("TRANS_TEXT"),
-                              app_get_str("SYSTEM_OPENIGN"));
-    }
-    ui_widget_set_visible(UI_WIDGET(translate_init_img), true);
-    if (translate_init_img != NULL) {
-        img_set_src(translate_init_img, FLOATAIR_SYS_IMG("connecting.jpg"));
+    ui_widget_set_visible(UI_WIDGET(translate_init_hint), true);
+    if (translate_init_hint != NULL) {
+        progress_indicator_set_text_fmt(translate_init_hint,
+                                        "%s%s",
+                                        app_get_str("TRANS_TEXT"),
+                                        app_get_str("SYSTEM_OPENIGN"));
+        progress_indicator_set_icon_visible(translate_init_hint, true);
     }
     ui_widget_set_visible(UI_WIDGET(translate_notice_op), false);
     stt_view_update_audio_source(translate_audio_source);
@@ -228,8 +222,7 @@ static void translate_mode_go_wait(void) {
  */
 static void translate_mode_go_stt(void) {
     translate_mode = VIEW_MODE_FUNC_STT;
-    ui_widget_set_visible(UI_WIDGET(translate_init_label), false);
-    ui_widget_set_visible(UI_WIDGET(translate_init_img), false);
+    ui_widget_set_visible(UI_WIDGET(translate_init_hint), false);
     ui_widget_set_visible(UI_WIDGET(translate_notice_op), false);
     stt_view_update_audio_source(translate_audio_source);
     stt_view_update_mic_direction(translate_mic_direction);
@@ -614,7 +607,6 @@ static void touch_event_handle(lv_event_t* event) {
             }
         }
         break;
-    case LV_EVENT_CLICKED:
     case LV_EVENT_LONG_PRESSED:
         if (translate_mode == VIEW_MODE_FUNC_DESCRIPTION) {
             translate_mode_go_wait();
@@ -638,25 +630,15 @@ static void touch_event_handle(lv_event_t* event) {
  */
 void translate_on_fontconfig_changed(void) {
     lv_obj_t* lang_obj = NULL;
-    lv_obj_t* init_label_obj = NULL;
     lv_obj_t* notice_obj = NULL;
 
     stt_style_init();
 
-    stt_view_apply_text_theme(translate_init_label, LABEL_ALIGN_CENTER, LABEL_OVERFLOW_WRAP);
+    stt_view_apply_status_hint_text_theme(translate_init_hint);
     stt_view_apply_text_theme(translate_notice_op, LABEL_ALIGN_CENTER, LABEL_OVERFLOW_WRAP);
-    init_label_obj = label_get_obj(translate_init_label);
-    if (init_label_obj != NULL) {
-        lv_obj_set_width(init_label_obj, LV_PCT(100));
-        lv_obj_align_to(init_label_obj,
-                        ui_widget_get_obj(UI_WIDGET(translate_init_img)),
-                        LV_ALIGN_OUT_BOTTOM_MID,
-                        0,
-                        10);
-    }
     notice_obj = label_get_obj(translate_notice_op);
     if (notice_obj != NULL) {
-        lv_obj_set_size(notice_obj, LV_PCT(100), stt_get_font_height());
+        lv_obj_set_size(notice_obj, LV_PCT(100), get_system_font_height());
         lv_obj_align(notice_obj, LV_ALIGN_BOTTOM_MID, 0, 0);
     }
 
@@ -758,7 +740,7 @@ void translate_update_lang_hint(void) {
         if (translate_img_lang_hint == NULL) {
             translate_img_lang_hint = img_create(lang_row_obj, NULL);
             floatair_assert(translate_img_lang_hint != NULL, "translate_img_lang_hint NULL");
-            img_set_src(translate_img_lang_hint, FLOATAIR_SYS_IMG("switch.jpg"));
+            img_set_src(translate_img_lang_hint, UI_RES_IMAGE_SWITCH);
         }
         if (translate_lable_lang_target == NULL) {
             translate_lable_lang_target = stt_view_create_text_label(lang_row_obj,
@@ -862,22 +844,8 @@ static void translate_page_create(lv_obj_t* root, const app_page_data_t* data) {
 
     stt_style_init();
 
-    translate_init_img = stt_view_create_center_image(root);
-    floatair_assert(translate_init_img != NULL, "translate_init_img NULL");
-
-    translate_init_label = stt_view_create_text_label(root,
-                                                      LV_PCT(100),
-                                                      LV_SIZE_CONTENT,
-                                                      "",
-                                                      LABEL_ALIGN_CENTER,
-                                                      LABEL_OVERFLOW_WRAP);
-    floatair_assert(translate_init_label != NULL, "translate_init_label NULL");
-    stt_view_apply_text_theme(translate_init_label, LABEL_ALIGN_CENTER, LABEL_OVERFLOW_WRAP);
-    lv_obj_align_to(label_get_obj(translate_init_label),
-                    ui_widget_get_obj(UI_WIDGET(translate_init_img)),
-                    LV_ALIGN_OUT_BOTTOM_MID,
-                    0,
-                    10);
+    translate_init_hint = stt_view_create_status_hint(root);
+    floatair_assert(translate_init_hint != NULL, "translate_init_hint NULL");
 
     translate_content = stt_view_create_plain_container(root, LV_PCT(100), LV_PCT(100));
     floatair_assert(translate_content != NULL, "translate_content NULL");
@@ -902,7 +870,7 @@ static void translate_page_create(lv_obj_t* root, const app_page_data_t* data) {
 
     translate_notice_op = stt_view_create_text_label(root,
                                                      LV_PCT(100),
-                                                     stt_get_font_height(),
+                                                     get_system_font_height(),
                                                      "",
                                                      LABEL_ALIGN_CENTER,
                                                      LABEL_OVERFLOW_WRAP);
@@ -972,8 +940,7 @@ static void translate_page_destroy(void) {
         status_bar_clear_custom_widgets(status_bar);
     }
 
-    translate_init_label = NULL;
-    translate_init_img = NULL;
+    translate_init_hint = NULL;
     translate_root = NULL;
     translate_notice_op = NULL;
     translate_audio_source = NULL;

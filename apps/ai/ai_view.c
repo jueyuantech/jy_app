@@ -22,6 +22,7 @@
 #include "system/system_runtime_ui.h"
 
 #include <string.h>
+#include "ui_res.h"
 
 /** AI 文本区域左右边距。 */
 #define AI_TEXT_SIDE_PADDING 12
@@ -162,7 +163,7 @@ static void ai_stt_ensure_row_widgets(ai_stt_row_t* row,
     }
 
     if (row->left_icon == NULL) {
-        row->left_icon = ai_stt_create_row_icon(row_obj, FLOATAIR_SYS_IMG("icon_robot.jpg"));
+        row->left_icon = ai_stt_create_row_icon(row_obj, UI_RES_IMAGE_ICON_ROBOT);
         floatair_assert(row->left_icon != NULL, "ai stt left icon NULL");
     }
     if (row->label == NULL) {
@@ -176,7 +177,7 @@ static void ai_stt_ensure_row_widgets(ai_stt_row_t* row,
         stt_view_apply_stt_label_text_theme(row->label, base_dir);
     }
     if (row->right_icon == NULL) {
-        row->right_icon = ai_stt_create_row_icon(row_obj, FLOATAIR_SYS_IMG("icon_robot2.jpg"));
+        row->right_icon = ai_stt_create_row_icon(row_obj, UI_RES_IMAGE_ICON_ROBOT2);
         floatair_assert(row->right_icon != NULL, "ai stt right icon NULL");
     }
 }
@@ -249,9 +250,9 @@ static bool ai_status_bar_ensure_widgets(void) {
     }
     if (!ai_status_bar_widgets_valid()) {
         status_bar_clear_custom_widgets(status_bar);
-        s_audio_source = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("sound_phone.jpg"), STATUS_BAR_WIDGET_ALIGN_LEFT);
-        s_waveicon = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("sound_wave.jpg"), STATUS_BAR_WIDGET_ALIGN_RIGHT);
-        s_mic_direction = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("micphone.jpg"), STATUS_BAR_WIDGET_ALIGN_RIGHT);
+        s_audio_source = status_bar_add_image(status_bar, UI_RES_IMAGE_SOUND_PHONE, STATUS_BAR_WIDGET_ALIGN_LEFT);
+        s_waveicon = status_bar_add_image(status_bar, UI_RES_IMAGE_SOUND_WAVE, STATUS_BAR_WIDGET_ALIGN_RIGHT);
+        s_mic_direction = status_bar_add_image(status_bar, UI_RES_IMAGE_MICPHONE, STATUS_BAR_WIDGET_ALIGN_RIGHT);
     }
 
     return ai_status_bar_widgets_valid();
@@ -290,7 +291,7 @@ static void ai_mode_go_init(void) {
     ai_hide_status_widgets();
 
     if (s_init_img != NULL) {
-        img_set_src(s_init_img, FLOATAIR_SYS_IMG("icon_robot.jpg"));
+        img_set_src(s_init_img, UI_RES_IMAGE_ICON_ROBOT);
     }
 
     if (s_init_label != NULL) {

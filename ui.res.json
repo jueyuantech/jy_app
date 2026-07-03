@@ -1,0 +1,215 @@
+{
+  "name": "ui",
+  "images": {
+    "airpods": {
+      "path": "/romfs/system/images/airpods.jpg"
+    },
+    "arow_down_left": {
+      "path": "/romfs/system/images/arow_down_left.jpg"
+    },
+    "arrow_down": {
+      "path": "/romfs/system/images/arrow_down.jpg"
+    },
+    "arrow_down_right": {
+      "path": "/romfs/system/images/arrow_down_right.jpg"
+    },
+    "arrow_left": {
+      "path": "/romfs/system/images/arrow_left.jpg"
+    },
+    "arrow_right": {
+      "path": "/romfs/system/images/arrow_right.jpg"
+    },
+    "arrow_up": {
+      "path": "/romfs/system/images/arrow_up.jpg"
+    },
+    "arrow_up_left": {
+      "path": "/romfs/system/images/arrow_up_left.jpg"
+    },
+    "arrow_up_right": {
+      "path": "/romfs/system/images/arrow_up_right.jpg"
+    },
+    "assistantB": {
+      "path": "/romfs/system/images/assistantB.jpg"
+    },
+    "assistantS": {
+      "path": "/romfs/system/images/assistantS.jpg"
+    },
+    "bt_connected": {
+      "path": "/romfs/system/images/bt_connected.jpg"
+    },
+    "bt_disconnect": {
+      "path": "/romfs/system/images/bt_disconnect.jpg"
+    },
+    "bt_unbond": {
+      "path": "/romfs/system/images/bt_unbond.jpg"
+    },
+    "connecting": {
+      "path": "/romfs/system/images/connecting.jpg"
+    },
+    "doubleclick": {
+      "path": "/romfs/system/images/doubleclick.jpg"
+    },
+    "down": {
+      "path": "/romfs/system/images/down.jpg"
+    },
+    "galleryB": {
+      "path": "/romfs/system/images/galleryB.jpg"
+    },
+    "galleryS": {
+      "path": "/romfs/system/images/galleryS.jpg"
+    },
+    "guide_press": {
+      "path": "/romfs/system/images/guide_press.jpg"
+    },
+    "guide_scroll": {
+      "path": "/romfs/system/images/guide_scroll.jpg"
+    },
+    "guide_scroll_or_press": {
+      "path": "/romfs/system/images/guide_scroll_or_press.jpg"
+    },
+    "guide_suc": {
+      "path": "/romfs/system/images/guide_suc.jpg"
+    },
+    "icon_arrow": {
+      "path": "/romfs/system/images/icon_arrow.jpg"
+    },
+    "icon_bicycle": {
+      "path": "/romfs/system/images/icon_bicycle.jpg"
+    },
+    "icon_car": {
+      "path": "/romfs/system/images/icon_car.jpg"
+    },
+    "icon_hr": {
+      "path": "/romfs/system/images/icon_hr.jpg"
+    },
+    "icon_robot": {
+      "path": "/romfs/system/images/icon_robot.jpg"
+    },
+    "icon_robot2": {
+      "path": "/romfs/system/images/icon_robot2.jpg"
+    },
+    "icon_spo": {
+      "path": "/romfs/system/images/icon_spo.jpg"
+    },
+    "icon_walk": {
+      "path": "/romfs/system/images/icon_walk.jpg"
+    },
+    "idlemore_left": {
+      "path": "/romfs/system/images/idlemore_left.jpg"
+    },
+    "idlemore_right": {
+      "path": "/romfs/system/images/idlemore_right.jpg"
+    },
+    "im_message": {
+      "path": "/romfs/system/images/im_message.jpg"
+    },
+    "incoming_call": {
+      "path": "/romfs/system/images/incoming_call.jpg"
+    },
+    "longpress": {
+      "path": "/romfs/system/images/longpress.jpg"
+    },
+    "mapheart": {
+      "path": "/romfs/system/images/mapheart.jpg"
+    },
+    "mic360": {
+      "path": "/romfs/system/images/mic360.jpg"
+    },
+    "micphone": {
+      "path": "/romfs/system/images/micphone.jpg"
+    },
+    "musicB": {
+      "path": "/romfs/system/images/musicB.jpg"
+    },
+    "musicS": {
+      "path": "/romfs/system/images/musicS.jpg"
+    },
+    "navigationB": {
+      "path": "/romfs/system/images/navigationB.jpg"
+    },
+    "navigationS": {
+      "path": "/romfs/system/images/navigationS.jpg"
+    },
+    "ota": {
+      "path": "/romfs/system/images/ota.jpg"
+    },
+    "pow_0": {
+      "path": "/romfs/system/images/pow_0.jpg"
+    },
+    "pow_1": {
+      "path": "/romfs/system/images/pow_1.jpg"
+    },
+    "pow_2": {
+      "path": "/romfs/system/images/pow_2.jpg"
+    },
+    "pow_3": {
+      "path": "/romfs/system/images/pow_3.jpg"
+    },
+    "pow_4": {
+      "path": "/romfs/system/images/pow_4.jpg"
+    },
+    "pow_5": {
+      "path": "/romfs/system/images/pow_5.jpg"
+    },
+    "poweroff": {
+      "path": "/romfs/system/images/poweroff.jpg"
+    },
+    "poweron": {
+      "path": "/romfs/system/images/poweron.jpg"
+    },
+    "powing": {
+      "path": "/romfs/system/images/powing.jpg"
+    },
+    "prompterB": {
+      "path": "/romfs/system/images/prompterB.jpg"
+    },
+    "prompterS": {
+      "path": "/romfs/system/images/prompterS.jpg"
+    },
+    "readerB": {
+      "path": "/romfs/system/images/readerB.jpg"
+    },
+    "readerS": {
+      "path": "/romfs/system/images/readerS.jpg"
+    },
+    "slide": {
+      "path": "/romfs/system/images/slide.jpg"
+    },
+    "sound_glass": {
+      "path": "/romfs/system/images/sound_glass.jpg"
+    },
+    "sound_phone": {
+      "path": "/romfs/system/images/sound_phone.jpg"
+    },
+    "sound_wave": {
+      "path": "/romfs/system/images/sound_wave.jpg"
+    },
+    "speaker_mute": {
+      "path": "/romfs/system/images/speaker_mute.jpg"
+    },
+    "speaker_on": {
+      "path": "/romfs/system/images/speaker_on.jpg"
+    },
+    "switch": {
+      "path": "/romfs/system/images/switch.jpg"
+    },
+    "touch": {
+      "path": "/romfs/system/images/touch.jpg"
+    },
+    "transcribeB": {
+      "path": "/romfs/system/images/transcribeB.jpg"
+    },
+    "transcribeS": {
+      "path": "/romfs/system/images/transcribeS.jpg"
+    },
+    "translateB": {
+      "path": "/romfs/system/images/translateB.jpg"
+    },
+    "translateS": {
+      "path": "/romfs/system/images/translateS.jpg"
+    },
+    "up": {
+      "path": "/romfs/system/images/up.jpg"
+    }
+  }
+}

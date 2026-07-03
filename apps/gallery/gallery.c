@@ -12,10 +12,12 @@
 
 #include "common/app_framework/app_nav.h"
 #include "common/app_framework/app_manager.h"
+#include "common/widgets/progress_indicator.h"
 #include "message.h"
 #include "app_def.h"
 #include "system/system.h"
 #include "system/system_config_json.h"
+#include "system/system_file_transfer.h"
 #include "system/system_res.h"
 #include "system/system_runtime_ui.h"
 #include "floatair_fs.h"
@@ -32,6 +34,122 @@ static size_t g_file_count = 0;
 static size_t g_cur_idx = 0;
 static bool s_gallery_msg_registered = false;
 
+/**
+ * @brief Gallery 页面显示模式。
+ */
+typedef enum {
+    GALLERY_VIEW_MODE_IMAGE = 0,   ///< 图片浏览态，展示图片或错误提示。
+    GALLERY_VIEW_MODE_TRANSFER,    ///< 文件传输态，展示全屏传输进度。
+} gallery_view_mode_t;
+
+static gallery_view_mode_t s_gallery_view_mode = GALLERY_VIEW_MODE_IMAGE; ///< 当前 Gallery 页面显示模式。
+static lv_obj_t* s_transfer_box = NULL;                                   ///< 文件传输态全屏容器。
+static progress_indicator_t* s_transfer_indicator = NULL;                 ///< 文件传输进度提示组件。
+
+/**
+ * @brief 按当前模式同步图片、错误提示和传输进度层显隐。
+ * @return 无返回值。
+ */
+static void gallery_apply_view_mode(void) {
+    bool transfer_mode = (s_gallery_view_mode == GALLERY_VIEW_MODE_TRANSFER);
+
+    if (s_transfer_box) {
+        if (transfer_mode) {
+            lv_obj_remove_flag(s_transfer_box, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_move_foreground(s_transfer_box);
+        } else {
+            lv_obj_add_flag(s_transfer_box, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+}
+
+/**
+ * @brief 切换 Gallery 页面显示模式。
+ * @param[in] mode 目标显示模式。
+ * @return 无返回值。
+ */
+static void gallery_set_view_mode(gallery_view_mode_t mode) {
+    if (s_gallery_view_mode == mode) {
+        return;
+    }
+
+    s_gallery_view_mode = mode;
+    gallery_apply_view_mode();
+}
+
+/**
+ * @brief 刷新文件传输态进度提示。
+ * @param[in] percent 文件传输百分比。
+ * @return 无返回值。
+ */
+static void gallery_transfer_set_progress(uint32_t percent) {
+    if (s_transfer_indicator == NULL) {
+        return;
+    }
+    if (percent > 100U) {
+        percent = 100U;
+    }
+    progress_indicator_set_percent(s_transfer_indicator, (int32_t)percent);
+}
+
+/**
+ * @brief 判断路径是否为 Gallery 支持展示的图片文件。
+ * @param[in] path 待检查的文件路径。
+ * @return `true` 表示是受支持图片，`false` 表示不是。
+ */
+static bool gallery_is_supported_image_file(const char* path) {
+    return path != NULL && system_is_image_file(path);
+}
+
+/**
+ * @brief 处理系统文件写入进度通知。
+ *
+ * 只有当前正在 Gallery 页面且写入的是支持的图片文件时，才展示全屏传输态。
+ *
+ * @param path 正在写入的文件完整路径。
+ * @param written 已写入字节数。
+ * @param total 文件总字节数。
+ * @param user_data 用户数据。
+ * @return 无返回值。
+ */
+static void gallery_on_file_transfer_progress(const char* path,
+                                              uint32_t written,
+                                              uint32_t total,
+                                              void* user_data) {
+    uint32_t percent = 0;
+    LV_UNUSED(user_data);
+
+    if (path == NULL || total == 0 ||
+        strcmp(app_router_get_app(), APP_NAME_GALLERY) != 0 ||
+        !gallery_is_supported_image_file(path)) {
+        return;
+    }
+
+    if (written > total) {
+        written = total;
+    }
+    percent = (uint32_t)(((uint64_t)written * 100U) / (uint64_t)total);
+    if (percent > 100U) {
+        percent = 100U;
+    }
+
+    gallery_transfer_set_progress(percent);
+
+    if (written == total) {
+        gallery_update_pic_folder();
+        (void)gallery_update_pic(path);
+        return;
+    }
+
+    if (system_file_transfer_is_upload_progress_visible()) {
+        if (s_gallery_view_mode != GALLERY_VIEW_MODE_TRANSFER) {
+            gallery_set_view_mode(GALLERY_VIEW_MODE_TRANSFER);
+        }
+    } else if (s_gallery_view_mode == GALLERY_VIEW_MODE_TRANSFER) {
+        gallery_set_view_mode(GALLERY_VIEW_MODE_IMAGE);
+    }
+}
+
 bool gallery_update_pic(const char *img) {
     if (img == NULL || strlen(img) == 0) {
         floatair_err("img is NULL");
@@ -47,6 +165,7 @@ bool gallery_update_pic(const char *img) {
                 lv_label_set_text(g_err_label, app_get_str("GALLERY_IMAGE_DECODE_FAILED"));
                 lv_obj_remove_flag(g_err_label, LV_OBJ_FLAG_HIDDEN);
             }
+            gallery_set_view_mode(GALLERY_VIEW_MODE_IMAGE);
             return false;
         }
 
@@ -55,6 +174,7 @@ bool gallery_update_pic(const char *img) {
         lv_image_set_src(g_pic, img);
         lv_image_set_scale(g_pic, LV_SCALE_NONE);
         lv_obj_remove_flag(g_pic, LV_OBJ_FLAG_HIDDEN);
+        gallery_set_view_mode(GALLERY_VIEW_MODE_IMAGE);
         return true;
     }
     return false;
@@ -148,6 +268,42 @@ void gallery_clear_view(void) {
     if (g_pic) {
         lv_obj_add_flag(g_pic, LV_OBJ_FLAG_HIDDEN);
     }
+    gallery_set_view_mode(GALLERY_VIEW_MODE_IMAGE);
+}
+
+/**
+ * @brief 创建 Gallery 文件传输进度层。
+ * @param[in] root 页面根对象。
+ * @return 无返回值。
+ */
+static void gallery_create_transfer_view(lv_obj_t* root) {
+    progress_indicator_cfg_t cfg;
+
+    s_transfer_box = lv_obj_create(root);
+    floatair_assert(s_transfer_box != NULL, "gallery transfer box NULL");
+    lv_obj_remove_style_all(s_transfer_box);
+    lv_obj_set_size(s_transfer_box, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(s_transfer_box, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(s_transfer_box, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_layout(s_transfer_box, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(s_transfer_box, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(s_transfer_box,
+                          LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(s_transfer_box, LV_OBJ_FLAG_SCROLLABLE);
+
+    cfg = progress_indicator_default_cfg();
+    cfg.w = LV_PCT(100);
+    cfg.h = LV_SIZE_CONTENT;
+    cfg.text.w = LV_PCT(100);
+    cfg.text.h = LV_SIZE_CONTENT;
+    cfg.text.align = LABEL_ALIGN_CENTER;
+    cfg.text.overflow = LABEL_OVERFLOW_WRAP;
+    s_transfer_indicator = progress_indicator_create(s_transfer_box, &cfg);
+    floatair_assert(s_transfer_indicator != NULL, "gallery transfer indicator NULL");
+    gallery_transfer_set_progress(0);
+    lv_obj_add_flag(s_transfer_box, LV_OBJ_FLAG_HIDDEN);
 }
 
 /* 页面生命周期回调 */
@@ -176,6 +332,7 @@ static void gallery_page_create(lv_obj_t* root, const app_page_data_t* data) {
     lv_label_set_long_mode(g_err_label, LV_LABEL_LONG_WRAP);
     lv_obj_center(g_err_label);
     lv_obj_add_flag(g_err_label, LV_OBJ_FLAG_HIDDEN);
+    gallery_create_transfer_view(root);
     gallery_update_pic_folder();
     if (g_file_count > 0) {
         g_cur_idx = 0;
@@ -205,8 +362,12 @@ static void gallery_page_destroy(void) {
         g_file_count = 0;
         g_cur_idx = 0;
     }
+    system_file_transfer_clear_progress_callback(gallery_on_file_transfer_progress, NULL);
+    s_gallery_view_mode = GALLERY_VIEW_MODE_IMAGE;
     g_pic = NULL;
     g_err_label = NULL;
+    s_transfer_box = NULL;
+    s_transfer_indicator = NULL;
 }
 
 static app_message_t gallery_msg = {
@@ -264,6 +425,7 @@ static void gallery_app_on_start(void) {
     if (!app_nav_replace((app_page_t*)gallery_page_get(), NULL, 0)) {
         floatair_assert(false, "gallery page replace failed");
     }
+    system_file_transfer_set_progress_callback(gallery_on_file_transfer_progress, NULL);
 }
 
 static void gallery_app_on_stop(void) {

@@ -38,13 +38,17 @@ static assistant_text_role_t s_last_update_role = ASSISTANT_TEXT_ROLE_NONE; ///<
  * @return 无返回值。
  */
 static void assistant_apply_label_theme(label_t* label, bool emphasize) {
+    lv_base_dir_t base_dir = stt_config.sourceTextDirection == TEXT_DIRECTION_RTL
+                                 ? LV_BASE_DIR_RTL
+                                 : LV_BASE_DIR_LTR;
+    lv_obj_t* obj = NULL;
+
     if (label == NULL) {
         return;
     }
 
-    lv_obj_t* obj = label_get_obj(label);
-
-    stt_view_apply_text_theme(label, LABEL_ALIGN_LEFT, LABEL_OVERFLOW_WRAP);
+    obj = label_get_obj(label);
+    stt_view_apply_stt_label_text_theme(label, base_dir);
     if (obj == NULL) {
         return;
     }

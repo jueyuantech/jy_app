@@ -10,6 +10,7 @@
 #include "floatair_dbg.h"
 #include "lvgl/src/misc/lv_text.h"
 #include "floatair_fs.h"
+#include "ui_res.h"
 
 #define MAX_WIDGETS 10
 
@@ -269,13 +270,13 @@ lv_obj_t* status_bar_create_with_pos(lv_obj_t* parent, int32_t width, const lv_f
             obj_set_text_font(time_label, font);
         }
         lv_obj_set_style_text_align(time_label, LV_TEXT_ALIGN_CENTER, 0);
-        lv_label_set_long_mode(time_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_label_set_text(time_label, DEFAULT_TIME);
         lv_coord_t time_text_width =
             lv_text_get_width(DEFAULT_TIME, (uint32_t)strlen(DEFAULT_TIME), font, 0);
         lv_coord_t time_label_width =
             time_text_width + STATUS_BAR_LABEL_SIDE_PADDING * 2;
         lv_obj_set_size(time_label, time_label_width, font_h);
+        lv_label_set_long_mode(time_label, LV_LABEL_LONG_CLIP);
         lv_obj_align(time_label, LV_ALIGN_LEFT_MID, 0, 0);
         battery_icon = lv_image_create(status_bar);
         lv_obj_remove_style_all(battery_icon);
@@ -292,15 +293,15 @@ lv_obj_t* status_bar_create_with_pos(lv_obj_t* parent, int32_t width, const lv_f
         lv_obj_set_style_text_align(battery_label, LV_TEXT_ALIGN_RIGHT, 0);
         lv_obj_set_style_bg_color(battery_label, lv_color_black(), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(battery_label, LV_OPA_COVER, LV_PART_MAIN);
-        lv_label_set_long_mode(battery_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_label_set_text(battery_label, "0%");
         lv_coord_t battery_text_width = status_bar_get_battery_text_width(font);
         lv_obj_set_size(battery_label, battery_text_width, font_h);
+        lv_label_set_long_mode(battery_label, LV_LABEL_LONG_CLIP);
 
         wear_detection_slot = lv_image_create(status_bar);
         lv_obj_remove_style_all(wear_detection_slot);
         lv_obj_set_size(wear_detection_slot, STATUS_BAR_IMG_W, STATUS_BAR_IMG_H);
-        lv_image_set_src(wear_detection_slot, FLOATAIR_SYS_IMG("touch.jpg"));
+        lv_image_set_src(wear_detection_slot, UI_RES_IMAGE_TOUCH);
         lv_obj_add_flag(wear_detection_slot, LV_OBJ_FLAG_HIDDEN);
     }
     status_bar_data_t* data = (status_bar_data_t*)lv_malloc(sizeof(status_bar_data_t));
@@ -428,6 +429,10 @@ void status_bar_set_time_visible(lv_obj_t* status_bar, bool visible) {
         return;
     }
 
+    if (lv_obj_has_flag(data->time_label, LV_OBJ_FLAG_HIDDEN) == !visible) {
+        return;
+    }
+
     if (visible) {
         lv_obj_remove_flag(data->time_label, LV_OBJ_FLAG_HIDDEN);
     } else {
@@ -487,21 +492,21 @@ void status_bar_update_charge_state(lv_obj_t* status_bar, uint8_t state) {
 
     const char* src = NULL;
     if (state == 1) {
-        src = FLOATAIR_SYS_IMG("powing.jpg");
+        src = UI_RES_IMAGE_POWING;
     } else {
         uint8_t level = data->battery_level;
         if (level < 10) {
-            src = FLOATAIR_SYS_IMG("pow_0.jpg");
+            src = UI_RES_IMAGE_POW_0;
         } else if (level < 30) {
-            src = FLOATAIR_SYS_IMG("pow_1.jpg");
+            src = UI_RES_IMAGE_POW_1;
         } else if (level < 45) {
-            src = FLOATAIR_SYS_IMG("pow_2.jpg");
+            src = UI_RES_IMAGE_POW_2;
         } else if (level < 75) {
-            src = FLOATAIR_SYS_IMG("pow_3.jpg");
+            src = UI_RES_IMAGE_POW_3;
         } else if (level < 90) {
-            src = FLOATAIR_SYS_IMG("pow_4.jpg");
+            src = UI_RES_IMAGE_POW_4;
         } else {
-            src = FLOATAIR_SYS_IMG("pow_5.jpg");
+            src = UI_RES_IMAGE_POW_5;
         }
     }
 
@@ -570,9 +575,7 @@ lv_obj_t* status_bar_add_text_at(lv_obj_t* status_bar, const char* text, int32_t
     }
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
     lv_label_set_text(label, text ? text : "");
-
-    // Check if text needs scrolling (simplified)
-    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
 
     // Add widget to array
     status_bar_widget_t* widget = &data->widgets[data->widget_count++];
@@ -690,10 +693,14 @@ void status_bar_update_text(lv_obj_t* status_bar, lv_obj_t* widget, const char* 
     // Find the widget
     for (uint8_t i = 0; i < data->widget_count; i++) {
         if (data->widgets[i].obj == widget && data->widgets[i].type == STATUS_BAR_WIDGET_TEXT) {
-            lv_label_set_text(widget, text ? text : "");
-            
-            // Check if text needs scrolling (simplified)
-            lv_label_set_long_mode(widget, LV_LABEL_LONG_SCROLL_CIRCULAR);
+            const char* next_text = text ? text : "";
+            const char* current_text = lv_label_get_text(widget);
+            if (current_text == NULL || strcmp(current_text, next_text) != 0) {
+                lv_label_set_text(widget, next_text);
+            }
+            if (lv_label_get_long_mode(widget) != LV_LABEL_LONG_CLIP) {
+                lv_label_set_long_mode(widget, LV_LABEL_LONG_CLIP);
+            }
             break;
         }
     }
@@ -807,6 +814,9 @@ void status_bar_set_widget_visible(lv_obj_t* status_bar, lv_obj_t* widget, bool 
 
     // Check if widget is time label
     if (widget == data->time_label) {
+        if (lv_obj_has_flag(widget, LV_OBJ_FLAG_HIDDEN) == !visible) {
+            return;
+        }
         if (visible) {
             lv_obj_remove_flag(widget, LV_OBJ_FLAG_HIDDEN);
         } else {
@@ -817,6 +827,9 @@ void status_bar_set_widget_visible(lv_obj_t* status_bar, lv_obj_t* widget, bool 
 
     // Check if widget is battery label
     if (widget == data->battery_label) {
+        if (lv_obj_has_flag(widget, LV_OBJ_FLAG_HIDDEN) == !visible) {
+            return;
+        }
         if (visible) {
             lv_obj_remove_flag(widget, LV_OBJ_FLAG_HIDDEN);
         } else {
@@ -827,6 +840,9 @@ void status_bar_set_widget_visible(lv_obj_t* status_bar, lv_obj_t* widget, bool 
 
     // Check if widget is battery icon
     if (widget == data->battery_icon) {
+        if (lv_obj_has_flag(widget, LV_OBJ_FLAG_HIDDEN) == !visible) {
+            return;
+        }
         if (visible) {
             lv_obj_remove_flag(widget, LV_OBJ_FLAG_HIDDEN);
         } else {
@@ -838,6 +854,9 @@ void status_bar_set_widget_visible(lv_obj_t* status_bar, lv_obj_t* widget, bool 
     // Check if widget is in custom widgets array
     for (uint8_t i = 0; i < data->widget_count; i++) {
         if (data->widgets[i].obj == widget) {
+            if (lv_obj_has_flag(widget, LV_OBJ_FLAG_HIDDEN) == !visible) {
+                return;
+            }
             if (visible) {
                 lv_obj_remove_flag(widget, LV_OBJ_FLAG_HIDDEN);
             } else {
@@ -861,6 +880,10 @@ void status_bar_set_wear_detection_visible(lv_obj_t* status_bar, bool visible) {
 
     status_bar_data_t* data = (status_bar_data_t*)lv_obj_get_user_data(status_bar);
     if (data == NULL || data->wear_detection_slot == NULL) {
+        return;
+    }
+
+    if (lv_obj_has_flag(data->wear_detection_slot, LV_OBJ_FLAG_HIDDEN) == !visible) {
         return;
     }
 

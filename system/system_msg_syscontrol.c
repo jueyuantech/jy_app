@@ -9,11 +9,13 @@
  */
 #include <time.h>
 #include "system/popups/assistant/assistant.h"
+#include "app_def.h"
 #include "elf_common.h"
 #include "floatair_dbg.h"
 #include "message.h"
 #include "common/app_framework/app_router.h"
 #include "system/system.h"
+#include "system/system_file_transfer.h"
 #include "app_lcd.h"
 
 #include <assert.h>
@@ -79,11 +81,6 @@ static bool system_systemcontrol_setview(mpack_node_t node, msg_pack_t* msg) {
         floatair_err("set app failed");
         return app_mpack_send_ack(msg, app_router_is_busy() ? ErrNotReady : ErrBadParam);
     }
-    if (floatair_lcd_get_state() == LCD_OFF) {
-        floatair_lcd_set_state(LCD_ON);
-        system_report_sys_state(1);
-        app_sleep_timer_reset();
-    }
     floatair_info("view %s done", view);
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
@@ -99,6 +96,50 @@ static bool system_systemcontrol_sendtouchevent(mpack_node_t node, msg_pack_t* m
         floatair_err("touch event failed");
         return app_mpack_send_ack(msg, ErrBadParam);
     }
+    return app_mpack_send_ack(msg, Dp_ErrNone);
+}
+
+/**
+ * @brief 判断当前页面是否支持显示上传进度。
+ * @return `true` 表示当前页面支持上传进度显隐控制，`false` 表示不支持。
+ */
+static bool system_systemcontrol_upload_progress_page_supported(void) {
+    const char* current_app = app_router_get_app();
+
+    return strcmp(current_app, APP_NAME_PROMPTER) == 0 ||
+           strcmp(current_app, APP_NAME_GALLERY) == 0;
+}
+
+/**
+ * @brief 处理上传进度显隐控制指令。
+ * @param[in] node 消息数据节点。
+ * @param[in] msg 原始消息包，用于回复 ACK/NCK。
+ * @return `true` 表示回复发送成功，`false` 表示回复发送失败。
+ */
+static bool system_systemcontrol_setuploadprogressvisible(mpack_node_t node, msg_pack_t* msg) {
+    bool visible = false;
+    uint8_t visible_u8 = 0;
+
+    floatair_assert(msg != NULL, "msg is NULL");
+    if (!system_systemcontrol_upload_progress_page_supported()) {
+        floatair_warn("set upload progress visible ignored, unsupported app=%s", app_router_get_app());
+        return app_mpack_send_ack(msg, ErrNotReady);
+    }
+    if (!system_file_transfer_is_in_progress()) {
+        floatair_warn("set upload progress visible ignored, no file transfer");
+        return app_mpack_send_ack(msg, ErrNotReady);
+    }
+
+    if (app_msg_get_u8(node, false, "visible", &visible_u8)) {
+        visible = (visible_u8 != 0);
+    } else if (!app_msg_get_bool(node, false, "visible", &visible)) {
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+
+    if (!system_file_transfer_set_upload_progress_visible(visible)) {
+        return app_mpack_send_ack(msg, ErrNotReady);
+    }
+    floatair_info("set upload progress visible %d", (int)visible);
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
@@ -139,6 +180,7 @@ app_cmd_func_t system_systemcontrol_cmd_funcs[] = {
     {"sendHeartbeat", system_systemcontrol_sendheartbeat},
     {"sendKeepAlive", system_systemcontrol_sendkeepalive},
     {"sendHandshake", system_systemcontrol_sendhandshake},
+    {"setUploadProgressVisible", system_systemcontrol_setuploadprogressvisible},
 };
 const size_t system_systemcontrol_cmd_funcs_count =
     sizeof(system_systemcontrol_cmd_funcs) / sizeof(system_systemcontrol_cmd_funcs[0]);

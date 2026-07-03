@@ -1,0 +1,98 @@
+[
+  {
+    "name": "DeviceInfo.getAll",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getAll",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getManufacturer",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getManufacturer",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getModel",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getModel",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getEdition",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getEdition",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getSn",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getSn",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getBtMac",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getBtMac",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getBtName",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getBtName",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getBleMac",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getBleMac",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getBleName",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getBleName",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getFwVer",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getFwVer",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getBthVer",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getBthVer",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "DeviceInfo.getProtocolVer",
+    "id": 0,
+    "biz": "DeviceInfo",
+    "cmd": "getProtocolVer",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  }
+]

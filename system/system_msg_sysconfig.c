@@ -8,17 +8,21 @@
  * @ingroup app_system
  */
 #include <time.h>
+#include <lvgl.h>
 #include "elf_common.h"
 #include "floatair_dbg.h"
 #include "message.h"
 #include "system/system.h"
+#include "system/system_timer.h"
 #include "app_lcd.h"
 #include "common/app_framework/app_manager.h"
 #include "common/app_framework/app_router.h"
+#include "home/home.h"
 
 #include <assert.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include "sys_adapter.h"
 
@@ -59,10 +63,12 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     uint8_t auto_bl_en  = system_config_get_bl_auto() ? 1 : 0;
     uint8_t font_size   = get_system_font_size();
     uint32_t display_level = system_config_get_displaylevel();
+    const char* quicklaunch = system_config_get_quicklaunch();
+    size_t homeunits_count = system_config_get_homeunits_count();
     system_head_gesture_config_t head_gesture = {0};
     (void)system_config_get_head_gesture_config(&head_gesture);
 
-    mpack_start_map(&writer->writer, 16);
+    mpack_start_map(&writer->writer, 18);
     mpack_write_cstr(&writer->writer, "time");
     mpack_write_u64(&writer->writer, ts);
 
@@ -95,6 +101,17 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
 
     mpack_write_cstr(&writer->writer, "language");
     mpack_write_cstr(&writer->writer, lang ? lang : "NA");
+
+    mpack_write_cstr(&writer->writer, "quicklaunch");
+    mpack_write_cstr(&writer->writer, quicklaunch != NULL ? quicklaunch : "");
+
+    mpack_write_cstr(&writer->writer, "homeunits");
+    mpack_start_array(&writer->writer, (uint32_t)homeunits_count);
+    for (size_t i = 0; i < homeunits_count; ++i) {
+        const char* homeunit = system_config_get_homeunit(i);
+        mpack_write_cstr(&writer->writer, homeunit != NULL ? homeunit : "");
+    }
+    mpack_finish_array(&writer->writer);
 
     mpack_write_cstr(&writer->writer, "inactivityTimeout");
     mpack_write_u16(&writer->writer, inactivity);
@@ -202,6 +219,9 @@ static bool system_systemconfig_settimeconfig(mpack_node_t node, msg_pack_t* msg
     if (!system_ui_update_time_from_epoch(time_now)) {
         floatair_err("refresh status bar time failed after phone sync");
     }
+    if (!system_timer_lvgl_period_realign_to_minute(time_now)) {
+        floatair_warn("realign lvgl minute timer failed after phone sync");
+    }
     system_request_device_state();
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
@@ -289,6 +309,121 @@ static bool system_systemconfig_setlanguage(mpack_node_t node, msg_pack_t* msg) 
             app_router_reset_state();
         }
     }
+    return app_mpack_send_ack(msg, Dp_ErrNone);
+}
+
+static bool system_systemconfig_getquicklaunch(mpack_node_t node, msg_pack_t* msg) {
+    (void) node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
+    floatair_assert(writer, "writer err");
+    mpack_start_map(&writer->writer, 1);
+    mpack_write_cstr(&writer->writer, "quicklaunch");
+    mpack_write_cstr(&writer->writer, system_config_get_quicklaunch());
+    mpack_finish_map(&writer->writer);
+    return app_mpack_send_writer(writer);
+}
+
+static bool system_systemconfig_setquicklaunch(mpack_node_t node, msg_pack_t* msg) {
+    floatair_assert(msg != NULL, "msg is NULL");
+    mpack_node_t quicklaunch_node = mpack_node_map_cstr_optional(node, "quicklaunch");
+    char* quicklaunch = NULL;
+    bool ok = false;
+
+    if (mpack_node_is_missing(quicklaunch_node) || mpack_node_type(quicklaunch_node) != mpack_type_str) {
+        floatair_err("quicklaunch is invalid");
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    quicklaunch = mpack_node_utf8_cstr_alloc(quicklaunch_node, MSG_STR_MAX_LEN);
+    if (quicklaunch == NULL) {
+        floatair_err("quicklaunch alloc failed");
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    floatair_info("quicklaunch %s", quicklaunch);
+    if (quicklaunch[0] != '\0' && !home_is_valid_quicklaunch_app(quicklaunch)) {
+        floatair_err("quicklaunch out of supported range: %s", quicklaunch);
+        free(quicklaunch);
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    ok = system_config_set_quicklaunch(quicklaunch);
+    free(quicklaunch);
+    if (!ok) {
+        floatair_err("set quicklaunch failed");
+        return app_mpack_send_ack(msg, ErrDataErr);
+    }
+    home_view_reset_selection();
+    return app_mpack_send_ack(msg, Dp_ErrNone);
+}
+
+static bool system_systemconfig_gethomeunits(mpack_node_t node, msg_pack_t* msg) {
+    (void) node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
+    floatair_assert(writer, "writer err");
+    size_t count = system_config_get_homeunits_count();
+
+    mpack_start_map(&writer->writer, 1);
+    mpack_write_cstr(&writer->writer, "homeunits");
+    mpack_start_array(&writer->writer, (uint32_t)count);
+    for (size_t i = 0; i < count; ++i) {
+        const char* homeunit = system_config_get_homeunit(i);
+        mpack_write_cstr(&writer->writer, homeunit != NULL ? homeunit : "");
+    }
+    mpack_finish_array(&writer->writer);
+    mpack_finish_map(&writer->writer);
+    return app_mpack_send_writer(writer);
+}
+
+static bool system_systemconfig_sethomeunits(mpack_node_t node, msg_pack_t* msg) {
+    floatair_assert(msg != NULL, "msg is NULL");
+    mpack_node_t homeunits_node = mpack_node_map_cstr_optional(node, "homeunits");
+    char** homeunits = NULL;
+    bool ok = false;
+    size_t count = 0;
+
+    if (mpack_node_is_missing(homeunits_node) || mpack_node_type(homeunits_node) != mpack_type_array) {
+        floatair_err("homeunits is invalid");
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    count = mpack_node_array_length(homeunits_node);
+    if (count > 0) {
+        homeunits = (char**)calloc(count, sizeof(char*));
+        if (homeunits == NULL) {
+            floatair_err("alloc homeunits failed");
+            return app_mpack_send_ack(msg, ErrBizErr);
+        }
+    }
+    for (size_t i = 0; i < count; ++i) {
+        mpack_node_t item = mpack_node_array_at(homeunits_node, i);
+
+        if (mpack_node_type(item) != mpack_type_str) {
+            floatair_err("homeunits[%u] type err", (unsigned)i);
+            for (size_t j = 0; j < i; ++j) {
+                free(homeunits[j]);
+            }
+            free(homeunits);
+            return app_mpack_send_ack(msg, ErrBadParam);
+        }
+        homeunits[i] = mpack_node_utf8_cstr_alloc(item, MSG_STR_MAX_LEN);
+        if (homeunits[i] == NULL) {
+            floatair_err("homeunits[%u] alloc failed", (unsigned)i);
+            for (size_t j = 0; j < i; ++j) {
+                free(homeunits[j]);
+            }
+            free(homeunits);
+            return app_mpack_send_ack(msg, ErrBadParam);
+        }
+    }
+    ok = system_config_set_homeunits((const char* const*)homeunits, count);
+    for (size_t i = 0; i < count; ++i) {
+        free(homeunits[i]);
+    }
+    free(homeunits);
+    if (!ok) {
+        floatair_err("set homeunits failed");
+        return app_mpack_send_ack(msg, ErrDataErr);
+    }
+    home_view_reset_selection();
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
@@ -761,6 +896,10 @@ app_cmd_func_t system_systemconfig_cmd_funcs[] = {
     {"setRowSpace", system_systemconfig_setrowspace},
     {"getLanguage", system_systemconfig_getlanguage},
     {"setLanguage", system_systemconfig_setlanguage},
+    {"getQuickLaunch", system_systemconfig_getquicklaunch},
+    {"setQuickLaunch", system_systemconfig_setquicklaunch},
+    {"getHomeUnits", system_systemconfig_gethomeunits},
+    {"setHomeUnits", system_systemconfig_sethomeunits},
     {"getDisplayConfig", system_systemconfig_getdisplayconfig},
     {"setDisplayConfig", system_systemconfig_setdisplayconfig},
     {"getDisplayDistanceLevel", system_systemconfig_getdisplaydistancelevel},

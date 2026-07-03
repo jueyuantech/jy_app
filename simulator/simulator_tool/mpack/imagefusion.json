@@ -1,0 +1,34 @@
+[
+    {
+        "biz": "SystemControl",
+        "cmd": "setView",
+        "data": {
+            "viewName": "imagefusion"
+        },
+        "id": 0,
+        "name": "SystemControl.setView",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "imagefusion",
+        "cmd": "getFusionParams",
+        "data": {
+        },
+        "id": 1001,
+        "name": "imagefusion.getFusionParams",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "imagefusion",
+        "cmd": "setFusionParams",
+        "data": {
+            "lX": 0,
+            "lY": 0,
+            "rX": 0,
+            "rY": 0
+        },
+        "id": 1001,
+        "name": "imagefusion.setFusionParams",
+        "type": "DATA_RELIABLE"
+    }
+]

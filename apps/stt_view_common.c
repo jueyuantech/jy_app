@@ -9,6 +9,7 @@
 #include "system/system_def.h"
 #include "system/system_res.h"
 #include "floatair_fs.h"
+#include "ui_res.h"
 
 /**
  * @brief 获取合法 UTF-8 后缀起始位置。
@@ -91,19 +92,39 @@ container_t* stt_view_create_plain_container(lv_obj_t* parent,
     return container_create(parent, &cfg);
 }
 
-img_t* stt_view_create_center_image(lv_obj_t* parent) {
-    img_cfg_t cfg = img_default_cfg();
-    img_t* image = NULL;
+progress_indicator_t* stt_view_create_status_hint(lv_obj_t* parent) {
+    progress_indicator_cfg_t cfg = progress_indicator_default_cfg();
+    progress_indicator_t* indicator = NULL;
 
-    cfg.w = LVGL_UI_ICONW_80;
-    cfg.h = LVGL_UI_ICONH_80;
-    image = img_create(parent, &cfg);
-    if (image == NULL) {
+    cfg.w = LV_PCT(100);
+    cfg.h = LV_SIZE_CONTENT;
+    cfg.text.w = LV_PCT(100);
+    cfg.text.h = LV_SIZE_CONTENT;
+    cfg.text.text = "";
+    cfg.text.align = LABEL_ALIGN_CENTER;
+    cfg.text.overflow = LABEL_OVERFLOW_WRAP;
+
+    indicator = progress_indicator_create(parent, &cfg);
+    if (indicator == NULL) {
         return NULL;
     }
 
-    lv_obj_align(ui_widget_get_obj(UI_WIDGET(image)), LV_ALIGN_CENTER, 0, 0);
-    return image;
+    stt_view_apply_status_hint_text_theme(indicator);
+    lv_obj_align(progress_indicator_get_obj(indicator), LV_ALIGN_CENTER, 0, 0);
+    return indicator;
+}
+
+void stt_view_apply_status_hint_text_theme(progress_indicator_t* indicator) {
+    app_font_info_t font_info;
+
+    if (indicator == NULL) {
+        return;
+    }
+
+    font_info.weight = get_system_font_size();
+    font_info.wordSpace = get_system_font_word_space();
+    font_info.rowSpace = get_system_font_row_space();
+    progress_indicator_set_text_font_info(indicator, &font_info);
 }
 
 void stt_view_apply_text_theme(label_t* label,
@@ -111,20 +132,20 @@ void stt_view_apply_text_theme(label_t* label,
                                label_overflow_t overflow) {
     app_font_info_t font_info;
     lv_obj_t* obj = NULL;
-    const lv_font_t* stt_font = NULL;
+    const lv_font_t* system_font = NULL;
 
     if (label == NULL) {
         return;
     }
 
-    font_info.weight = stt_get_font_size();
+    font_info.weight = get_system_font_size();
     font_info.wordSpace = get_system_font_word_space();
     font_info.rowSpace = get_system_font_row_space();
     label_set_font_info(label, &font_info);
     obj = label_get_obj(label);
-    stt_font = stt_get_font();
-    if (obj != NULL && stt_font != NULL) {
-        obj_set_text_font(obj, stt_font);
+    system_font = get_system_font();
+    if (obj != NULL && system_font != NULL) {
+        obj_set_text_font(obj, system_font);
     }
     label_set_align(label, align);
     label_set_overflow(label, overflow);
@@ -164,6 +185,7 @@ void stt_view_apply_lang_hint_theme(label_t* label, int32_t pad_hor, lv_base_dir
 
 void stt_view_apply_stt_label_text_theme(label_t* label, lv_base_dir_t base_dir) {
     lv_obj_t* obj = NULL;
+    const lv_font_t* stt_font = NULL;
 
     if (label == NULL) {
         return;
@@ -174,6 +196,10 @@ void stt_view_apply_stt_label_text_theme(label_t* label, lv_base_dir_t base_dir)
                               base_dir == LV_BASE_DIR_RTL ? LABEL_ALIGN_RIGHT : LABEL_ALIGN_LEFT,
                               LABEL_OVERFLOW_WRAP);
     if (obj != NULL) {
+        stt_font = stt_get_font();
+        if (stt_font != NULL) {
+            obj_set_text_font(obj, stt_font);
+        }
         lv_obj_set_style_base_dir(obj, base_dir, 0);
     }
 }
@@ -241,10 +267,10 @@ void stt_view_update_mic_direction(lv_obj_t* mic_direction) {
     }
 
     if (OMNIDIRECTIONAL == stt_config.micDirectional) {
-        lv_image_set_src(mic_direction, FLOATAIR_SYS_IMG("mic360.jpg"));
+        lv_image_set_src(mic_direction, UI_RES_IMAGE_MIC360);
         lv_obj_remove_flag(mic_direction, LV_OBJ_FLAG_HIDDEN);
     } else if (DIRECTIONAL == stt_config.micDirectional) {
-        lv_image_set_src(mic_direction, FLOATAIR_SYS_IMG("micphone.jpg"));
+        lv_image_set_src(mic_direction, UI_RES_IMAGE_MICPHONE);
         lv_obj_remove_flag(mic_direction, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(mic_direction, LV_OBJ_FLAG_HIDDEN);
@@ -258,10 +284,10 @@ void stt_view_update_audio_source(lv_obj_t* audio_source) {
     }
 
     if (AUDIOSOURCE_PHONE == stt_config.audioSourceIndicator) {
-        lv_image_set_src(audio_source, FLOATAIR_SYS_IMG("sound_phone.jpg"));
+        lv_image_set_src(audio_source, UI_RES_IMAGE_SOUND_PHONE);
         lv_obj_remove_flag(audio_source, LV_OBJ_FLAG_HIDDEN);
     } else if (AUDIOSOURCE_GLASSES == stt_config.audioSourceIndicator) {
-        lv_image_set_src(audio_source, FLOATAIR_SYS_IMG("sound_glass.jpg"));
+        lv_image_set_src(audio_source, UI_RES_IMAGE_SOUND_GLASS);
         lv_obj_remove_flag(audio_source, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(audio_source, LV_OBJ_FLAG_HIDDEN);

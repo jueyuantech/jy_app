@@ -1,0 +1,390 @@
+[
+  {
+    "name": "SystemConfig.getAll",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getAll",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setTime",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setTime",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "time": 1776916800
+    }
+  },
+  {
+    "name": "SystemConfig.getTimeConfig",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getTimeConfig",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setTimeConfig",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setTimeConfig",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "time": "2026-06-18 20:00:00",
+      "timestamp": 1776916800000,
+      "timezone": "Asia/Shanghai",
+      "userFormat": "yyyy-MM-dd HH:mm:ss"
+    }
+  },
+  {
+    "name": "SystemConfig.getBrightness",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getBrightness",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setBrightness",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setBrightness",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "brightness": 80
+    }
+  },
+  {
+    "name": "SystemConfig.getFontSize",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getFontSize",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setFontSize",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setFontSize",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "fontSize": 32
+    }
+  },
+  {
+    "name": "SystemConfig.getRowSpace",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getRowSpace",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setRowSpace",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setRowSpace",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "rowSpace": 0
+    }
+  },
+  {
+    "name": "SystemConfig.getLanguage",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getLanguage",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setLanguage",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setLanguage",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "language": "zh-CN"
+    }
+  },
+  {
+    "name": "SystemConfig.getQuickLaunch",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getQuickLaunch",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setQuickLaunch",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setQuickLaunch",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "quicklaunch": "transcribe"
+    }
+  },
+  {
+    "name": "SystemConfig.getHomeUnits",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getHomeUnits",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setHomeUnits",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setHomeUnits",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "homeunits": [
+        "translate",
+        "prompter"
+      ]
+    }
+  },
+  {
+    "name": "SystemConfig.getDisplayConfig",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getDisplayConfig",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setDisplayConfig",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setDisplayConfig",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "mode": 0
+    }
+  },
+  {
+    "name": "SystemConfig.getDisplayDistanceLevel",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getDisplayDistanceLevel",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setDisplayDistanceLevel",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setDisplayDistanceLevel",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "displayDistanceLevel": 1
+    }
+  },
+  {
+    "name": "SystemConfig.getDisplayDistance",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getDisplayDistance",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setDisplayDistance",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setDisplayDistance",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "distance": 1
+    }
+  },
+  {
+    "name": "SystemConfig.getDisplayPopupDepth",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getDisplayPopupDepth",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setDisplayPopupDepth",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setDisplayPopupDepth",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "depth": 1
+    }
+  },
+  {
+    "name": "SystemConfig.getInactivityTimeout",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getInactivityTimeout",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setInactivityTimeout",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setInactivityTimeout",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "inactivityTimeout": 60
+    }
+  },
+  {
+    "name": "SystemConfig.getPoweroffTimeout",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getPoweroffTimeout",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setPoweroffTimeout",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setPoweroffTimeout",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "poweroffTimeout": 300
+    }
+  },
+  {
+    "name": "SystemConfig.getHeadGestureConfig",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getHeadGestureConfig",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setHeadGestureConfig",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setHeadGestureConfig",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "upEnabled": 1,
+      "downEnabled": 1,
+      "upDeg": 25,
+      "downDeg": -25,
+      "baseDeg": 0
+    }
+  },
+  {
+    "name": "SystemConfig.getWearDetectionEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getWearDetectionEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setWearDetectionEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setWearDetectionEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "wearDetectionEnabled": 1
+    }
+  },
+  {
+    "name": "SystemConfig.getAutoBrightnessEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getAutoBrightnessEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setAutoBrightnessEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setAutoBrightnessEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "autoBrightnessEnabled": 1
+    }
+  },
+  {
+    "name": "SystemConfig.getTouchpadEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getTouchpadEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setTouchpadEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setTouchpadEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "touchpadEnabled": 1
+    }
+  },
+  {
+    "name": "SystemConfig.getIdleDetectionEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getIdleDetectionEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setIdleDetectionEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setIdleDetectionEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "idleDetectionEnabled": 1
+    }
+  },
+  {
+    "name": "SystemConfig.getKeywordSpottingEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getKeywordSpottingEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setKeywordSpottingEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setKeywordSpottingEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "keywordSpottingEnabled": 1
+    }
+  },
+  {
+    "name": "SystemConfig.getNotificationEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getNotificationEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setNotificationEnabled",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setNotificationEnabled",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "notificationEnabled": 1
+    }
+  }
+]

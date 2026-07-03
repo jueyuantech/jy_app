@@ -8,8 +8,8 @@
 
 #include "common/app_framework/app_manager.h"
 #include "common/widgets/container.h"
-#include "common/widgets/img.h"
 #include "common/widgets/label.h"
+#include "common/widgets/progress_indicator.h"
 #include "common/widgets/status_bar.h"
 #include "system/stt_common.h"
 #include "system/system.h"
@@ -19,6 +19,7 @@
 #include "floatair_fs.h"
 
 #include <string.h>
+#include "ui_res.h"
 
 /**
  * @brief 转写页面当前展示模式。
@@ -33,6 +34,7 @@ typedef enum {
 #define TRANSCRIBE_TEXT_SIDE_PADDING 12
 #define TRANSCRIBE_SCROLL_TOP_MARGIN 2
 #define TRANSCRIBE_LANG_HINT_PADDING LVGL_UI_MARGIN_10
+#define TRANSCRIBE_LANG_HINT_MAX_SIDE_PADDING 4
 
 /**
  * @brief 转写页单条 STT 行视图缓存。
@@ -42,8 +44,7 @@ typedef struct {
     label_t* label;   ///< 转写文本标签。
 } transcribe_stt_row_t;
 
-static label_t* transcribe_init_label = NULL;
-static img_t* transcribe_init_img = NULL;
+static progress_indicator_t* transcribe_init_hint = NULL;
 static label_t* transcribe_notice_op = NULL;
 static lv_obj_t* transcribe_audio_source = NULL;
 static lv_obj_t* transcribe_mic_direction = NULL;
@@ -55,6 +56,32 @@ static container_t* transcribe_scroll = NULL;
 static container_t* transcribe_scroll_spacer = NULL;
 static transcribe_stt_row_t transcribe_stt_rows[STT_INFO_MAX_MSG_NUM];
 static view_mode_t transcribe_mode = VIEW_MODE_FUNC_NONE;
+
+/**
+ * @brief 同步语言提示框尺寸，让边框只包围文本并限制最大宽度。
+ * @return 无返回值。
+ */
+static void transcribe_sync_lang_hint_layout(void) {
+    lv_obj_t* lang_obj = NULL;
+    lv_coord_t max_width;
+
+    if (transcribe_lang == NULL) {
+        return;
+    }
+
+    lang_obj = label_get_obj(transcribe_lang);
+    if (lang_obj == NULL) {
+        return;
+    }
+
+    max_width = (lv_coord_t)config_lcd.ui_width - TRANSCRIBE_LANG_HINT_MAX_SIDE_PADDING * 2;
+    if (max_width < 0) {
+        max_width = 0;
+    }
+    lv_obj_set_size(lang_obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_max_width(lang_obj, max_width, LV_PART_MAIN);
+    lv_obj_set_style_min_height(lang_obj, STATUS_BAR_IMG_H, LV_PART_MAIN);
+}
 
 static bool transcribe_status_bar_widgets_valid(void) {
     return transcribe_audio_source != NULL &&
@@ -76,9 +103,9 @@ static bool transcribe_status_bar_ensure_widgets(void) {
     }
     if (!transcribe_status_bar_widgets_valid()) {
         status_bar_clear_custom_widgets(status_bar);
-        transcribe_audio_source = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("sound_phone.jpg"), STATUS_BAR_WIDGET_ALIGN_LEFT);
-        transcribe_waveicon = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("sound_wave.jpg"), STATUS_BAR_WIDGET_ALIGN_RIGHT);
-        transcribe_mic_direction = status_bar_add_image(status_bar, FLOATAIR_SYS_IMG("micphone.jpg"), STATUS_BAR_WIDGET_ALIGN_RIGHT);
+        transcribe_audio_source = status_bar_add_image(status_bar, UI_RES_IMAGE_SOUND_PHONE, STATUS_BAR_WIDGET_ALIGN_LEFT);
+        transcribe_waveicon = status_bar_add_image(status_bar, UI_RES_IMAGE_SOUND_WAVE, STATUS_BAR_WIDGET_ALIGN_RIGHT);
+        transcribe_mic_direction = status_bar_add_image(status_bar, UI_RES_IMAGE_MICPHONE, STATUS_BAR_WIDGET_ALIGN_RIGHT);
     }
 
     return transcribe_status_bar_widgets_valid();
@@ -92,8 +119,7 @@ static bool transcribe_status_bar_ensure_widgets(void) {
  */
 static void transcribe_mode_go_none(void) {
     transcribe_mode = VIEW_MODE_FUNC_NONE;
-    ui_widget_set_visible(UI_WIDGET(transcribe_init_label), false);
-    ui_widget_set_visible(UI_WIDGET(transcribe_init_img), false);
+    ui_widget_set_visible(UI_WIDGET(transcribe_init_hint), false);
     ui_widget_set_visible(UI_WIDGET(transcribe_notice_op), false);
     if (transcribe_audio_source != NULL && lv_obj_is_valid(transcribe_audio_source)) {
         lv_obj_add_flag(transcribe_audio_source, LV_OBJ_FLAG_HIDDEN);
@@ -115,14 +141,14 @@ static void transcribe_mode_go_none(void) {
  */
 static void transcribe_mode_go_description(void) {
     transcribe_mode = VIEW_MODE_FUNC_DESCRIPTION;
-    ui_widget_set_visible(UI_WIDGET(transcribe_init_label), true);
-    if (transcribe_init_label != NULL) {
-        lv_label_set_text_fmt(label_get_obj(transcribe_init_label),
-                              "%s%s",
-                              app_get_str("IDLE_ASR"),
-                              app_get_str("SYSTEM_APP"));
+    ui_widget_set_visible(UI_WIDGET(transcribe_init_hint), true);
+    if (transcribe_init_hint != NULL) {
+        progress_indicator_set_text_fmt(transcribe_init_hint,
+                                        "%s%s",
+                                        app_get_str("IDLE_ASR"),
+                                        app_get_str("SYSTEM_APP"));
+        progress_indicator_set_icon_visible(transcribe_init_hint, false);
     }
-    ui_widget_set_visible(UI_WIDGET(transcribe_init_img), false);
     ui_widget_set_visible(UI_WIDGET(transcribe_notice_op), true);
     if (transcribe_notice_op != NULL) {
         lv_label_set_text_fmt(label_get_obj(transcribe_notice_op),
@@ -148,16 +174,13 @@ static void transcribe_mode_go_description(void) {
  */
 static void transcribe_mode_go_wait(void) {
     transcribe_mode = VIEW_MODE_FUNC_WAIT;
-    ui_widget_set_visible(UI_WIDGET(transcribe_init_label), true);
-    if (transcribe_init_label != NULL) {
-        lv_label_set_text_fmt(label_get_obj(transcribe_init_label),
-                              "%s%s",
-                              app_get_str("IDLE_ASR"),
-                              app_get_str("SYSTEM_OPENIGN"));
-    }
-    ui_widget_set_visible(UI_WIDGET(transcribe_init_img), true);
-    if (transcribe_init_img != NULL) {
-        img_set_src(transcribe_init_img, FLOATAIR_SYS_IMG("connecting.jpg"));
+    ui_widget_set_visible(UI_WIDGET(transcribe_init_hint), true);
+    if (transcribe_init_hint != NULL) {
+        progress_indicator_set_text_fmt(transcribe_init_hint,
+                                        "%s%s",
+                                        app_get_str("IDLE_ASR"),
+                                        app_get_str("SYSTEM_OPENIGN"));
+        progress_indicator_set_icon_visible(transcribe_init_hint, true);
     }
     ui_widget_set_visible(UI_WIDGET(transcribe_notice_op), false);
     stt_view_update_audio_source(transcribe_audio_source);
@@ -176,8 +199,7 @@ static void transcribe_mode_go_wait(void) {
  */
 static void transcribe_mode_go_stt(void) {
     transcribe_mode = VIEW_MODE_FUNC_STT;
-    ui_widget_set_visible(UI_WIDGET(transcribe_init_label), false);
-    ui_widget_set_visible(UI_WIDGET(transcribe_init_img), false);
+    ui_widget_set_visible(UI_WIDGET(transcribe_init_hint), false);
     ui_widget_set_visible(UI_WIDGET(transcribe_notice_op), false);
     stt_view_update_audio_source(transcribe_audio_source);
     stt_view_update_mic_direction(transcribe_mic_direction);
@@ -481,7 +503,6 @@ static void touch_event_handle(lv_event_t* event) {
             }
         }
         break;
-    case LV_EVENT_CLICKED:
     case LV_EVENT_LONG_PRESSED:
         if (transcribe_mode == VIEW_MODE_FUNC_DESCRIPTION) {
             transcribe_mode_go_wait();
@@ -504,34 +525,19 @@ static void touch_event_handle(lv_event_t* event) {
  * @return 无返回值。
  */
 void transcribe_on_fontconfig_changed(void) {
-    lv_obj_t* lang_obj = NULL;
-    lv_obj_t* init_label_obj = NULL;
     lv_obj_t* notice_obj = NULL;
 
     stt_style_init();
 
-    stt_view_apply_text_theme(transcribe_init_label, LABEL_ALIGN_CENTER, LABEL_OVERFLOW_WRAP);
+    stt_view_apply_status_hint_text_theme(transcribe_init_hint);
     stt_view_apply_text_theme(transcribe_notice_op, LABEL_ALIGN_CENTER, LABEL_OVERFLOW_WRAP);
-    init_label_obj = label_get_obj(transcribe_init_label);
-    if (init_label_obj != NULL) {
-        lv_obj_set_width(init_label_obj, LV_PCT(100));
-        lv_obj_align_to(init_label_obj,
-                        ui_widget_get_obj(UI_WIDGET(transcribe_init_img)),
-                        LV_ALIGN_OUT_BOTTOM_MID,
-                        0,
-                        10);
-    }
     notice_obj = label_get_obj(transcribe_notice_op);
     if (notice_obj != NULL) {
-        lv_obj_set_size(notice_obj, LV_PCT(100), stt_get_font_height());
+        lv_obj_set_size(notice_obj, LV_PCT(100), get_system_font_height());
         lv_obj_align(notice_obj, LV_ALIGN_BOTTOM_MID, 0, 0);
     }
     if (transcribe_lang != NULL) {
-        lang_obj = label_get_obj(transcribe_lang);
-        if (lang_obj != NULL) {
-            lv_obj_set_size(lang_obj, LV_PCT(100), LV_SIZE_CONTENT);
-            lv_obj_set_style_min_height(lang_obj, STATUS_BAR_IMG_H, 0);
-        }
+        transcribe_sync_lang_hint_layout();
     }
     if (transcribe_content != NULL) {
         lv_obj_move_foreground(container_get_obj(transcribe_content));
@@ -610,7 +616,6 @@ void transcribe_update_lang_hint(void) {
 static void transcribe_page_create(lv_obj_t* root, const app_page_data_t* data) {
     lv_obj_t* status_bar = NULL;
     lv_obj_t* content_obj = NULL;
-    lv_obj_t* lang_obj = NULL;
     lv_obj_t* scroll_obj = NULL;
 
     (void)data;
@@ -629,35 +634,21 @@ static void transcribe_page_create(lv_obj_t* root, const app_page_data_t* data) 
 
     stt_style_init();
 
-    transcribe_init_img = stt_view_create_center_image(root);
-    floatair_assert(transcribe_init_img != NULL, "transcribe_init_img NULL");
-
-    transcribe_init_label = stt_view_create_text_label(root,
-                                                       LV_PCT(100),
-                                                       LV_SIZE_CONTENT,
-                                                       "",
-                                                       LABEL_ALIGN_CENTER,
-                                                       LABEL_OVERFLOW_WRAP);
-    floatair_assert(transcribe_init_label != NULL, "transcribe_init_label NULL");
-    stt_view_apply_text_theme(transcribe_init_label, LABEL_ALIGN_CENTER, LABEL_OVERFLOW_WRAP);
-    lv_obj_align_to(label_get_obj(transcribe_init_label),
-                    ui_widget_get_obj(UI_WIDGET(transcribe_init_img)),
-                    LV_ALIGN_OUT_BOTTOM_MID,
-                    0,
-                    10);
+    transcribe_init_hint = stt_view_create_status_hint(root);
+    floatair_assert(transcribe_init_hint != NULL, "transcribe_init_hint NULL");
 
     transcribe_content = stt_view_create_plain_container(root, LV_PCT(100), LV_PCT(100));
     floatair_assert(transcribe_content != NULL, "transcribe_content NULL");
     container_set_layout_vbox(transcribe_content);
     container_set_align(transcribe_content,
                         CONTAINER_ALIGN_START,
-                        CONTAINER_ALIGN_START,
+                        CONTAINER_ALIGN_CENTER,
                         CONTAINER_ALIGN_START);
     container_set_padding_box(transcribe_content, 0, 0, TRANSCRIBE_SCROLL_TOP_MARGIN, 0);
     content_obj = container_get_obj(transcribe_content);
 
     transcribe_lang = stt_view_create_text_label(content_obj,
-                                                 LV_PCT(100),
+                                                 LV_SIZE_CONTENT,
                                                  LV_SIZE_CONTENT,
                                                  "",
                                                  LABEL_ALIGN_CENTER,
@@ -668,12 +659,11 @@ static void transcribe_page_create(lv_obj_t* root, const app_page_data_t* data) 
                                         stt_config.sourceTextDirection == TEXT_DIRECTION_RTL
                                             ? LV_BASE_DIR_RTL
                                             : LV_BASE_DIR_LTR);
-    lang_obj = label_get_obj(transcribe_lang);
-    lv_obj_set_style_min_height(lang_obj, STATUS_BAR_IMG_H, 0);
+    transcribe_sync_lang_hint_layout();
 
     transcribe_notice_op = stt_view_create_text_label(root,
                                                       LV_PCT(100),
-                                                      stt_get_font_height(),
+                                                      get_system_font_height(),
                                                       "",
                                                       LABEL_ALIGN_CENTER,
                                                       LABEL_OVERFLOW_WRAP);
@@ -738,8 +728,7 @@ static void transcribe_page_destroy(void) {
     }
 
     transcribe_root = NULL;
-    transcribe_init_label = NULL;
-    transcribe_init_img = NULL;
+    transcribe_init_hint = NULL;
     transcribe_notice_op = NULL;
     transcribe_audio_source = NULL;
     transcribe_mic_direction = NULL;

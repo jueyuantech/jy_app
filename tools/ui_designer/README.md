@@ -60,4 +60,6 @@ lfsd/system/config.json
 
 这条链路不触发 CMake、不编译 simulator，也不要求新页面先接入业务路由。
 
-当前设计器支持 `container`、`label`、`img`、`button`、`roller`、`paged_text`、`overlay` 的基础编辑和预览；透明度字段兼容整数、`transparent`、`cover` 和 `0%` 到 `100%` 的语义写法。
+当前设计器支持 `container`、`label`、`img`、`button`、`roller`、`paged_text`、`overlay`、`progress_indicator` 的基础编辑和预览；透明度字段兼容整数、`transparent`、`cover` 和 `0%` 到 `100%` 的语义写法。`overlay` 可配置点位大小/透明度、线段宽度/透明度和默认文本样式。
+
+`progress_indicator` 会开放顶层尺寸/位置、`gap`、嵌套 `icon` 图片配置和嵌套 `text` 文本配置；默认图标使用 `@image/connecting`，浏览器预览与服务端 PNG 预览都会按图标加文字的纵向结构渲染。

@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 
 #define SYSTEM_LVGL_TICK_PERIOD (200) // 200ms
 #define SYSTEM_LVGL_SECOND_PERIOD (1000) // 1 second 1000ms
@@ -9,6 +10,7 @@
 
 #define SYSTEM_TIMER_ID_SLEEP 0 // sleep timer
 #define SYSTEM_TIMER_ID_LVGL_PERIOD 1 // lvgl period timer
+#define SYSTEM_TIMER_ID_LVGL_REALIGN 2 // 对齐首次 LVGL 分钟刷新的一次性定时器。
 
 #define SYSTEM_TIMER_AUTO_DESTROY1 11 // auto destroy timer
 #define SYSTEM_TIMER_AUTO_DESTROY2 12 // auto destroy timer 2
@@ -33,4 +35,5 @@ void system_timer_sleep_reset(void);
 void system_timer_sleep_deinit(void);
 
 bool system_timer_lvgl_period_start(void);
+bool system_timer_lvgl_period_realign_to_minute(time_t time_now);
 void system_timer_lvgl_period_stop(void);

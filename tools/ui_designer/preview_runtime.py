@@ -28,11 +28,16 @@ ROLLER_DEFAULT_SELECTED_PAD_VER = 2
 OVERLAY_DEFAULT_MAX_ITEMS = 16
 OVERLAY_DEFAULT_POINT_SIZE = 6
 OVERLAY_DEFAULT_POINT_OPA = 255
+OVERLAY_DEFAULT_LINE_WIDTH = 1
+OVERLAY_DEFAULT_LINE_OPA = 255
 PAGED_TEXT_DEFAULT_MASK_OPA = 153
 PAGED_TEXT_DEFAULT_BORDER_WIDTH = 2
 PAGED_TEXT_DEFAULT_RADIUS = 6
 PAGED_TEXT_DEFAULT_OUTSET = 10
 PAGED_TEXT_DEFAULT_STEP_PERCENT = 100
+PROGRESS_INDICATOR_DEFAULT_GAP = 10
+PROGRESS_INDICATOR_DEFAULT_ICON_SIZE = 80
+PROGRESS_INDICATOR_DEFAULT_ICON_SRC = "@image/connecting"
 
 
 @dataclass
@@ -109,6 +114,8 @@ def render_node(image: Image.Image,
         draw_paged_text(draw, node, box, i18n, default_font, font_path)
     elif node_type == "overlay":
         draw_overlay(draw, node, box, i18n, default_font, font_path)
+    elif node_type == "progress_indicator":
+        draw_progress_indicator(image, draw, node, box, resources, i18n, default_font, font_path)
     else:
         draw_container(draw, node, box)
         if scroll_enabled(node):
@@ -315,6 +322,13 @@ def estimate_content_height(node: dict[str, Any],
         return estimate_content_height(label, max(1, width), default_font, font_path, i18n or {})
     if node_type == "overlay":
         return 40
+    if node_type == "progress_indicator":
+        icon = progress_indicator_icon_config(node)
+        icon_raw = icon.get("size") or icon.get("geometry") or {}
+        icon_h = coord(icon_raw.get("h", PROGRESS_INDICATOR_DEFAULT_ICON_SIZE), 1)
+        label = progress_indicator_text_config(node)
+        gap = int(node.get("gap") if node.get("gap") is not None else PROGRESS_INDICATOR_DEFAULT_GAP)
+        return max(1, icon_h) + max(0, gap) + estimate_content_height(label, width, default_font, font_path, i18n or {})
     return 40
 
 
@@ -524,6 +538,12 @@ def estimate_content_width(node: dict[str, Any],
         return estimate_content_width(label, max_width, default_font, font_path, i18n or {})
     if node_type == "overlay":
         return min(max_width, 80)
+    if node_type == "progress_indicator":
+        icon = progress_indicator_icon_config(node)
+        icon_raw = icon.get("size") or icon.get("geometry") or {}
+        icon_w = coord(icon_raw.get("w", PROGRESS_INDICATOR_DEFAULT_ICON_SIZE), max_width)
+        text_w = estimate_content_width(progress_indicator_text_config(node), max_width, default_font, font_path, i18n or {})
+        return max(1, min(max_width, max(icon_w, text_w)))
     if node_type == "button":
         label = button_label_config(node)
         return min(max_width, estimate_content_width(label, max_width, default_font, font_path, i18n or {}) + padding_h(node))
@@ -632,9 +652,11 @@ def resolve_resource_image(node: dict[str, Any], resources: dict[str, Any]) -> I
         return None
     name = src.replace("@image/", "", 1)
     image_data = (resources.get("_decoded_images") or {}).get(name)
-    if not isinstance(image_data, dict):
-        return None
-    return decode_lvgl_image(image_data)
+    if isinstance(image_data, Image.Image):
+        return image_data.copy()
+    if isinstance(image_data, dict):
+        return decode_lvgl_image(image_data)
+    return None
 
 
 def decode_lvgl_image(image_data: dict[str, Any]) -> Image.Image | None:
@@ -662,8 +684,11 @@ def decode_lvgl_image(image_data: dict[str, Any]) -> Image.Image | None:
     return None
 
 
-def decoded_image_to_png(image_data: dict[str, Any]) -> bytes | None:
-    image = decode_lvgl_image(image_data)
+def decoded_image_to_png(image_data: dict[str, Any] | Image.Image) -> bytes | None:
+    if isinstance(image_data, Image.Image):
+        image = image_data.copy()
+    else:
+        image = decode_lvgl_image(image_data)
     if image is None:
         return None
     out = io.BytesIO()
@@ -793,18 +818,70 @@ def draw_overlay(draw: ImageDraw.ImageDraw,
                  default_font: dict[str, Any],
                  font_path: str | Path | None) -> None:
     point = node.get("point") if isinstance(node.get("point"), dict) else {}
+    line = node.get("line") if isinstance(node.get("line"), dict) else {}
     size = int(point.get("size") if point.get("size") is not None else OVERLAY_DEFAULT_POINT_SIZE)
     alpha = opa_value(point.get("opa"), OVERLAY_DEFAULT_POINT_OPA)
+    line_width = int(line.get("width") if line.get("width") is not None else OVERLAY_DEFAULT_LINE_WIDTH)
+    line_alpha = opa_value(line.get("opa"), OVERLAY_DEFAULT_LINE_OPA)
     max_items = max(1, int(node.get("max_items") if node.get("max_items") is not None else OVERLAY_DEFAULT_MAX_ITEMS))
     draw.rounded_rectangle(rect(box), radius=4, outline=with_alpha(BORDER_COLOR, 120), width=1)
+    if line_width > 0 and line_alpha > 0:
+        y = box.y + box.h // 2
+        draw.line(
+            (box.x + box.w // 5, y, box.x + (box.w * 4) // 5, y),
+            fill=with_alpha(FG_COLOR, line_alpha),
+            width=max(1, line_width),
+        )
     for index in range(max_items):
         x = box.x + box.w // 2 + (index - (max_items - 1) / 2) * (size * 3)
         y = box.y + box.h // 2
-        draw.ellipse((round(x - size / 2), round(y - size / 2), round(x + size / 2), round(y + size / 2)),
-                     fill=with_alpha(FG_COLOR, alpha))
+        if size > 0 and alpha > 0:
+            draw.ellipse((round(x - size / 2), round(y - size / 2), round(x + size / 2), round(y + size / 2)),
+                         fill=with_alpha(FG_COLOR, alpha))
     text_cfg = node.get("text") if isinstance(node.get("text"), dict) else {}
     if text_cfg:
         draw_label_text_only(draw, {"type": "label", **text_cfg}, box, i18n, default_font, font_path)
+
+
+def draw_progress_indicator(image: Image.Image,
+                            draw: ImageDraw.ImageDraw,
+                            node: dict[str, Any],
+                            box: Box,
+                            resources: dict[str, Any],
+                            i18n: dict[str, str],
+                            default_font: dict[str, Any],
+                            font_path: str | Path | None) -> None:
+    icon = progress_indicator_icon_config(node)
+    text = progress_indicator_text_config(node)
+    icon_raw = icon.get("size") or icon.get("geometry") or {}
+    icon_w = max(1, coord(icon_raw.get("w", PROGRESS_INDICATOR_DEFAULT_ICON_SIZE), box.w))
+    icon_h = max(1, coord(icon_raw.get("h", PROGRESS_INDICATOR_DEFAULT_ICON_SIZE), box.h))
+    gap = max(0, int(node.get("gap") if node.get("gap") is not None else PROGRESS_INDICATOR_DEFAULT_GAP))
+    text_raw = text.get("size") or text.get("geometry") or {}
+    text_w = coord(text_raw.get("w", "100%"), box.w)
+    if text_raw.get("h") == "content" or text_raw.get("h") is None:
+        text_h = estimate_content_height(text, max(1, text_w), default_font, font_path, i18n)
+    else:
+        text_h = coord(text_raw.get("h"), box.h)
+    total_h = icon_h + gap + max(1, text_h)
+    y = box.y + max(0, (box.h - total_h) // 2)
+    icon_box = Box(box.x + max(0, (box.w - icon_w) // 2), y, icon_w, icon_h)
+
+    if icon.get("src"):
+        draw_image(image, draw, icon, icon_box, resources)
+    else:
+        draw_loading_icon(draw, icon, icon_box)
+
+    text_box = Box(box.x + max(0, (box.w - text_w) // 2), y + icon_h + gap, max(1, text_w), max(1, text_h))
+    draw_label_text_only(draw, text, text_box, i18n, default_font, font_path)
+
+
+def draw_loading_icon(draw: ImageDraw.ImageDraw, icon: dict[str, Any], box: Box) -> None:
+    alpha = node_opa(icon)
+    stroke = max(2, min(box.w, box.h) // 12)
+    outline_box = rect(Box(box.x + stroke, box.y + stroke, max(1, box.w - stroke * 2), max(1, box.h - stroke * 2)))
+    draw.ellipse(outline_box, outline=with_alpha(FG_COLOR, alpha // 3), width=stroke)
+    draw.arc(outline_box, start=290, end=70, fill=with_alpha(FG_COLOR, alpha), width=stroke)
 
 
 def draw_label_text_only(draw: ImageDraw.ImageDraw,
@@ -866,6 +943,35 @@ def paged_text_label_config(node: dict[str, Any]) -> dict[str, Any]:
     if "overflow" not in cfg:
         cfg["overflow"] = "wrap"
     return {"type": "label", **cfg}
+
+
+def progress_indicator_text_config(node: dict[str, Any]) -> dict[str, Any]:
+    text = node.get("text")
+    if isinstance(text, dict):
+        cfg = dict(text)
+    elif isinstance(text, str):
+        cfg = {"text": text}
+    else:
+        cfg = {}
+    if "text" not in cfg and "text_key" not in cfg and node.get("text_key"):
+        cfg["text_key"] = node.get("text_key")
+    if "text" not in cfg and "text_key" not in cfg:
+        cfg["text"] = "0%"
+    if "align" not in cfg:
+        cfg["align"] = "center"
+    if "overflow" not in cfg:
+        cfg["overflow"] = "clip"
+    return {"type": "label", **cfg}
+
+
+def progress_indicator_icon_config(node: dict[str, Any]) -> dict[str, Any]:
+    icon = node.get("icon")
+    cfg = dict(icon) if isinstance(icon, dict) else {}
+    if "src" not in cfg:
+        cfg["src"] = PROGRESS_INDICATOR_DEFAULT_ICON_SRC
+    if "size" not in cfg and "geometry" not in cfg:
+        cfg["size"] = {"w": PROGRESS_INDICATOR_DEFAULT_ICON_SIZE, "h": PROGRESS_INDICATOR_DEFAULT_ICON_SIZE}
+    return {"type": "img", **cfg}
 
 
 def inner_highlight_label_box(node: dict[str, Any], box: Box) -> Box:

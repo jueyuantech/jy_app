@@ -1,0 +1,26 @@
+[
+  {
+    "name": "SystemInd.heartBeat",
+    "id": 0,
+    "biz": "SystemInd",
+    "cmd": "heartBeat",
+    "type": "DATA_UNRELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemInd.keepAlive",
+    "id": 0,
+    "biz": "SystemInd",
+    "cmd": "keepAlive",
+    "type": "DATA_UNRELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemInd.onKeywordSpotting",
+    "id": 0,
+    "biz": "SystemInd",
+    "cmd": "onKeywordSpotting",
+    "type": "DATA_UNRELIABLE",
+    "data": {}
+  }
+]

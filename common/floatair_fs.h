@@ -50,9 +50,6 @@ int floatair_fs_is_dir(const char *path, bool *is_dir);
 int floatair_fs_stat(const char *path, floatair_stat_t *st);
 bool floatair_fs_is_exist(const char *path);
 
-#define FLOATAIR_ROMFS_SYSTEM_IMAGES_DIR "/romfs/system/images/"
-#define FLOATAIR_SYS_IMG(filename) FLOATAIR_ROMFS_SYSTEM_IMAGES_DIR filename
-
 /* Directory operations
  * floatair_fs_dir_read:
  *  - On success, fills namebuf with item name.

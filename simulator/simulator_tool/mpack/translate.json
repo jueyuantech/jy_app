@@ -1,0 +1,273 @@
+[
+  {
+    "name": "SystemControl.setView",
+    "id": 0,
+    "biz": "SystemControl",
+    "cmd": "setView",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "viewName": "translate"
+    }
+  },
+  {
+    "name": "translate.clearView",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "clearView",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "translate.setFontConfig",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setFontConfig",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "fontConfig": {
+        "weight": 32,
+        "wordSpace": 0,
+        "rowSpace": 0
+      }
+    }
+  },
+  {
+    "name": "translate.updateSttInfo",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 1,
+      "area": 0,
+      "msgId": "translate_1",
+      "msgType": 0,
+      "actionType": 0,
+      "isFinal": 0,
+      "user": "User A",
+      "transcribe": "Can you hear me",
+      "translate": "你能听见我",
+      "createdAt": 1776916800000
+    }
+  },
+  {
+    "name": "translate.updateSttInfo",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 1,
+      "area": 0,
+      "msgId": "translate_1",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "Can you hear me clearly?",
+      "translate": "你能听清我说话吗？",
+      "createdAt": 1776916801000
+    }
+  },
+  {
+    "name": "translate.updateSttInfo",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 2,
+      "area": 0,
+      "msgId": "translate_2",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "Short again.",
+      "translate": "短句。",
+      "createdAt": 1776916802000
+    }
+  },
+  {
+    "name": "translate.updateSttInfo",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 3,
+      "area": 0,
+      "msgId": "translate_3",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "I will start with a short sentence, then gradually make it longer.",
+      "translate": "我先说一句短的，然后逐渐说得更长一些。",
+      "createdAt": 1776916803000
+    }
+  },
+  {
+    "name": "translate.updateSttInfo",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 4,
+      "area": 0,
+      "msgId": "translate_4",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "Numbers and symbols: 12345, 67.89%, A/B, and URL-like text example.com/path?x=1&y=2.",
+      "translate": "数字与符号：12345、67.89%、A/B，以及类似链接的文本 example.com/path?x=1&y=2。",
+      "createdAt": 1776916804000
+    }
+  },
+  {
+    "name": "translate.updateSttInfo",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 5,
+      "area": 0,
+      "msgId": "translate_5",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "Sometimes the translation is much longer than the original.",
+      "translate": "有时译文会比原文长很多，因为需要补充上下文并让目标语言读起来更自然、更连贯。",
+      "createdAt": 1776916805000
+    }
+  },
+  {
+    "name": "translate.updateSttInfo",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 6,
+      "area": 0,
+      "msgId": "translate_6",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User B",
+      "transcribe": "Thanks, that works well.",
+      "translate": "谢谢，这样效果很好。",
+      "createdAt": 1776916806000
+    }
+  },
+  {
+    "name": "translate.updateSttInfo",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 7,
+      "area": 0,
+      "msgId": "translate_7",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "User A",
+      "transcribe": "Final entry: mixed length, mixed punctuation; verify English and Chinese wrap nicely.",
+      "translate": "最后一条：长短混合、标点混合；验证英文和中文都能正常换行显示。",
+      "createdAt": 1776916807000
+    }
+  },
+  {
+    "name": "translate.setTextMode",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setTextMode",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "textMode": 1
+    }
+  },
+  {
+    "name": "translate.setAudioTrackState",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setAudioTrackState",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "audioTrack": 1
+    }
+  },
+  {
+    "name": "translate.setTransMode",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setTransMode",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "transMode": 1
+    }
+  },
+  {
+    "name": "translate.setMaxLine",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setMaxLine",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "maxLine": 3
+    }
+  },
+  {
+    "name": "translate.setAudioSourceIndicator",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setAudioSourceIndicator",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "audioSourceIndicator": 1
+    }
+  },
+  {
+    "name": "translate.setMicDirectional",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setMicDirectional",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "micDirectional": 0
+    }
+  },
+  {
+    "name": "translate.setLanguageHint",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setLanguageHint",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "languageHint": {
+        "mode": 1,
+        "source": "en-US",
+        "target": "zh-CN"
+      }
+    }
+  },
+  {
+    "name": "translate.textDirection",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "textDirection",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "textDirection": {
+        "source": 0,
+        "target": 0
+      }
+    }
+  }
+]

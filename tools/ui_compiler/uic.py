@@ -19,6 +19,7 @@ WIDGET_TYPES = {
     "button": "button_t",
     "overlay": "overlay_t",
     "paged_text": "paged_text_t",
+    "progress_indicator": "progress_indicator_t",
     "roller": "roller_t",
 }
 
@@ -353,6 +354,7 @@ class UiCompiler:
             '#include "common/widgets/label.h"',
             '#include "common/widgets/overlay.h"',
             '#include "common/widgets/paged_text.h"',
+            '#include "common/widgets/progress_indicator.h"',
             '#include "common/widgets/roller.h"',
             "",
             "#ifdef __cplusplus",
@@ -489,6 +491,8 @@ class UiCompiler:
             self._emit_overlay(node, path, parent_obj, parent_has_layout, var_prefix, handle)
         elif node_type == "paged_text":
             self._emit_paged_text(node, path, parent_obj, parent_has_layout, var_prefix, handle)
+        elif node_type == "progress_indicator":
+            self._emit_progress_indicator(node, path, parent_obj, parent_has_layout, var_prefix, handle)
         elif node_type == "roller":
             self._emit_roller(node, path, parent_obj, parent_has_layout, var_prefix, handle)
         else:
@@ -644,6 +648,10 @@ class UiCompiler:
     def _emit_img(self, node, path, parent_obj, parent_has_layout, var_prefix, handle) -> None:
         cfg = f"{var_prefix}_cfg"
         self.source_lines.append(f"    img_cfg_t {cfg} = img_default_cfg();")
+        self._emit_img_cfg(node, path, cfg, parent_has_layout)
+        self._assign_create(handle, "img", f"img_create({parent_obj}, &{cfg})")
+
+    def _emit_img_cfg(self, node: dict[str, Any], path: str, cfg: str, parent_has_layout: bool) -> None:
         self._emit_common_cfg(node, path, cfg, parent_has_layout, ("opa",))
         for key in ("offset_x", "offset_y", "zoom", "rotation"):
             value = _optional_int(node, key, path)
@@ -654,7 +662,6 @@ class UiCompiler:
             if not isinstance(src, str):
                 raise ValueError(f"{path}.src must be a string")
             self.source_lines.append(f"    {cfg}.src = {self._resource_expr(src, path)};")
-        self._assign_create(handle, "img", f"img_create({parent_obj}, &{cfg})")
 
     def _emit_button(self, node, path, parent_obj, parent_has_layout, var_prefix, handle) -> None:
         cfg = f"{var_prefix}_cfg"
@@ -719,6 +726,18 @@ class UiCompiler:
                 )
                 if value is not None:
                     self.source_lines.append(f"    {cfg}.point.{key} = {value};")
+        line = node.get("line")
+        if line is not None:
+            if not isinstance(line, dict):
+                raise ValueError(f"{path}.line must be an object")
+            for key in ("width", "opa"):
+                value = (
+                    _opa_value(line, key, f"{path}.line")
+                    if key == "opa"
+                    else _optional_int(line, key, f"{path}.line")
+                )
+                if value is not None:
+                    self.source_lines.append(f"    {cfg}.line.{key} = {value};")
         if "text" in node:
             self._emit_embedded_label_cfg(node["text"], f"{path}.text", f"{cfg}.text")
         self._assign_create(handle, "overlay", f"overlay_create({parent_obj}, &{cfg})")
@@ -758,6 +777,36 @@ class UiCompiler:
             if value is not None:
                 self.source_lines.append(f"    {cfg}.{key} = {value};")
         self._assign_create(handle, "roller", f"roller_create({parent_obj}, &{cfg})")
+
+    def _emit_progress_indicator(self, node, path, parent_obj, parent_has_layout, var_prefix, handle) -> None:
+        cfg = f"{var_prefix}_cfg"
+        self.source_lines.append(f"    progress_indicator_cfg_t {cfg} = progress_indicator_default_cfg();")
+        self._emit_common_cfg(node, path, cfg, parent_has_layout, ())
+        if "gap" in node:
+            value = node["gap"]
+            if not isinstance(value, int):
+                raise ValueError(f"{path}.gap must be an integer")
+            self.source_lines.append(f"    {cfg}.gap = {value};")
+        if "text" in node:
+            text = node["text"]
+            if isinstance(text, str):
+                if "text_key" in node:
+                    raise ValueError(f"{path} must not contain both text and text_key")
+                self.source_lines.append(f"    {cfg}.text.text = {_c_string(text)};")
+            elif isinstance(text, dict):
+                self._emit_embedded_label_cfg(text, f"{path}.text", f"{cfg}.text")
+            else:
+                raise ValueError(f"{path}.text must be a string or an object")
+        if "text_key" in node:
+            if not isinstance(node["text_key"], str) or not node["text_key"]:
+                raise ValueError(f"{path}.text_key must be a non-empty string")
+            self.source_lines.append(f"    {cfg}.text.text = app_get_str({_c_string(node['text_key'])});")
+        if "icon" in node:
+            icon = node["icon"]
+            if not isinstance(icon, dict):
+                raise ValueError(f"{path}.icon must be an object")
+            self._emit_img_cfg(icon, f"{path}.icon", f"{cfg}.icon", parent_has_layout=False)
+        self._assign_create(handle, "progress_indicator", f"progress_indicator_create({parent_obj}, &{cfg})")
 
     def _emit_roller_items(self, node: dict[str, Any], path: str, cfg: str, var_prefix: str) -> None:
         items = node.get("items")

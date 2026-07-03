@@ -1,0 +1,188 @@
+[
+  {
+    "name": "SystemControl.setView",
+    "id": 0,
+    "biz": "SystemControl",
+    "cmd": "setView",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "viewName": "ai"
+    }
+  },
+  {
+    "name": "ai.clearView",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "clearView",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "ai.setFontConfig",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "setFontConfig",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "fontConfig": {
+        "weight": 32,
+        "wordSpace": 0,
+        "rowSpace": 0
+      }
+    }
+  },
+  {
+    "name": "ai.setAudioTrackState",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "setAudioTrackState",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "audioTrack": 1
+    }
+  },
+  {
+    "name": "ai.setMaxLine",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "setMaxLine",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "maxLine": 3
+    }
+  },
+  {
+    "name": "ai.setAudioSourceIndicator",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "setAudioSourceIndicator",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "audioSourceIndicator": 1
+    }
+  },
+  {
+    "name": "ai.setMicDirectional",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "setMicDirectional",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "micDirectional": 0
+    }
+  },
+  {
+    "name": "ai.updateSttInfo",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 1,
+      "area": 0,
+      "msgId": "ai_1",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "Alice",
+      "transcribe": "左侧：你好，我是智能助理。",
+      "translate": "",
+      "createdAt": 1776916800000
+    }
+  },
+  {
+    "name": "ai.updateSttInfo",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 2,
+      "area": 1,
+      "msgId": "ai_2",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "Bob",
+      "transcribe": "右侧：很高兴见到你！",
+      "translate": "",
+      "createdAt": 1776916801000
+    }
+  },
+  {
+    "name": "ai.updateSttInfo",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 3,
+      "area": 0,
+      "msgId": "ai_3",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "Alice",
+      "transcribe": "左侧：请问我能帮你做些什么？",
+      "translate": "",
+      "createdAt": 1776916802000
+    }
+  },
+  {
+    "name": "ai.updateSttInfo",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 4,
+      "area": 1,
+      "msgId": "ai_4",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "Bob",
+      "transcribe": "右侧：帮我查一下今天的安排，并设置一个提醒。",
+      "translate": "",
+      "createdAt": 1776916803000
+    }
+  },
+  {
+    "name": "ai.updateSttInfo",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 5,
+      "area": 0,
+      "msgId": "ai_5",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "Alice",
+      "transcribe": "左侧：好的，我已为你准备日程摘要。",
+      "translate": "",
+      "createdAt": 1776916804000
+    }
+  },
+  {
+    "name": "ai.updateSttInfo",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 6,
+      "area": 1,
+      "msgId": "ai_6",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "Bob",
+      "transcribe": "右侧：谢谢，另外把待办清单同步到手机。",
+      "translate": "",
+      "createdAt": 1776916805000
+    }
+  }
+]

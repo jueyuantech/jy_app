@@ -22,7 +22,7 @@ struct floatair_dir {
 
 #define SYSTEM_ROOT_PATH "/jyt_d"
 #define SYSTEM_IMAGES_PATH "/romfs/system/images/"
-#define SYSTEM_FONT_FILE "/romfs/system/font/font.ttf"
+#define SYSTEM_FONT_FILE "/romfs/system/font/font.ttf" ///< 系统常规文字字体文件。
 #define SYSTEM_I18N_PATH "/jyt_d/system/i18n"
 #define SYSTEM_CONFIG_FILE "/jyt_d/system/config.json"
 

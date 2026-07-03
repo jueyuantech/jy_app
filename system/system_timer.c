@@ -8,6 +8,7 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct {
     bool in_use;
@@ -20,6 +21,7 @@ typedef struct {
 static system_timer_slot_t g_auto_slots[5];
 static void* g_sleep_timer = NULL;
 static void* g_lvgl_period_timer = NULL;
+static void* g_lvgl_realign_timer = NULL;
 
 static int system_timer_autodestroy_id_to_index(uint32_t timer_id) {
     if (timer_id == SYSTEM_TIMER_AUTO_DESTROY1) return 0;
@@ -124,7 +126,21 @@ bool system_timer_autodestroy_cancel(uint32_t timer_id) {
 
 bool system_timer_handle_trigger(uint32_t timer_id) {
     if (timer_id == SYSTEM_TIMER_ID_LVGL_PERIOD) {
+        if (g_lvgl_period_timer == NULL) {
+            floatair_warn("ignore stale lvgl period timer trigger");
+            return true;
+        }
         floatair_lvgl_tick();
+        return true;
+    }
+    if (timer_id == SYSTEM_TIMER_ID_LVGL_REALIGN) {
+        if (g_lvgl_realign_timer == NULL) {
+            floatair_warn("ignore stale lvgl realign timer trigger");
+            return true;
+        }
+        g_lvgl_realign_timer = NULL;
+        floatair_lvgl_tick();
+        (void)system_timer_lvgl_period_start();
         return true;
     }
     if (timer_id == SYSTEM_TIMER_ID_SLEEP) {
@@ -200,9 +216,43 @@ bool system_timer_lvgl_period_start(void) {
     return g_lvgl_period_timer != NULL;
 }
 
+/**
+ * @brief 将 LVGL 分钟定时器重排到指定时间戳的下一分钟边界。
+ * @param[in] time_now 当前已同步的系统时间。
+ * @return `true` 表示重排成功，`false` 表示创建定时器失败。
+ */
+bool system_timer_lvgl_period_realign_to_minute(time_t time_now) {
+    uint32_t first_timeout_ms = SYSTEM_LVGL_MINUTE_PERIOD;
+    struct tm* ptm = localtime(&time_now);
+
+    if (ptm != NULL && ptm->tm_sec > 0 && ptm->tm_sec < 60) {
+        first_timeout_ms = (uint32_t)(60 - ptm->tm_sec) * SYSTEM_LVGL_SECOND_PERIOD;
+    }
+
+    if (g_lvgl_period_timer != NULL) {
+        jyt_timer_delete(g_lvgl_period_timer);
+        g_lvgl_period_timer = NULL;
+    }
+    if (g_lvgl_realign_timer != NULL) {
+        jyt_timer_delete(g_lvgl_realign_timer);
+        g_lvgl_realign_timer = NULL;
+    }
+
+    g_lvgl_realign_timer = jyt_timer_create_and_start(first_timeout_ms, SYSTEM_TIMER_ID_LVGL_REALIGN, 1);
+    if (g_lvgl_realign_timer == NULL) {
+        return false;
+    }
+
+    return true;
+}
+
 void system_timer_lvgl_period_stop(void) {
     if (g_lvgl_period_timer != NULL) {
         jyt_timer_delete(g_lvgl_period_timer);
         g_lvgl_period_timer = NULL;
+    }
+    if (g_lvgl_realign_timer != NULL) {
+        jyt_timer_delete(g_lvgl_realign_timer);
+        g_lvgl_realign_timer = NULL;
     }
 }

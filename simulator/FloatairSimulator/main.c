@@ -85,6 +85,10 @@ void simulator_update_lcd_visual(uint8_t brightness, lcd_state_t state) {
     }
 
     lv_obj_set_style_bg_opa(g_lcd_mask, mask_opa, 0);
+    lv_obj_invalidate(g_lcd_mask);
+    if (g_disp != NULL) {
+        lv_refr_now(g_disp);
+    }
     g_lcd_visual_brightness = brightness;
     g_lcd_visual_state = state;
 }
@@ -226,11 +230,16 @@ static void status_timer_cb(lv_timer_t* timer) {
     if (!g_status_label || !lv_obj_is_valid(g_status_label)) return;
 
     static char buf[96];
+    static char last_buf[96];
     if (connected) {
         lv_snprintf(buf, sizeof(buf), "TCP Connected %s", info);
     } else {
         lv_snprintf(buf, sizeof(buf), "TCP Disconnected %s", info);
     }
+    if (strcmp(last_buf, buf) == 0) {
+        return;
+    }
+    lv_snprintf(last_buf, sizeof(last_buf), "%s", buf);
     lv_label_set_text(g_status_label, buf);
 }
 

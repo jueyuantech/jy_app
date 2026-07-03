@@ -1,6 +1,6 @@
 /**
  * @file lv_nuttx_lcd.c
- *
+ * @brief NuttX LCD display driver integration for LVGL.
  */
 
 /*********************
@@ -42,6 +42,8 @@ typedef struct {
     struct lcddev_area_align_s align_info;
     uint8_t * frame_buf;       /**< 局部渲染后用于全屏提交到 LCD 驱动的影子 framebuffer。 */
     uint32_t frame_buf_size;   /**< 影子 framebuffer 的总字节数。 */
+    lv_area_t flush_area;      /**< 当前 LVGL 刷新帧内所有 flush 区域的外接矩形。 */
+    bool flush_area_valid;     /**< 当前刷新帧是否已经记录过有效 flush 区域。 */
 } lv_nuttx_lcd_t;
 
 /**********************
@@ -50,8 +52,6 @@ typedef struct {
 
 static int32_t align_round_up(int32_t v, uint16_t align);
 static void rounder_cb(lv_event_t * e);
-static void copy_area_to_frame_buf(lv_display_t * disp, const lv_area_t * area_p,
-                                   const uint8_t * color_p);
 static void flush_cb(lv_display_t * disp, const lv_area_t * area_p,
                      uint8_t * color_p);
 static lv_display_t * lcd_init(int fd, int hor_res, int ver_res);
@@ -139,57 +139,97 @@ static void rounder_cb(lv_event_t * e)
     area->y2 = area->y1 + h - 1;
 }
 
-/**
- * @brief 将 LVGL 本次局部渲染结果合成到全屏影子 framebuffer。
- * @param disp LVGL display。
- * @param area_p 本次局部渲染区域。
- * @param color_p 本次局部渲染像素数据。
- * @return 无返回值。
- */
-static void copy_area_to_frame_buf(lv_display_t * disp, const lv_area_t * area_p,
-                                   const uint8_t * color_p)
+#if LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+static void lcd_join_flush_area(lv_nuttx_lcd_t * lcd, const lv_area_t * area)
 {
-    lv_nuttx_lcd_t * lcd = disp->driver_data;
-    lv_color_format_t cf = lv_display_get_color_format(disp);
-    uint32_t full_stride = lv_draw_buf_width_to_stride(lv_display_get_horizontal_resolution(disp), cf);
-    uint32_t src_stride = lv_draw_buf_width_to_stride(lv_area_get_width(area_p), cf);
-    uint32_t px_size = lv_color_format_get_size(cf);
-    uint32_t copy_size = lv_area_get_width(area_p) * px_size;
-
-    if(lcd == NULL || lcd->frame_buf == NULL || color_p == NULL || full_stride == 0 || src_stride == 0 ||
-       px_size == 0) {
+    if(lcd == NULL || area == NULL) {
         return;
     }
 
-    for(int32_t y = area_p->y1; y <= area_p->y2; y++) {
-        uint32_t src_y = (uint32_t)(y - area_p->y1);
-        uint32_t dst_offset = (uint32_t)y * full_stride + (uint32_t)area_p->x1 * px_size;
-        uint32_t src_offset = src_y * src_stride;
-
-        if(dst_offset + copy_size > lcd->frame_buf_size) {
-            return;
-        }
-
-        memcpy(lcd->frame_buf + dst_offset, color_p + src_offset, copy_size);
+    if(!lcd->flush_area_valid) {
+        lcd->flush_area = *area;
+        lcd->flush_area_valid = true;
+        return;
     }
+
+    lv_area_join(&lcd->flush_area, &lcd->flush_area, area);
 }
+
+static void lcd_clip_flush_area(lv_area_t * area, int32_t hor_res, int32_t ver_res)
+{
+    if(area == NULL) {
+        return;
+    }
+
+    area->x1 = LV_MAX(area->x1, 0);
+    area->y1 = LV_MAX(area->y1, 0);
+    area->x2 = LV_MIN(area->x2, hor_res - 1);
+    area->y2 = LV_MIN(area->y2, ver_res - 1);
+}
+#endif
 
 static void flush_cb(lv_display_t * disp, const lv_area_t * area_p,
                      uint8_t * color_p)
 {
     lv_nuttx_lcd_t * lcd = disp->driver_data;
+    lv_color_format_t cf = lv_display_get_color_format(disp);
+    int32_t hor_res = lv_display_get_horizontal_resolution(disp);
+    int32_t ver_res = lv_display_get_vertical_resolution(disp);
+    uint32_t full_stride = lv_draw_buf_width_to_stride(hor_res, cf);
+    uint32_t px_size = lv_color_format_get_size(cf);
+    lv_area_t flush_area;
 
-    copy_area_to_frame_buf(disp, area_p, color_p);
+    if(lcd == NULL || color_p == NULL || full_stride == 0 || px_size == 0) {
+#if LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+        if(lcd != NULL) {
+            lcd->flush_area_valid = false;
+        }
+#endif
+        lv_display_flush_ready(disp);
+        return;
+    }
+
+#if LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+    lcd_join_flush_area(lcd, area_p);
+#else
+    LV_UNUSED(area_p);
+#endif
+
     if(!lv_display_flush_is_last(disp)) {
         lv_display_flush_ready(disp);
         return;
     }
 
-    lcd->area.row_start = 0;
-    lcd->area.row_end = lv_display_get_vertical_resolution(disp) - 1;
-    lcd->area.col_start = 0;
-    lcd->area.col_end = lv_display_get_horizontal_resolution(disp) - 1;
-    lcd->area.data = lcd->frame_buf != NULL ? lcd->frame_buf : (uint8_t *)color_p;
+#if LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+    if(lcd->flush_area_valid) {
+        flush_area = lcd->flush_area;
+        lcd->flush_area_valid = false;
+    }
+    else
+#endif
+    {
+        lv_area_set(&flush_area, 0, 0, hor_res - 1, ver_res - 1);
+    }
+
+#if LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+    lcd_clip_flush_area(&flush_area, hor_res, ver_res);
+    if(flush_area.x1 > flush_area.x2 || flush_area.y1 > flush_area.y2) {
+        lv_display_flush_ready(disp);
+        return;
+    }
+#endif
+
+    lcd->area.row_start = flush_area.y1;
+    lcd->area.row_end = flush_area.y2;
+    lcd->area.col_start = flush_area.x1;
+    lcd->area.col_end = flush_area.x2;
+    lcd->area.stride = full_stride;
+    lcd->area.data = color_p + (size_t)flush_area.y1 * full_stride + (size_t)flush_area.x1 * px_size;
+    LV_LOG_USER("lcd flush area col=%d-%d row=%d-%d",
+                (int)lcd->area.col_start,
+                (int)lcd->area.col_end,
+                (int)lcd->area.row_start,
+                (int)lcd->area.row_end);
     ioctl(lcd->fd, LCDDEVIO_PUTAREA, (unsigned long) & (lcd->area));
     lv_display_flush_ready(disp);
 }
@@ -214,30 +254,17 @@ static lv_display_t * lcd_init(int fd, int hor_res, int ver_res)
     lv_color_format_t cf = lv_display_get_color_format(disp);
     uint32_t full_stride = lv_draw_buf_width_to_stride(hor_res, cf);
     uint32_t frame_buf_size = full_stride * ver_res;
-#if LV_NUTTX_LCD_BUFFER_COUNT > 0
-    uint32_t buf_size = full_stride * LV_NUTTX_LCD_BUFFER_SIZE;
-    /* A screen-sized buffer only describes capacity; keep rendering clipped to dirty areas. */
-    lv_display_render_mode_t render_mode = LV_DISPLAY_RENDER_MODE_PARTIAL;
-#else
-    uint32_t buf_size = full_stride * LV_NUTTX_LCD_BUFFER_SIZE;
-    lv_display_render_mode_t render_mode = LV_DISPLAY_RENDER_MODE_PARTIAL;
-#endif
-
-    draw_buf = lv_malloc(buf_size);
-    if(draw_buf == NULL) {
-        LV_LOG_ERROR("display draw_buf malloc failed");
-        lv_free(lcd);
-        return NULL;
-    }
+    uint32_t buf_size = frame_buf_size;
+    lv_display_render_mode_t render_mode = LV_DISPLAY_RENDER_MODE_DIRECT;
 
     lcd->frame_buf = lv_malloc_zeroed(frame_buf_size);
     if(lcd->frame_buf == NULL) {
         LV_LOG_ERROR("display frame_buf malloc failed");
         lv_free(lcd);
-        lv_free(draw_buf);
         return NULL;
     }
     lcd->frame_buf_size = frame_buf_size;
+    draw_buf = lcd->frame_buf;
 
 #if LV_NUTTX_LCD_BUFFER_COUNT == 2
     draw_buf_2 = lv_malloc(buf_size);
@@ -245,7 +272,6 @@ static lv_display_t * lcd_init(int fd, int hor_res, int ver_res)
         LV_LOG_ERROR("display draw_buf_2 malloc failed");
         lv_free(lcd->frame_buf);
         lv_free(lcd);
-        lv_free(draw_buf);
         return NULL;
     }
 #endif
@@ -275,11 +301,21 @@ static void display_release_cb(lv_event_t * e)
 
         /* clear display buffer */
         if(disp->buf_1) {
-            lv_free(disp->buf_1);
+            if(dsc->frame_buf == (uint8_t *)disp->buf_1->data) {
+                dsc->frame_buf = NULL;
+            }
+            else {
+                lv_free(disp->buf_1->data);
+            }
             disp->buf_1 = NULL;
         }
         if(disp->buf_2) {
-            lv_free(disp->buf_2);
+            if(dsc->frame_buf == (uint8_t *)disp->buf_2->data) {
+                dsc->frame_buf = NULL;
+            }
+            else {
+                lv_free(disp->buf_2->data);
+            }
             disp->buf_2 = NULL;
         }
         if(dsc->frame_buf) {
