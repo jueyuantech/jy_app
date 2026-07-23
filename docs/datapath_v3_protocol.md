@@ -11,10 +11,9 @@ Main code entry points:
 - `system/system_notification.c`
 - `system/popups/assistant/assistant_msg.c`
 - `system/stt_common.c`
-- `apps/transcribe/transcribe_msg.c`
-- `apps/translate/translate_msg.c`
+- `apps/speech/speech_msg.c`
 - `apps/ai/ai_msg.c`
-- `apps/prompter/prompter_msg.c`
+- `apps/prompter_pro/prompter_msg.c`
 - `apps/gallery/gallery_msg.c`
 
 ## 1. Protocol Boundary
@@ -128,8 +127,8 @@ Error codes:
 | 15 | `ErrBadFilePath` | Bad file path |
 | 16 | `ErrBtErr` | Bluetooth error |
 | 17 | `ErrBadCRC` | CRC error |
-
-`ErrBadCRC` has no dedicated text. When this code is returned, `msg` is `"Unknown Error"`.
+| 18 | `ErrScreenOff` | Device screen is off, command rejected |
+| 19 | `ErrGuideStepMismatch` | Command is not allowed in the current guide step |
 
 ## 4. Message IDs
 
@@ -146,12 +145,14 @@ Common processing flow:
 
 1. Parse root `id`.
 2. Parse `payload.seq/type/cmd/biz`.
-3. If the current top-level app consumes host messages, dispatch to that app first.
-4. If the Bluetooth disconnect mask or popup state blocks handling, return `ErrNotReady`.
-5. Validate request `data`: missing or `nil` is allowed; non-map returns `ErrDataErr`.
-6. Look up the registered `app_message_t` by `id`.
-7. Call the target module route function.
-8. Refresh the sleep timer after successful handling. Notification messages can suppress this refresh.
+3. If the screen is off and the command is not allowed while the screen is off, return `ErrScreenOff`.
+4. If the current top-level app consumes host messages, dispatch to that app first.
+5. If the Bluetooth disconnect mask or popup state blocks handling, return `ErrNotReady`.
+6. If the beginner guide is active and the command is unrelated to the current guide step, return `ErrGuideStepMismatch`.
+7. Validate request `data`: missing or `nil` is allowed; non-map returns `ErrDataErr`.
+8. Look up the registered `app_message_t` by `id`.
+9. Call the target module route function.
+10. Refresh the sleep timer after successful handling. Notification messages can suppress this refresh.
 
 ## 5. System Protocol
 
@@ -165,6 +166,7 @@ System uses `id=0` and routes by `payload.biz`.
 | `SystemControl` | `system_msg_syscontrol.c` | System control, view switching, assistant, and touch injection |
 | `SystemInd` | `system_msg_sysind.c` | Remote heartbeat, keep-alive, and keyword responses |
 | `Notification` | `system_notification.c` | Notification add, update, and remove |
+| `Toast` | `system_msg_toast.c` | Toast popup display |
 | `File` | `system_msg_file.c` | File list, write, remove, existence check, and clear-folder operations |
 
 Unknown `biz` or unknown `cmd` returns `ErrCmdErr`.
@@ -229,7 +231,7 @@ Unknown `biz` or unknown `cmd` returns `ErrCmdErr`.
 | `getNotificationEnabled` | `{}` | `{ "notificationEnabled": uint8 }` |
 | `setNotificationEnabled` | `{ "notificationEnabled": uint8 }` | `{}` |
 
-`setTimeConfig.time` uses the `yyyy-MM-dd HH:mm:ss` format. Switch fields use `0/1` for disabled/enabled.
+`setTimeConfig.time` uses the `yyyy-MM-dd HH:mm:ss` format. Switch fields use `0/1` for disabled/enabled. When `autoBrightnessEnabled` is enabled, `setBrightness` returns NACK `ErrNotReady` and does not change the LCD brightness.
 
 ### 5.3 SystemStatus
 
@@ -253,6 +255,8 @@ Unknown `biz` or unknown `cmd` returns `ErrCmdErr`.
 | `getView` | `{}` | `{ "view": string }` |
 | `setView` | `{ "viewName": string }` | `{}` |
 | `sendTouchEvent` | `{ "event": uint8 }` | `{}` |
+| `openGuide` | `{}` | `{}` |
+| `closeGuide` | `{}` | `{}` |
 | `openAssistant` | `{}` | `{}` |
 | `updateAssistantSttInfo` | See [6.1 Text Record](#61-text-record) | `{}` |
 | `closeAssistant` | `{}` | `{}` |
@@ -274,6 +278,8 @@ Unknown `biz` or unknown `cmd` returns `ErrCmdErr`.
 
 Assistant text fields are defined in [6.6 Assistant Popup](#66-assistant-popup).
 
+`openGuide` resets `SystemConfig.userguide` to `"false"` and routes to the Guide app. `closeGuide` resets guide runtime state, writes `SystemConfig.userguide` to `"true"`, returns to Home, and reports `onViewChangedByName` with `viewName="home"`. Phone-triggered `openGuide` and `closeGuide` do not report `onGuideOpen` or `onGuideClose`. Device-side guide entry reports `onGuideOpen`; completing or skipping the guide on device reports `onGuideClose` and then `onViewChangedByName` with `viewName="home"`. Guide internal transitions do not report `onViewChangedByName`.
+
 ### 5.5 SystemInd
 
 Receive direction:
@@ -283,6 +289,8 @@ Receive direction:
 | `heartBeat` | `{}` | `{}` |
 | `keepAlive` | `{}` | `{}` |
 | `onKeywordSpotting` | ACK `{}` or NACK `{ "code": uint32, "msg": string }` | No secondary reply |
+| `onGuideOpen` | `{}` | `{}` |
+| `onGuideClose` | `{}` | `{}` |
 
 Device report direction:
 
@@ -292,9 +300,12 @@ Device report direction:
 | `onViewChangedByName` | `DATA_UNRELIABLE` | `{ "viewName": string }` |
 | `onKeywordSpotting` | `DATA_RELIABLE` | `{}` |
 | `onAssistantClose` | `DATA_UNRELIABLE` | `{}` |
+| `onGuideOpen` | `DATA_UNRELIABLE` | `{}` |
+| `onGuideClose` | `DATA_UNRELIABLE` | `{}` |
 | `onSysStateChanged` | `DATA_UNRELIABLE` | `{ "sysState": uint8 }` |
 | `onChargeStateChanged` | `DATA_UNRELIABLE` | `{ "chargeState": uint8 }` |
 | `onBatteryChanged` | `DATA_UNRELIABLE` | `{ "battery": uint32 }` |
+| `onBrightnessChanged` | `DATA_UNRELIABLE` | `{ "brightness": uint8 }` |
 
 ### 5.6 Notification
 
@@ -341,7 +352,15 @@ map(1) {
 }
 ```
 
-### 5.7 File
+### 5.7 Toast
+
+| cmd | Request `data` | Success ACK `data` |
+| --- | --- | --- |
+| `showToast` | `{ "text": string, "position": uint8, "postion": uint8, "duration": uint32 }` | `{}` |
+
+`showToast.text` is required. `position` is optional: `1` top, `2` center, `3` bottom. The misspelled `postion` key is also accepted for compatibility. `duration` is optional in milliseconds; missing, zero, negative, or invalid values use the default `3000`.
+
+### 5.8 File
 
 File types:
 
@@ -555,6 +574,7 @@ map(1) {
 | --- | --- |
 | `0` | Glasses audio source |
 | `1` | Phone audio source |
+| `2` | Watch audio source |
 
 #### `setMicDirectional`
 

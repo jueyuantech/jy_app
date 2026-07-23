@@ -8,6 +8,16 @@
     "data": {}
   },
   {
+    "name": "DeviceConnection.setAppConfig",
+    "id": 0,
+    "biz": "DeviceConnection",
+    "cmd": "setAppConfig",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "appPlatform": 1
+    }
+  },
+  {
     "name": "SystemConfig.setTime",
     "id": 0,
     "biz": "SystemConfig",
@@ -111,24 +121,6 @@
     }
   },
   {
-    "name": "SystemConfig.getQuickLaunch",
-    "id": 0,
-    "biz": "SystemConfig",
-    "cmd": "getQuickLaunch",
-    "type": "DATA_RELIABLE",
-    "data": {}
-  },
-  {
-    "name": "SystemConfig.setQuickLaunch",
-    "id": 0,
-    "biz": "SystemConfig",
-    "cmd": "setQuickLaunch",
-    "type": "DATA_RELIABLE",
-    "data": {
-      "quicklaunch": "transcribe"
-    }
-  },
-  {
     "name": "SystemConfig.getHomeUnits",
     "id": 0,
     "biz": "SystemConfig",
@@ -144,9 +136,33 @@
     "type": "DATA_RELIABLE",
     "data": {
       "homeunits": [
+        "monitor",
         "translate",
         "prompter"
       ]
+    }
+  },
+  {
+    "name": "SystemConfig.getHomeMenuConfig",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "getHomeMenuConfig",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemConfig.setHomeMenuConfig",
+    "id": 0,
+    "biz": "SystemConfig",
+    "cmd": "setHomeMenuConfig",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "visible": [
+        5,
+        3,
+        2
+      ],
+      "selected": 3
     }
   },
   {

@@ -27,6 +27,12 @@ bool system_touch_event(uint8_t event);
  * @return 无返回值。
  */
 void system_runtime_input_set_wearing_state(bool worn);
+
+/**
+ * @brief 获取系统亮灭屏状态变化事件 ID。
+ * @return 返回 LVGL 自定义事件 ID。
+ */
+uint32_t system_runtime_input_get_sys_state_event(void);
 /**
  * @brief 处理 force 触控事件并分发到当前页面。
  * @param[in] event force 触控事件值。

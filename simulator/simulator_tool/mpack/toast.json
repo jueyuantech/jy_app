@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Toast.showToast.top",
+    "id": 0,
+    "biz": "Toast",
+    "cmd": "showToast",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "text": "i'm toast",
+      "position": 1,
+      "duration": 3000
+    }
+  },
+  {
+    "name": "Toast.showToast.center",
+    "id": 0,
+    "biz": "Toast",
+    "cmd": "showToast",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "text": "i'm toast",
+      "position": 2,
+      "duration": 3000
+    }
+  },
+  {
+    "name": "Toast.showToast.bottom",
+    "id": 0,
+    "biz": "Toast",
+    "cmd": "showToast",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "text": "i'm toast",
+      "position": 3,
+      "duration": 3000
+    }
+  }
+]

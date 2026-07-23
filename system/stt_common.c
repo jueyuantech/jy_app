@@ -745,7 +745,9 @@ bool stt_set_audiosourceindicator(mpack_node_t node,
         floatair_err("audioSourceIndicator err");
         return app_mpack_send_ack(msg, ErrBadParam);
     }
-    if (stt_config.audioSourceIndicator != AUDIOSOURCE_GLASSES && stt_config.audioSourceIndicator != AUDIOSOURCE_PHONE) {
+    if (stt_config.audioSourceIndicator != AUDIOSOURCE_GLASSES &&
+        stt_config.audioSourceIndicator != AUDIOSOURCE_PHONE &&
+        stt_config.audioSourceIndicator != AUDIOSOURCE_WATCH) {
         floatair_err("audioSourceIndicator err");
         return app_mpack_send_ack(msg, ErrBadParam);
     }

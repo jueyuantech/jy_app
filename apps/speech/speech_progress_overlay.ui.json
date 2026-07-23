@@ -1,0 +1,30 @@
+{
+  "name": "speech_progress_overlay",
+  "root": {
+    "type": "container",
+    "id": "mask",
+    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
+    "opa": "transparent",
+    "visible": false,
+    "layout": {
+      "type": "vbox",
+      "spacing": 0,
+      "main_align": "center",
+      "cross_align": "center"
+    },
+    "scroll": { "enabled": false },
+    "children": [
+      {
+        "type": "progress_indicator",
+        "id": "indicator",
+        "size": { "w": "100%", "h": "content" },
+        "text": {
+          "text": "",
+          "size": { "w": "100%", "h": "content" },
+          "align": "center",
+          "overflow": "wrap"
+        }
+      }
+    ]
+  }
+}

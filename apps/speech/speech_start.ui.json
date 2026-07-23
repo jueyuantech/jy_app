@@ -1,0 +1,12 @@
+{
+  "name": "speech_start",
+  "root": {
+    "type": "label",
+    "id": "start_text",
+    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "content" },
+    "object_align": { "type": "center", "x": 0, "y": 0 },
+    "text": "",
+    "align": "center",
+    "overflow": "wrap"
+  }
+}

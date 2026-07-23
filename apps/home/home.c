@@ -46,19 +46,6 @@ bool home_is_supported_app(const char* app_name) {
     return false;
 }
 
-bool home_is_valid_quicklaunch_app(const char* app_name) {
-    if (app_name == NULL || app_name[0] == '\0') {
-        return false;
-    }
-    if (strcmp(app_name, APP_NAME_HOME) == 0) {
-        return false;
-    }
-    if (!home_is_supported_app(app_name)) {
-        return false;
-    }
-    return app_manager_has_app(app_name);
-}
-
 /**
  * @brief 注册 Home 消息处理器。
  * @return `true` 表示注册成功，`false` 表示注册失败。

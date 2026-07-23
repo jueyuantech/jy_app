@@ -8,6 +8,7 @@
 #include "system/system_runtime_ui.h"
 
 static lcd_state_t current_lcd_state = LCD_ON;
+static uint8_t current_lcd_brightness = UINT8_MAX; ///< 最近一次设置到 LCD 硬件的亮度。
 
 /**
  * @brief 亮屏恢复后强制标记完整显示区域，确保双眼画面都重新刷新。
@@ -56,7 +57,7 @@ void floatair_lcd_set_state(lcd_state_t state)
     current_lcd_state = state;
     if (state == LCD_ON) {
         system_request_os_sleep(false);
-        floatair_lcd_set_brightness(system_config_get_brightness());
+        floatair_lcd_set_brightness(system_runtime_state_get_lcd_resume_brightness());
         system_update_time();
         floatair_lcd_invalidate_full_display();
         system_ui_flush_pending_after_screen_on();
@@ -77,12 +78,12 @@ void floatair_lcd_set_brightness(uint8_t brightness)
         floatair_err("Error: ioctl(LCDDEVIO_SETPOWER) failed");
         return;
     }
+    current_lcd_brightness = brightness;
     return;
 }
 
 uint16_t floatair_lcd_get_brightness(void)
 {
-    uint8_t brightness = system_config_get_brightness();
-    floatair_info("current_lcd_brightness: %u", (unsigned)brightness);
-    return brightness;
+    floatair_info("current_lcd_brightness: %u", (unsigned)current_lcd_brightness);
+    return current_lcd_brightness;
 }

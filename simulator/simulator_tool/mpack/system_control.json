@@ -60,6 +60,24 @@
     },
     {
         "biz": "SystemControl",
+        "cmd": "openGuide",
+        "data": {
+        },
+        "id": 0,
+        "name": "SystemControl.openGuide",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "closeGuide",
+        "data": {
+        },
+        "id": 0,
+        "name": "SystemControl.closeGuide",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
         "cmd": "openAssistant",
         "data": {
             "area": 0,
@@ -189,6 +207,18 @@
         },
         "id": 0,
         "name": "SystemControl.setUploadProgressVisible",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "setProgressVisible",
+        "data": {
+            "visible": 1,
+            "text": "",
+            "opa": 100
+        },
+        "id": 0,
+        "name": "SystemControl.setProgressVisible",
         "type": "DATA_RELIABLE"
     }
 ]

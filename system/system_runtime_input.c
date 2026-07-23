@@ -25,6 +25,19 @@ static bool s_wearing_state_known = false; ///< 是否已收到过佩戴状态�
 static bool s_wearing_state_worn = true;   ///< 最近一次佩戴状态，默认不屏蔽触控
 
 /**
+ * @brief 获取系统亮灭屏状态变化事件 ID。
+ * @return 返回 LVGL 自定义事件 ID。
+ */
+uint32_t system_runtime_input_get_sys_state_event(void) {
+    static uint32_t s_sys_state_event_id = 0; ///< 系统亮灭屏状态变化事件 ID。
+
+    if (s_sys_state_event_id == 0) {
+        s_sys_state_event_id = lv_event_register_id();
+    }
+    return s_sys_state_event_id;
+}
+
+/**
  * @brief 判断当前触控板输入是否应被配置或佩戴状态屏蔽。
  * @param[in] event 当前触控事件值。
  * @param[in] source 事件来源描述。
@@ -159,9 +172,9 @@ static lv_event_code_t system_runtime_force_event_to_lvgl(uint8_t event) {
         case SET_FORCE_LONG_PRESSED:
             return LV_EVENT_LONG_PRESSED;
         case SET_SLIDE_BACKWORD:
-            return LV_EVENT_GESTURE_LEFT;
-        case SET_SLIDE_FORWARD:
             return LV_EVENT_GESTURE_RIGHT;
+        case SET_SLIDE_FORWARD:
+            return LV_EVENT_GESTURE_LEFT;
         default:
             return LV_EVENT_ALL;
     }
@@ -215,6 +228,29 @@ static bool system_runtime_input_send_event_to_app(uint32_t raw_event, lv_event_
 
     floatair_info("send event %u to app %p", (unsigned)raw_event, obj);
     (void)lv_obj_send_event(obj, code, NULL);
+    return true;
+}
+
+/**
+ * @brief 向当前 App 页面发送系统亮灭屏状态变化事件。
+ * @param[in] state 当前系统亮灭屏状态，`0` 表示灭屏，`1` 表示亮屏。
+ * @return `true` 表示发送成功，`false` 表示当前页面不可用。
+ */
+static bool system_runtime_input_send_sys_state_to_app(uint8_t state) {
+    app_t* current_app = app_manager_current();
+    lv_obj_t* obj = NULL;
+
+    if (current_app != NULL && current_app->use_top_layer) {
+        return true;
+    }
+
+    obj = system_runtime_input_get_current_page_root();
+    if (obj == NULL) {
+        return false;
+    }
+
+    floatair_info("send sys state %u to app %p", (unsigned)state, obj);
+    (void)lv_obj_send_event(obj, system_runtime_input_get_sys_state_event(), &state);
     return true;
 }
 
@@ -313,6 +349,7 @@ bool system_imu_event_convert_to_touch(uint8_t event) {
             next_state = (floatair_lcd_get_state() == LCD_OFF) ? 1 : 0;
             system_set_sys_state(next_state);
             system_report_sys_state(next_state);
+            (void)system_runtime_input_send_sys_state_to_app(next_state);
             return true;
         default:
             return true;
@@ -331,6 +368,11 @@ bool system_update_imu_tilt(JYT_ELF_MQ_MSG* msg) {
     if (msg == NULL) {
         floatair_err("msg is NULL");
         return false;
+    }
+
+    if (!system_config_is_userguide_finished()) {
+        floatair_info("userguide unfinished, ignore imu_tilt %d", msg->Header.simple_data);
+        return true;
     }
 
     if (!system_config_get_head_gesture_config(&config) ||

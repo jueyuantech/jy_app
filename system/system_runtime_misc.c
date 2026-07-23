@@ -50,6 +50,7 @@ static bool system_runtime_misc_system_control_allowed(const msg_pack_t* msg,
         "sendTouchEvent",
         "sendHeartbeat",
         "sendKeepAlive",
+        "setProgressVisible",
         "setUploadProgressVisible",
     };
 
@@ -88,11 +89,12 @@ static bool system_runtime_misc_system_ind_allowed(const msg_pack_t* msg) {
 /**
  * @brief 判断 LCD 灭屏时是否允许处理指定 host 消息。
  * @param[in] msg 已解析的 host 消息头。
- * @return `true` 表示允许继续处理，`false` 表示应直接返回 `ErrNotReady`。
+ * @return `true` 表示允许继续处理，`false` 表示应直接返回 `ErrScreenOff`。
  */
 bool system_host_message_allowed_when_lcd_off(const msg_pack_t* msg) {
     static const char* const system_control_cmds[] = {
         "getView",
+        "setView",
         "sendHeartbeat",
         "sendKeepAlive",
         "sendHandshake",
@@ -110,6 +112,7 @@ bool system_host_message_allowed_when_lcd_off(const msg_pack_t* msg) {
     if (strcmp(msg->biz, "SystemStatus") == 0 ||
         strcmp(msg->biz, "DeviceInfo") == 0 ||
         strcmp(msg->biz, "Notification") == 0 ||
+        strcmp(msg->biz, "Toast") == 0 ||
         strcmp(msg->biz, "File") == 0 ||
         strcmp(msg->biz, "SystemInd") == 0) {
         return true;
@@ -121,7 +124,8 @@ bool system_host_message_allowed_when_lcd_off(const msg_pack_t* msg) {
             sizeof(system_control_cmds) / sizeof(system_control_cmds[0]));
     }
     if (strcmp(msg->biz, "SystemConfig") == 0) {
-        return strncmp(msg->cmd, "get", 3) == 0;
+        return strncmp(msg->cmd, "get", 3) == 0 ||
+               strcmp(msg->cmd, "setTimeConfig") == 0;
     }
 
     return false;

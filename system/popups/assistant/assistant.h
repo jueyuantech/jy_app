@@ -27,6 +27,12 @@ bool assistant_close(bool report_close);
  * @return `true` 表示正在显示，`false` 表示未显示。
  */
 bool assistant_is_open(void);
+
+/**
+ * @brief 获取 assistant 关闭事件 ID。
+ * @return 返回 LVGL 自定义事件 ID。
+ */
+uint32_t assistant_get_close_event(void);
 /**
  * @brief 处理 assistant 弹窗输入事件。
  * @param[in] code LVGL 事件码。

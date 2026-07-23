@@ -152,6 +152,11 @@ bool system_timer_handle_trigger(uint32_t timer_id) {
             system_timer_sleep_deinit();
             return true;
         }
+        if (!system_config_is_userguide_finished()) {
+            floatair_info("userguide unfinished, ignore sleep timer trigger");
+            system_timer_sleep_reset();
+            return true;
+        }
         floatair_lcd_set_state(LCD_OFF);
         system_report_sys_state(0);
         return true;

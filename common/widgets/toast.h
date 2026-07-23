@@ -25,14 +25,24 @@ typedef struct toast_t toast_t;
 #define TOAST_ID_DEFAULT 0U ///< 默认 Toast 业务标识。
 
 /**
+ * @brief Toast 显示位置。
+ */
+typedef enum {
+    TOAST_POSITION_TOP = 1,    ///< 顶部显示。
+    TOAST_POSITION_CENTER = 2, ///< 居中显示。
+    TOAST_POSITION_BOTTOM = 3, ///< 底部显示。
+} toast_position_t;
+
+/**
  * @brief Toast 组件配置项。
  */
 typedef struct {
-    container_cfg_t box;      ///< Toast 外层容器配置；Toast 固定居中显示，`box.x/y` 不参与布局。
+    container_cfg_t box;      ///< Toast 外层容器配置；位置由 `position` 控制，`box.x/y` 不参与布局。
     label_cfg_t label;        ///< Toast 文本默认配置。
     uint32_t id;              ///< Toast 业务标识；用于按类型关闭当前活动 Toast。
     uint32_t duration_ms;     ///< 自动消失时间，单位毫秒；传 0 表示不自动关闭。
     uint8_t level;            ///< Toast 显示等级；数值越小优先级越高，低等级不会覆盖高等级。
+    toast_position_t position; ///< Toast 显示位置。
 } toast_cfg_t;
 
 /**

@@ -13,6 +13,7 @@
 #include "app_lcd.h"
 #include "common/app_framework/app_manager.h"
 #include "common/app_framework/app_router.h"
+#include "guide_runtime.h"
 #include "home/home.h"
 #include "system/popups/notify/notify.h"
 #include "common/widgets/toast.h"
@@ -22,7 +23,27 @@
 #include "system/system_runtime_ui.h"
 
 #include <inttypes.h>
+#include <stdint.h>
 #include <string.h>
+
+#define SYSTEM_ALS_RAW_MAX_VALUE 2142208U ///< ALS 原始光感最大值，对应最亮环境。
+
+/**
+ * @brief ALS 原始值到屏幕亮度的分档映射项。
+ */
+typedef struct {
+    uint32_t raw_max;     ///< 当前档位包含的最大 ALS 原始值。
+    uint8_t brightness;   ///< 当前档位对应的 LCD 亮度值，范围 0-255。
+} system_als_brightness_level_t;
+
+static const system_als_brightness_level_t s_als_brightness_levels[] = {
+    {178517U, 32U},
+    {357034U, 64U},
+    {714069U, 112U},
+    {1071104U, 160U},
+    {1606656U, 208U},
+    {SYSTEM_ALS_RAW_MAX_VALUE, 255U},
+};
 
 static uint8_t s_battery_percent = 0;   ///< 当前缓存电量百分比
 static uint8_t s_charge_state_sys = 0;  ///< 当前缓存充电状态
@@ -32,6 +53,20 @@ static bool s_device_state_btconn_synced = false; ///< 启动后是否已用设�
 static bool s_call_seen_ringing = false;       ///< 当前通话流程是否出现过振铃态
 static bool s_call_seen_connected = false;     ///< 当前通话流程是否出现过接通态
 static char s_call_last_number[64] = {0};      ///< 当前通话流程缓存的来电号码
+static bool s_auto_brightness_valid = false;   ///< 是否已有 ALS 自动亮度目标值。
+static uint8_t s_auto_brightness = 0;          ///< 最近一次 ALS 分档得到的自动亮度目标值。
+
+/**
+ * @brief 判断当前是否存在中断后的新手教学进度。
+ * @return `true` 表示存在 step1-step5 进度，`false` 表示未开始或已完成。
+ */
+static bool system_runtime_state_has_userguide_progress(void) {
+    const char* progress = system_config_get_userguide();
+
+    return progress != NULL &&
+           strcmp(progress, SYSTEM_USERGUIDE_PROGRESS_FALSE) != 0 &&
+           strcmp(progress, SYSTEM_USERGUIDE_PROGRESS_TRUE) != 0;
+}
 
 /**
  * @brief 蓝牙通话建立阶段状态定义。
@@ -125,6 +160,28 @@ static void system_runtime_state_set_voltage(uint16_t voltage_mv) {
 }
 
 /**
+ * @brief 将 ALS 原始光感值映射为 LCD 自动亮度档位。
+ * @param[in] raw_value ALS 原始光感值。
+ * @return 返回 LCD 亮度值，范围 0-255。
+ */
+static uint8_t system_runtime_state_als_raw_to_brightness(uint32_t raw_value) {
+    uint32_t clamped = raw_value;
+
+    if (clamped > SYSTEM_ALS_RAW_MAX_VALUE) {
+        clamped = SYSTEM_ALS_RAW_MAX_VALUE;
+    }
+
+    for (size_t i = 0; i < sizeof(s_als_brightness_levels) / sizeof(s_als_brightness_levels[0]); ++i) {
+        if (clamped <= s_als_brightness_levels[i].raw_max) {
+            return s_als_brightness_levels[i].brightness;
+        }
+    }
+
+    return s_als_brightness_levels[
+        sizeof(s_als_brightness_levels) / sizeof(s_als_brightness_levels[0]) - 1U].brightness;
+}
+
+/**
  * @brief 应用一次电池状态快照到运行时缓存，并按需同步 UI/上报。
  * @param[in] bat_status 电池状态快照。
  * @param[in] report_changed `true` 表示状态变化时同步上报，`false` 表示仅刷新本地缓存。
@@ -177,6 +234,7 @@ static void system_runtime_state_refresh_btconn_state(bool connected) {
                   current_app,
                   (int)!connected);
     if (changed && !connected) {
+        app_router_clear_app_config();
         system_runtime_state_reset_call_flow();
         system_notification_clear();
         toast_dismiss_active();
@@ -223,6 +281,12 @@ static void system_runtime_state_refresh_btconn_state(bool connected) {
         }
     }
 
+    if (connected && system_runtime_state_has_userguide_progress()) {
+        floatair_info("bt reconnected during userguide, route to guide resume prompt");
+        (void)app_router_call_home();
+        return;
+    }
+
     if (strcmp(current_app, APP_NAME_HOME) == 0) {
         floatair_info("bt connection state changed: reload home view");
         home_view_reload();
@@ -264,6 +328,72 @@ bool system_update_device_state(JYT_ELF_MQ_MSG* msg) {
 }
 
 /**
+ * @brief 获取 LCD 亮屏恢复时应使用的亮度。
+ * @return 自动亮度开启且已有 ALS 档位时返回自动亮度，否则返回保存的手动亮度。
+ */
+uint8_t system_runtime_state_get_lcd_resume_brightness(void) {
+    if (system_config_get_bl_auto() && s_auto_brightness_valid) {
+        return s_auto_brightness;
+    }
+
+    return system_config_get_brightness();
+}
+
+/**
+ * @brief 将最近一次缓存的 ALS 自动亮度立即应用到当前亮屏。
+ * @return `true` 表示无需更新或更新成功，`false` 表示亮度上报失败。
+ */
+bool system_runtime_state_apply_auto_brightness(void) {
+    if (!system_config_get_bl_auto() || !s_auto_brightness_valid) {
+        return true;
+    }
+    if (floatair_lcd_is_off()) {
+        floatair_info(
+            "als brightness deferred while lcd off: %u", (unsigned)s_auto_brightness);
+        return true;
+    }
+    if ((uint8_t)floatair_lcd_get_brightness() == s_auto_brightness) {
+        return true;
+    }
+
+    floatair_lcd_set_brightness(s_auto_brightness);
+    return system_report_brightness(s_auto_brightness);
+}
+
+/**
+ * @brief 处理 ALS 原始光感数据并在自动亮度开启时刷新屏幕亮度。
+ * @param[in] msg ALS 原始数据消息，payload 为 uint32_t 原始光感值。
+ * @return `true` 表示处理成功，`false` 表示消息格式错误。
+ */
+bool system_update_als_raw_data(JYT_ELF_MQ_MSG* msg) {
+    uint32_t raw_value = 0;
+    uint8_t brightness = 0;
+
+    if (msg == NULL) {
+        floatair_err("als raw msg is NULL");
+        return false;
+    }
+    if (msg->payload_len < sizeof(raw_value)) {
+        floatair_err("invalid als raw payload_len: %d", msg->payload_len);
+        return false;
+    }
+
+    memcpy(&raw_value, msg->payload, sizeof(raw_value));
+    brightness = system_runtime_state_als_raw_to_brightness(raw_value);
+    floatair_info("als raw update: raw=%" PRIu32 " brightness=%u auto=%d",
+                  raw_value,
+                  (unsigned)brightness,
+                  (int)system_config_get_bl_auto());
+
+    s_auto_brightness = brightness;
+    s_auto_brightness_valid = true;
+    if (!system_config_get_bl_auto()) {
+        return true;
+    }
+    return system_runtime_state_apply_auto_brightness();
+}
+
+/**
  * @brief 处理 KWS 命中事件，并在蓝牙已连接时唤醒屏幕和上报关键词命中。
  * @param[in] msg KWS 事件消息。
  * @return `true` 表示处理成功，`false` 表示处理失败。
@@ -280,6 +410,18 @@ bool system_update_kws_state(JYT_ELF_MQ_MSG* msg) {
     floatair_dbg("kws_hit: %" PRIu32, kws_hit);
     if (!system_config_get_keyword_spotting_enabled()) {
         floatair_info("keyword spotting disabled, ignore kws hit=%" PRIu32, kws_hit);
+        return true;
+    }
+    uint32_t configured_kws_hit = system_config_get_kws_hit_value();
+    if (kws_hit != configured_kws_hit) {
+        floatair_info("ignore unmatched kws hit=%" PRIu32 " configured=%" PRIu32,
+                      kws_hit,
+                      configured_kws_hit);
+        return true;
+    }
+    if (!system_config_is_userguide_finished() &&
+        !guide_runtime_is_home_step5_wait_assistant()) {
+        floatair_info("userguide unfinished before step5, ignore kws hit=%" PRIu32, kws_hit);
         return true;
     }
     floatair_info("kws state update: hit=%" PRIu32 " lcd_state=%d current_app=%s",

@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common/app_framework/app_manager.h"
+#include "common/app_framework/app_router.h"
 #include "common/widgets/toast.h"
 #include "common/widgets/status_bar.h"
 #include "system/system.h"
@@ -73,6 +74,161 @@ static inline void list_delete(list_node* item) {
     for ((node) = (list)->next, (tmp) = (node)->next; (node) != (list); (node) = (tmp), (tmp) = (node)->next)
 
 static list_node list = LIST_INITIAL_CLEARED_VALUE;
+
+/**
+ * @brief 判断字符串是否命中给定名单。
+ * @param[in] value 待匹配字符串。
+ * @param[in] list_items 字符串名单。
+ * @param[in] count 名单长度。
+ * @return `true` 表示命中，`false` 表示未命中。
+ */
+static bool app_msg_string_in_list(const char* value, const char* const* list_items, size_t count) {
+    if (value == NULL || list_items == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(value, list_items[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief 判断新手引导是否尚未完成。
+ * @return `true` 表示欢迎页或教学步骤尚未完成，`false` 表示已完成。
+ */
+static bool app_msg_guide_is_active(void) {
+    return !system_config_is_userguide_finished();
+}
+
+/**
+ * @brief 判断 SystemControl 命令是否会影响页面或当前业务展示。
+ * @param[in] msg 已解析的 host 消息头。
+ * @return `true` 表示应受新手引导步骤限制，`false` 表示可按普通系统消息处理。
+ */
+static bool app_msg_guide_system_control_is_page_related(const msg_pack_t* msg) {
+    static const char* const page_cmds[] = {
+        "setView",
+        "openAssistant",
+        "updateAssistantSttInfo",
+        "closeAssistant",
+        "setProgressVisible",
+        "setUploadProgressVisible",
+    };
+
+    if (msg == NULL || msg->id != APP_MSG_ID_SYSTEM) {
+        return false;
+    }
+    if (strcmp(msg->biz, "SystemControl") != 0) {
+        return false;
+    }
+
+    return app_msg_string_in_list(msg->cmd, page_cmds, sizeof(page_cmds) / sizeof(page_cmds[0]));
+}
+
+/**
+ * @brief 判断 host 消息是否为第 5 步语音唤醒链路允许的 assistant 命令。
+ * @param[in] msg 已解析的 host 消息头。
+ * @return `true` 表示允许继续处理，`false` 表示不是第 5 步允许消息。
+ */
+static bool app_msg_guide_is_step5_assistant_message(const msg_pack_t* msg) {
+    static const char* const assistant_cmds[] = {
+        "openAssistant",
+        "updateAssistantSttInfo",
+        "closeAssistant",
+    };
+    const char* progress = system_config_get_userguide();
+
+    if (progress == NULL || strcmp(progress, SYSTEM_USERGUIDE_PROGRESS_STEP5) != 0) {
+        return false;
+    }
+    if (msg == NULL || msg->id != APP_MSG_ID_SYSTEM) {
+        return false;
+    }
+    if (strcmp(msg->biz, "SystemControl") != 0) {
+        return false;
+    }
+
+    return app_msg_string_in_list(msg->cmd, assistant_cmds, sizeof(assistant_cmds) / sizeof(assistant_cmds[0]));
+}
+
+/**
+ * @brief 判断 host 消息是否为新手引导开关控制命令。
+ * @param[in] msg 已解析的 host 消息头。
+ * @return `true` 表示为新手引导开关命令，`false` 表示不是。
+ */
+static bool app_msg_guide_is_guide_control_message(const msg_pack_t* msg) {
+    static const char* const guide_cmds[] = {
+        "openGuide",
+        "closeGuide",
+    };
+
+    if (msg == NULL || msg->id != APP_MSG_ID_SYSTEM) {
+        return false;
+    }
+    if (strcmp(msg->biz, "SystemControl") != 0) {
+        return false;
+    }
+
+    return app_msg_string_in_list(msg->cmd, guide_cmds, sizeof(guide_cmds) / sizeof(guide_cmds[0]));
+}
+
+/**
+ * @brief 判断当前页面是否为非 Guide 的动态首页。
+ * @return `true` 表示当前页面就是动态首页且不属于 Guide，`false` 表示仍需按 Guide 规则限制。
+ */
+static bool app_msg_guide_is_non_guide_home_view(void) {
+    const char* current_app = app_router_get_app();
+    const char* home_viewname = app_router_get_home_viewname();
+
+    if (current_app == NULL || home_viewname == NULL) {
+        return false;
+    }
+    if (strcmp(home_viewname, APP_NAME_GUIDE) == 0) {
+        return false;
+    }
+
+    return strcmp(current_app, home_viewname) == 0;
+}
+
+/**
+ * @brief 判断新手引导期间是否允许处理指定 host 消息。
+ * @param[in] msg 已解析的 host 消息头。
+ * @return `true` 表示允许继续处理，`false` 表示应返回新手引导步骤不匹配错误。
+ */
+static bool app_msg_guide_host_message_allowed(const msg_pack_t* msg) {
+    if (!app_msg_guide_is_active()) {
+        return true;
+    }
+    if (app_msg_guide_is_non_guide_home_view()) {
+        return true;
+    }
+    if (msg == NULL) {
+        return false;
+    }
+    if (msg->type == MSG_TYPE_ACK || msg->type == MSG_TYPE_NAK) {
+        return true;
+    }
+    if (app_msg_guide_is_step5_assistant_message(msg)) {
+        return true;
+    }
+    if (app_msg_guide_is_guide_control_message(msg)) {
+        return true;
+    }
+    if (msg->id == APP_MSG_ID_SYSTEM) {
+        if (strcmp(msg->biz, "Notification") == 0) {
+            return false;
+        }
+        if (app_msg_guide_system_control_is_page_related(msg)) {
+            return false;
+        }
+        return true;
+    }
+
+    return false;
+}
 
 /**
  * @brief Registry entry wrapping app_message_t with list node
@@ -301,7 +457,7 @@ bool app_mpack_msg_handle(char* msg, size_t msg_size) {
                       mpackmsg.id,
                       mpackmsg.biz,
                       mpackmsg.cmd);
-        ret = app_mpack_send_ack(&mpackmsg, ErrNotReady);
+        ret = app_mpack_send_ack(&mpackmsg, ErrScreenOff);
         goto out;
     }
     {
@@ -330,15 +486,20 @@ bool app_mpack_msg_handle(char* msg, size_t msg_size) {
         ret = app_mpack_send_ack(&mpackmsg, ErrNotReady);
         goto out;
     }
+    if (!app_msg_guide_host_message_allowed(&mpackmsg)) {
+        floatair_warn("block host mpack while guide active, progress=%s id=%" PRIu32 " biz=%s cmd=%s",
+                      system_config_get_userguide(),
+                      mpackmsg.id,
+                      mpackmsg.biz,
+                      mpackmsg.cmd);
+        ret = app_mpack_send_ack(&mpackmsg, ErrGuideStepMismatch);
+        goto out;
+    }
 
     data_node = mpack_node_map_cstr_optional(payload_node, "data");
     if (mpack_node_is_missing(data_node) || mpack_node_is_nil(data_node)) {
         floatair_dbg("----, data is missing or nil, let it go");
         data_node = mpack_tree_missing_node(&tree);
-    } else if (mpack_node_type(data_node) != mpack_type_map) {
-        floatair_err("----, data type err ");
-        ret = app_mpack_send_ack(&mpackmsg, ErrDataErr);
-        goto out;
     }
 
     app_message_t* msg_item = app_msg_query(mpackmsg.id);
@@ -413,6 +574,7 @@ static const char* system_event_type_to_str(uint16_t event_type) {
         EVT_CASE(SET_IED_REMOVED)
         EVT_CASE(SET_KWS_HIT)
         EVT_CASE(SET_REPORT_DEVICE_STATE)
+        EVT_CASE(SET_ALS_RAW_DATA)
         EVT_CASE(SET_JYT_SIBLING_SYNC)
         EVT_CASE(SET_BT_CALL_SETUP_EVENT)
         EVT_CASE(SET_BT_AVRCP_POSITION_CHANGED)
@@ -543,6 +705,10 @@ static void ancs_copy_str(char* out, size_t out_cap, const uint8_t* s, size_t le
 static bool system_handle_ancs_event(const JYT_ELF_MQ_MSG* msg) {
     if (!msg || msg->payload_len < 2) {
         return false;
+    }
+    if (!system_config_is_userguide_finished()) {
+        floatair_info("userguide unfinished, ignore ancs event");
+        return true;
     }
 
     const uint8_t* p = msg->payload;
@@ -785,6 +951,11 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
             ret = system_update_device_state(msg);
             break;
         }
+        case SET_ALS_RAW_DATA:
+        {
+            ret = system_update_als_raw_data(msg);
+            break;
+        }
         case SET_JYT_SIBLING_SYNC:
         {
             break;
@@ -945,10 +1116,10 @@ static void dump_scalar_node(mpack_node_t node, const char* pad, bool is_key) {
             floatair_dbg("%sbool: %s", pad, mpack_node_bool(node) ? "true" : "false");
             break;
         case mpack_type_int:
-            floatair_dbg("%sint: %" PRId64, pad, (int64_t) mpack_node_int(node));
+            floatair_dbg("%sint: %" PRId64, pad, (int64_t)mpack_node_i64(node));
             break;
         case mpack_type_uint:
-            floatair_dbg("%suint: %" PRIu64, pad, (uint64_t) mpack_node_uint(node));
+            floatair_dbg("%suint: %" PRIu64, pad, (uint64_t)mpack_node_u64(node));
             break;
         case mpack_type_float:
             floatair_dbg("%sfloat: %f", pad, (double) mpack_node_float(node));
@@ -959,6 +1130,10 @@ static void dump_scalar_node(mpack_node_t node, const char* pad, bool is_key) {
         case mpack_type_str: {
             size_t len = mpack_node_strlen(node);
             const char* str = mpack_node_str(node);
+            if (str == NULL) {
+                floatair_dbg("%sstr (length: %zu): <null>", pad, len);
+                break;
+            }
             if (is_key) {
                 floatair_dbg("%sstr: %.*s", pad, (int) len, str);
                 break;
@@ -969,10 +1144,51 @@ static void dump_scalar_node(mpack_node_t node, const char* pad, bool is_key) {
                 floatair_dbg("%s  ", pad);
                 break;
             }
-            for (size_t offset = 0; offset < len; offset += chunk_len) {
+            for (size_t offset = 0; offset < len;) {
+                /* The logging backend treats line breaks and NUL as message
+                 * terminators. Dump them explicitly so bytes after them are
+                 * not lost from the log. */
+                if (str[offset] == '\r' || str[offset] == '\n' || str[offset] == '\0') {
+                    if (str[offset] == '\r' && offset + 1 < len && str[offset + 1] == '\n') {
+                        floatair_dbg("%s  [%zu..%zu): <CRLF>", pad, offset, offset + 2);
+                        offset += 2;
+                    } else {
+                        const char* escaped = (str[offset] == '\r') ? "<CR>" :
+                                              (str[offset] == '\n') ? "<LF>" : "<NUL>";
+                        floatair_dbg("%s  [%zu..%zu): %s", pad, offset, offset + 1, escaped);
+                        offset += 1;
+                    }
+                    continue;
+                }
+
                 size_t remain = len - offset;
                 size_t n      = (remain > chunk_len) ? chunk_len : remain;
+
+                /* Keep the 64-byte limit, but never start the next chunk in
+                 * the middle of a UTF-8 code point. */
+                if (n < remain) {
+                    while (n > 0 &&
+                           (((unsigned char) str[offset + n] & 0xC0U) == 0x80U)) {
+                        --n;
+                    }
+                    /* Malformed input fallback: always make progress. */
+                    if (n == 0) {
+                        n = (remain > chunk_len) ? chunk_len : remain;
+                    }
+                }
+
+                /* Do not pass an embedded terminator to one log call. It is
+                 * emitted explicitly by the next loop iteration. */
+                for (size_t i = 0; i < n; ++i) {
+                    if (str[offset + i] == '\r' || str[offset + i] == '\n' ||
+                        str[offset + i] == '\0') {
+                        n = i;
+                        break;
+                    }
+                }
+
                 floatair_dbg("%s  [%zu..%zu): %.*s", pad, offset, offset + n, (int) n, str + offset);
+                offset += n;
             }
             break;
         }
@@ -1471,6 +1687,9 @@ static msg_pack_nck_t msg_pack_nck_err[] = {
     {ErrFileNotExistFailed, "File Not Exist Failed Error"},
     {ErrBadFilePath, "Bad File Path Error"},
     {ErrBtErr, "Bluetooth Error"},
+    {ErrBadCRC, "Bad CRC Error"},
+    {ErrScreenOff, "Screen Off Error"},
+    {ErrGuideStepMismatch, "Guide Step Mismatch Error"},
 };
 
 const char* app_msg_get_err_msg(uint32_t err_code) {

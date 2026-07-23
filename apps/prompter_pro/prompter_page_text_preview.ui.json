@@ -3,47 +3,89 @@
   "root": {
     "type": "container",
     "id": "preview_box",
-    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
+    "geometry": {
+      "x": 0,
+      "y": 0,
+      "w": "100%",
+      "h": "100%"
+    },
     "opa": "cover",
     "visible": false,
-    "scroll": { "enabled": false },
+    "scroll": {
+      "enabled": false
+    },
     "children": [
       {
         "type": "container",
         "id": "header_box",
-        "geometry": { "x": 0, "y": 0, "w": "100%", "h": 72 },
+        "geometry": {
+          "x": 100,
+          "y": 0,
+          "w": 280,
+          "h": 50
+        },
         "opa": "transparent",
-        "scroll": { "enabled": false },
+        "scroll": {
+          "enabled": false
+        },
         "children": [
           {
             "type": "label",
             "id": "timer_label",
-            "geometry": { "x": 150, "y": 16, "w": 160, "h": "content" },
+            "geometry": {
+              "x": 0,
+              "y": 9,
+              "w": 160,
+              "h": "content"
+            },
             "text": "00:00:00",
             "align": "center",
-            "overflow": "clip"
+            "overflow": "clip",
+            "font": {
+              "weight": 20
+            }
           },
           {
             "type": "label",
             "id": "progress_label",
-            "geometry": { "x": 330, "y": 16, "w": 100, "h": "content" },
+            "geometry": {
+              "x": 180,
+              "y": 9,
+              "w": 100,
+              "h": "content"
+            },
             "text": "0%",
             "align": "center",
-            "overflow": "clip"
+            "overflow": "clip",
+            "font": {
+              "weight": 20
+            }
           }
         ]
       },
       {
         "type": "container",
         "id": "text_box",
-        "geometry": { "x": 24, "y": 72, "w": 492, "h": 264 },
+        "geometry": {
+          "x": 19,
+          "y": 10,
+          "w": 492,
+          "h": 360
+        },
         "opa": "transparent",
-        "scroll": { "enabled": false },
+        "scroll": {
+          "enabled": false
+        },
         "children": [
           {
             "type": "paged_text",
             "id": "text_view",
-            "geometry": { "x": 0, "y": 24, "w": 492, "h": 216 },
+            "geometry": {
+              "x": 0,
+              "y": 0,
+              "w": 492,
+              "h": 360
+            },
             "label": {
               "text": "",
               "align": "left",
@@ -51,7 +93,7 @@
             },
             "highlight": {
               "mask_opa": "60%",
-              "border_width": 2,
+              "border_width": 0,
               "radius": 6,
               "outset": 10
             },
@@ -63,19 +105,32 @@
       {
         "type": "container",
         "id": "hint_box",
-        "geometry": { "x": 0, "y": 336, "w": "100%", "h": 54 },
+        "geometry": {
+          "x": 0,
+          "y": 0,
+          "w": "100%",
+          "h": 54
+        },
         "opa": "transparent",
-        "scroll": { "enabled": false },
+        "scroll": {
+          "enabled": false
+        },
         "children": [
           {
             "type": "label",
             "id": "hint_label",
-            "geometry": { "x": 0, "y": 9, "w": "100%", "h": "content" },
+            "geometry": {
+              "x": 0,
+              "y": 9,
+              "w": "100%",
+              "h": "content"
+            },
             "text_key": "PROMPTER_HINT",
             "align": "center",
             "overflow": "clip"
           }
-        ]
+        ],
+        "visible": false
       }
     ]
   }

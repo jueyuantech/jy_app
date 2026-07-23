@@ -6,10 +6,14 @@
 
 #include "floatair_lcd.h"
 #include "common/app_framework/app_layers.h"
+#include "common/widgets/status_bar.h"
 #include "system/system_timer.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+#define TOAST_POSITION_OFFSET 24 ///< Toast 距顶部的默认偏移。
+#define TOAST_BOTTOM_POSITION_OFFSET (STATUS_BAR_HEIGHT + 4) ///< 底部 Toast 避让状态栏的偏移。
 
 /**
  * @brief Toast 组件内部数据结构。
@@ -102,8 +106,38 @@ toast_cfg_t toast_default_cfg(void) {
     cfg.id = TOAST_ID_DEFAULT;
     cfg.duration_ms = 3000;
     cfg.level = 1;
+    cfg.position = TOAST_POSITION_CENTER;
 
     return cfg;
+}
+
+/**
+ * @brief 将 Toast 位置转换为 LVGL 对齐方式。
+ *
+ * @param position Toast 位置。
+ * @param[out] y_offset 对齐后的 Y 轴偏移。
+ * @return 返回 LVGL 对齐方式。
+ */
+static lv_align_t toast_position_to_align(toast_position_t position, lv_coord_t* y_offset) {
+    if (y_offset != NULL) {
+        *y_offset = 0;
+    }
+
+    switch (position) {
+        case TOAST_POSITION_TOP:
+            if (y_offset != NULL) {
+                *y_offset = TOAST_POSITION_OFFSET;
+            }
+            return LV_ALIGN_TOP_MID;
+        case TOAST_POSITION_BOTTOM:
+            if (y_offset != NULL) {
+                *y_offset = -TOAST_BOTTOM_POSITION_OFFSET;
+            }
+            return LV_ALIGN_BOTTOM_MID;
+        case TOAST_POSITION_CENTER:
+        default:
+            return LV_ALIGN_CENTER;
+    }
 }
 
 /**
@@ -115,6 +149,7 @@ toast_cfg_t toast_default_cfg(void) {
 static void toast_sync_layout(toast_t* toast, const char* text, const toast_cfg_t* cfg) {
     container_cfg_t box_cfg;
     label_cfg_t label_cfg;
+    lv_coord_t y_offset = 0;
 
     if (!toast_is_valid(toast) || !toast->label || !cfg || !text) {
         return;
@@ -134,7 +169,7 @@ static void toast_sync_layout(toast_t* toast, const char* text, const toast_cfg_
                         CONTAINER_ALIGN_CENTER);
 
     label_apply_cfg(toast->label, &label_cfg);
-    lv_obj_align(container_get_obj(toast->box), LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(container_get_obj(toast->box), toast_position_to_align(cfg->position, &y_offset), 0, y_offset);
 }
 
 /**

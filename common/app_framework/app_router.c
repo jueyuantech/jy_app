@@ -9,56 +9,33 @@
  */
 #include "common/app_framework/app_router.h"
 
-#include "app_build_config.h"
 #include "app_def.h"
 #include "app_lcd.h"
+#include "ai/ai.h"
 #include "common/app_framework/app_manager.h"
 #include "common/widgets/status_bar.h"
-#include "system/popups/notify/notify.h"
-#if APP_BUILD_AI
-#include "ai/ai.h"
-#endif
-#if APP_BUILD_GALLERY
 #include "gallery/gallery.h"
-#endif
-#if APP_BUILD_GUIDE
 #include "guide/guide.h"
-#endif
 #include "home/home.h"
-#if APP_BUILD_NAVIGATION
+#include "imagefusion/imagefusion.h"
+#include "langselection/langselection.h"
+#include "music/music.h"
 #include "navigation/navigation.h"
-#endif
-#if APP_BUILD_PROMPTER
-#include "prompter/prompter.h"
-#endif
+#include "prompter_pro/prompter.h"
+#include "reader/reader.h"
+#include "speech/speech.h"
+#include "system/popups/notify/notify.h"
 #include "system/system.h"
 #include "system/system_runtime_ui.h"
-#if APP_BUILD_TRANSLATE
-#include "translate/translate.h"
-#endif
-#if APP_BUILD_TRANSCRIBE
-#include "transcribe/transcribe.h"
-#endif
-#if APP_BUILD_MUSIC
-#include "music/music.h"
-#endif
-#if APP_BUILD_READER
-#include "reader/reader.h"
-#endif
-#if APP_BUILD_LANGSELECTION
-#include "langselection/langselection.h"
-#endif
-#if APP_BUILD_IMAGEFUSION
-#include "imagefusion/imagefusion.h"
-#endif
 
+#include <inttypes.h>
 #include <string.h>
 
 static char g_router_curapp[MSG_STR_MAX_LEN] = {0};                  ///< 当前显示的 app 名称
 static app_router_entry_t g_router_entry_mode = APP_ROUTER_ENTRY_LOCAL;  ///< 当前 app 进入方式
+static app_router_app_platform_t g_router_default_app_platform = APP_ROUTER_APP_PLATFORM_NONE; ///< 产品配置默认上位机平台
+static app_router_app_platform_t g_router_app_platform = APP_ROUTER_APP_PLATFORM_NONE; ///< 本次连接的上位机平台
 static bool g_router_initialized = false;                            ///< 路由初始化状态
-static bool g_router_quicklaunch_consumed = false;                   ///< quicklaunch 是否已在本次生命周期触发
-static char g_router_last_quicklaunch[MSG_STR_MAX_LEN] = {0};        ///< 用于检测 quicklaunch 变更并重置触发状态
 
 /**
  * @brief 清理底部状态栏上遗留的自定义组件。
@@ -103,25 +80,48 @@ static bool app_router_should_block_by_bt_disconnect(void) {
  */
 static const char* app_router_resolve_home(void) {
     const char* home = APP_NAME_HOME;
-    const char* quicklaunch = system_config_get_quicklaunch();
 
-    if (strcmp(quicklaunch, g_router_last_quicklaunch) != 0) {
-        snprintf(g_router_last_quicklaunch, sizeof(g_router_last_quicklaunch), "%s", quicklaunch);
-        g_router_quicklaunch_consumed = false;
-    }
     if (!system_config_get_langselection_finish()) {
         home = APP_NAME_LANGSELECTION;
-    } else if (system_config_get_userguide() && !system_config_get_userguide_finish()) {
+    } else if (g_router_app_platform == APP_ROUTER_APP_PLATFORM_NONE) {
+        home = APP_NAME_HOME;
+    } else if (g_router_app_platform == APP_ROUTER_APP_PLATFORM_WATCH) {
+        home = APP_NAME_TRANSCRIBE;
+    } else if (!system_config_is_userguide_finished()) {
         home = APP_NAME_GUIDE;
     }
-    if (strcmp(home, APP_NAME_HOME) == 0 &&
-        !g_router_quicklaunch_consumed &&
-        home_is_valid_quicklaunch_app(quicklaunch)) {
-        g_router_quicklaunch_consumed = true;
-        home = quicklaunch;
-    }
-
     return home;
+}
+
+/**
+ * @brief 将产品配置中的平台名称转换为路由平台枚举。
+ * @param[in] platform 产品配置中的平台名称。
+ * @param[out] out_platform 转换后的平台枚举。
+ * @return `true` 表示转换成功，`false` 表示平台名称非法。
+ */
+static bool app_router_parse_platform_name(const char* platform, app_router_app_platform_t* out_platform) {
+    if (out_platform == NULL) {
+        return false;
+    }
+    if (platform == NULL || platform[0] == '\0') {
+        *out_platform = APP_ROUTER_APP_PLATFORM_NONE;
+        return true;
+    }
+    if (strcmp(platform, "android") == 0) {
+        *out_platform = APP_ROUTER_APP_PLATFORM_ANDROID;
+    } else if (strcmp(platform, "ios") == 0) {
+        *out_platform = APP_ROUTER_APP_PLATFORM_IOS;
+    } else if (strcmp(platform, "macos") == 0) {
+        *out_platform = APP_ROUTER_APP_PLATFORM_MACOS;
+    } else if (strcmp(platform, "windows") == 0) {
+        *out_platform = APP_ROUTER_APP_PLATFORM_WINDOWS;
+    } else if (strcmp(platform, "watch") == 0) {
+        *out_platform = APP_ROUTER_APP_PLATFORM_WATCH;
+    } else {
+        floatair_err("router app platform name invalid: %s", platform);
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -133,72 +133,46 @@ static bool app_router_register_apps(void) {
         floatair_err("home app register failed");
         return false;
     }
-#if APP_BUILD_PROMPTER
     if (!prompter_app_register()) {
         floatair_err("prompter app register failed");
         return false;
     }
-#endif
-#if APP_BUILD_TRANSLATE
-    if (!translate_app_register()) {
-        floatair_err("translate app register failed");
+    if (!speech_app_register()) {
+        floatair_err("speech app register failed");
         return false;
     }
-#endif
-#if APP_BUILD_GALLERY
     if (!gallery_app_register()) {
         floatair_err("gallery app register failed");
         return false;
     }
-#endif
-#if APP_BUILD_NAVIGATION
     if (!navigation_app_register()) {
         floatair_err("navigation app register failed");
         return false;
     }
-#endif
-#if APP_BUILD_GUIDE
     if (!guide_app_register()) {
         floatair_err("guide app register failed");
         return false;
     }
-#endif
-#if APP_BUILD_MUSIC
     if (!music_app_register()) {
         floatair_err("music app register failed");
         return false;
     }
-#endif
-#if APP_BUILD_READER
     if (!reader_app_register()) {
         floatair_err("reader app register failed");
         return false;
     }
-#endif
-#if APP_BUILD_LANGSELECTION
     if (!langselection_app_register()) {
         floatair_err("langselection app register failed");
         return false;
     }
-#endif
-#if APP_BUILD_AI
     if (!ai_app_register()) {
         floatair_err("ai app register failed");
         return false;
     }
-#endif
-#if APP_BUILD_TRANSCRIBE
-    if (!transcribe_app_register()) {
-        floatair_err("transcribe app register failed");
-        return false;
-    }
-#endif
-#if APP_BUILD_IMAGEFUSION
     if (!imagefusion_app_register()) {
         floatair_err("imagefusion app register failed");
         return false;
     }
-#endif
 
     return true;
 }
@@ -243,9 +217,8 @@ bool app_router_deinit(void) {
 void app_router_reset_state(void) {
     memset(g_router_curapp, 0, sizeof(g_router_curapp));
     g_router_entry_mode = APP_ROUTER_ENTRY_LOCAL;
-    g_router_quicklaunch_consumed = false;
-    g_router_last_quicklaunch[0] = '\0';
-    floatair_info("app router reset");
+    g_router_app_platform = g_router_default_app_platform;
+    floatair_info("app router reset, platform=%d", (int)g_router_app_platform);
 }
 
 bool app_router_call_home(void) {
@@ -257,6 +230,56 @@ bool app_router_call_home(void) {
     }
 
     return app_router_set_app(home, APP_ROUTER_ENTRY_LOCAL);
+}
+
+const char* app_router_get_home_viewname(void) {
+    return app_router_resolve_home();
+}
+
+bool app_router_apply_app_config(uint32_t app_platform) {
+    app_router_app_platform_t prev_app_platform = g_router_app_platform;
+
+    switch (app_platform) {
+        case APP_ROUTER_APP_PLATFORM_ANDROID:
+        case APP_ROUTER_APP_PLATFORM_IOS:
+        case APP_ROUTER_APP_PLATFORM_MACOS:
+        case APP_ROUTER_APP_PLATFORM_WINDOWS:
+        case APP_ROUTER_APP_PLATFORM_WATCH:
+            g_router_app_platform = (app_router_app_platform_t)app_platform;
+            break;
+        default:
+            floatair_err("router app platform invalid: %" PRIu32, app_platform);
+            return false;
+    }
+
+    floatair_info("router apply app config platform=%" PRIu32, app_platform);
+    if (!app_router_call_home()) {
+        g_router_app_platform = prev_app_platform;
+        system_ui_sync_shell_state();
+        return false;
+    }
+    return true;
+}
+
+bool app_router_set_default_app_platform(const char* platform) {
+    app_router_app_platform_t default_app_platform = APP_ROUTER_APP_PLATFORM_NONE;
+
+    if (!app_router_parse_platform_name(platform, &default_app_platform)) {
+        return false;
+    }
+    g_router_default_app_platform = default_app_platform;
+    g_router_app_platform = default_app_platform;
+    floatair_info("router default app platform=%d", (int)default_app_platform);
+    return true;
+}
+
+bool app_router_has_app_config(void) {
+    return g_router_app_platform != APP_ROUTER_APP_PLATFORM_NONE;
+}
+
+void app_router_clear_app_config(void) {
+    g_router_app_platform = g_router_default_app_platform;
+    floatair_info("router clear app config, platform=%d", (int)g_router_app_platform);
 }
 
 bool app_router_exit_current_app(void) {
@@ -285,6 +308,7 @@ bool app_router_set_app(const char* targetapp, app_router_entry_t mode) {
     notify_mode_t active_notify_mode = NOTIFY_MODE_MESSAGE;
     bool ret = false;
     bool had_current_app = false;
+    bool suppress_view_change_report = false;
     char previous_app[MSG_STR_MAX_LEN] = {0};
 
     floatair_assert(targetapp != NULL, "targetapp is NULL");
@@ -354,8 +378,12 @@ bool app_router_set_app(const char* targetapp, app_router_entry_t mode) {
     ret = app_manager_switch(targetapp);
     if (ret) {
         snprintf(g_router_curapp, sizeof(g_router_curapp), "%s", targetapp);
-        if (g_router_entry_mode == APP_ROUTER_ENTRY_LOCAL) {
+        suppress_view_change_report = !system_config_is_userguide_finished();
+        if (g_router_entry_mode == APP_ROUTER_ENTRY_LOCAL &&
+            !suppress_view_change_report) {
             system_report_view_change(targetapp);
+        } else if (suppress_view_change_report) {
+            floatair_info("router suppress guide view change report for app %s", targetapp);
         } else {
             floatair_info("router suppress view change report for remote app %s", targetapp);
         }

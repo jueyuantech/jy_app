@@ -5,6 +5,7 @@
 #include "assistant.h"
 
 #include "app_lcd.h"
+#include "common/app_framework/app_manager.h"
 #include "message.h"
 #include "system/stt_common.h"
 
@@ -61,12 +62,18 @@ bool assistant_update_stt_info_cmd(mpack_node_t node, msg_pack_t* msg) {
  * @return `true` 表示处理成功，`false` 表示处理失败。
  */
 bool assistant_close_cmd(mpack_node_t node, msg_pack_t* msg) {
+    lv_obj_t* page_root = NULL;
+
     (void)node;
     floatair_assert(msg != NULL, "msg is NULL");
 
     if (!assistant_close(false)) {
         floatair_err("assistant close failed");
         return app_mpack_send_ack(msg, ErrNotReady);
+    }
+    page_root = app_manager_current_content_root();
+    if (page_root != NULL) {
+        (void)lv_obj_send_event(page_root, assistant_get_close_event(), NULL);
     }
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }

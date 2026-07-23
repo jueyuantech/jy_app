@@ -73,6 +73,7 @@ typedef struct {
  * @brief 首页应用单元信息。
  */
 typedef struct {
+    uint32_t id;             ///< app 协议消息 ID。
     const char* name;       ///< app 名称
     const char* bigicon;    ///< 大图标资源
     const char* smallicon;  ///< 小图标资源

@@ -14,6 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(CONFIG_RPMSG_TTF_CLIENT)
+#include <malloc.h>
+#endif
 
 /* 导入 LVGL 头文件和自定义配置 */
 #include "floatair_dbg.h"
@@ -249,6 +252,15 @@ static void app_msg_recv(void) {
                               (unsigned)msg_type,
                               (unsigned)event_type,
                               (unsigned)payload_len);
+#if defined(CONFIG_RPMSG_TTF_CLIENT)
+                struct mallinfo info = mallinfo();
+                floatair_info("app msg heap total=%d used=%d free=%d largest=%d ordblks=%d",
+                              info.arena,
+                              info.uordblks,
+                              info.fordblks,
+                              info.mxordblk,
+                              info.ordblks);
+#endif
             }
         }
     }

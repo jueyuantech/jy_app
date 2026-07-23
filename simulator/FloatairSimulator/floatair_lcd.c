@@ -21,7 +21,7 @@ void floatair_lcd_set_state(lcd_state_t state) {
     floatair_info("set lcd state: %d", state);
     current_lcd_state = state;
     if (state == LCD_ON) {
-        floatair_lcd_set_brightness(system_config_get_brightness());
+        floatair_lcd_set_brightness(system_runtime_state_get_lcd_resume_brightness());
         system_ui_flush_pending_after_screen_on();
     } else {
         simulator_update_lcd_visual(current_lcd_brightness, state);

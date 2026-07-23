@@ -1,0 +1,34 @@
+{
+  "name": "speech_stt_row",
+  "root": {
+    "type": "container",
+    "id": "row",
+    "geometry": { "x": 0, "y": 0, "w": "100%", "h": "content" },
+    "layout": {
+      "type": "vbox",
+      "spacing": 0,
+      "main_align": "start",
+      "cross_align": "start"
+    },
+    "visible": false,
+    "scroll": { "enabled": false },
+    "children": [
+      {
+        "type": "label",
+        "id": "first_label",
+        "size": { "w": "100%", "h": "content" },
+        "text": "",
+        "align": "left",
+        "overflow": "wrap"
+      },
+      {
+        "type": "label",
+        "id": "second_label",
+        "size": { "w": "100%", "h": "content" },
+        "text": "",
+        "align": "left",
+        "overflow": "wrap"
+      }
+    ]
+  }
+}

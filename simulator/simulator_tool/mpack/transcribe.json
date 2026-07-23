@@ -32,6 +32,36 @@
     }
   },
   {
+    "name": "transcribe.setProgressVisible.custom.show",
+    "id": 0,
+    "biz": "SystemControl",
+    "cmd": "setProgressVisible",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "visible": 1,
+      "text": "转写中",
+      "opa": 80
+    }
+  },
+  {
+    "name": "transcribe.updateSttInfo.notice",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 100,
+      "area": 2,
+      "msgId": "transcribe_notice",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "System",
+      "transcribe": "点击开始转写",
+      "createdAt": 1776916799000
+    }
+  },
+  {
     "name": "transcribe.updateSttInfo",
     "id": 2,
     "biz": "transcribe",
@@ -140,6 +170,26 @@
     }
   },
   {
+    "name": "transcribe.setState.started",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setState",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "state": 1
+    }
+  },
+  {
+    "name": "transcribe.setState.stopped",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setState",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "state": 0
+    }
+  },
+  {
     "name": "transcribe.setTextMode",
     "id": 2,
     "biz": "transcribe",
@@ -187,6 +237,16 @@
     "type": "DATA_RELIABLE",
     "data": {
       "audioSourceIndicator": 1
+    }
+  },
+  {
+    "name": "transcribe.setAudioSourceIndicator.watch",
+    "id": 2,
+    "biz": "transcribe",
+    "cmd": "setAudioSourceIndicator",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "audioSourceIndicator": 2
     }
   },
   {

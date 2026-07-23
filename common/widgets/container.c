@@ -690,7 +690,7 @@ void container_scroll_to_top(container_t* container, lv_anim_enable_t anim_en) {
 /**
  * @brief 将容器内容直接滚动到底部。
  *
- * 调用前会先刷新容器布局。
+ * 调用前会先刷新容器布局并清除旧的滚动偏移，再按最新内容定位到底部。
  *
  * @param container 目标容器句柄。
  * @param anim_en 是否启用滚动动画。
@@ -706,7 +706,9 @@ void container_scroll_to_bottom(container_t* container, lv_anim_enable_t anim_en
     obj = container->base.obj;
     container_refresh_layout_up(container);
     lv_obj_update_layout(obj);
-    lv_obj_scroll_to_y(obj, lv_obj_get_scroll_top(obj) + lv_obj_get_scroll_bottom(obj), anim_en);
+    lv_obj_scroll_to_y(obj, 0, LV_ANIM_OFF);
+    lv_obj_update_layout(obj);
+    lv_obj_scroll_to_y(obj, lv_obj_get_scroll_bottom(obj), anim_en);
 }
 
 static void container_scroll_step(container_t* container,

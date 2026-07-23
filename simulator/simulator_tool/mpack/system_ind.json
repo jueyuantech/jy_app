@@ -22,5 +22,21 @@
     "cmd": "onKeywordSpotting",
     "type": "DATA_UNRELIABLE",
     "data": {}
+  },
+  {
+    "name": "SystemInd.onGuideOpen",
+    "id": 0,
+    "biz": "SystemInd",
+    "cmd": "onGuideOpen",
+    "type": "DATA_UNRELIABLE",
+    "data": {}
+  },
+  {
+    "name": "SystemInd.onGuideClose",
+    "id": 0,
+    "biz": "SystemInd",
+    "cmd": "onGuideClose",
+    "type": "DATA_UNRELIABLE",
+    "data": {}
   }
 ]

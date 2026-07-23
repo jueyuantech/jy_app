@@ -22,6 +22,22 @@ extern "C" {
  */
 bool system_update_device_state(JYT_ELF_MQ_MSG* msg);
 /**
+ * @brief 处理 ALS 原始光感数据并在自动亮度开启时刷新屏幕亮度。
+ * @param[in] msg ALS 原始数据消息，payload 为 uint32_t 原始光感值。
+ * @return `true` 表示处理成功，`false` 表示消息格式错误。
+ */
+bool system_update_als_raw_data(JYT_ELF_MQ_MSG* msg);
+/**
+ * @brief 将最近一次缓存的 ALS 自动亮度立即应用到当前亮屏。
+ * @return `true` 表示无需更新或更新成功，`false` 表示亮度上报失败。
+ */
+bool system_runtime_state_apply_auto_brightness(void);
+/**
+ * @brief 获取 LCD 亮屏恢复时应使用的亮度。
+ * @return 自动亮度开启且已有 ALS 档位时返回自动亮度，否则返回保存的手动亮度。
+ */
+uint8_t system_runtime_state_get_lcd_resume_brightness(void);
+/**
  * @brief 处理 KWS 命中事件，并按当前应用策略忽略、只上报或打开 assistant 弹窗。
  * @param[in] msg KWS 事件消息。
  * @return `true` 表示处理成功，`false` 表示处理失败。

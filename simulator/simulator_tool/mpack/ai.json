@@ -62,6 +62,16 @@
     }
   },
   {
+    "name": "ai.setAudioSourceIndicator.watch",
+    "id": 8,
+    "biz": "ai",
+    "cmd": "setAudioSourceIndicator",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "audioSourceIndicator": 2
+    }
+  },
+  {
     "name": "ai.setMicDirectional",
     "id": 8,
     "biz": "ai",

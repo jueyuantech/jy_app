@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <string.h>
 
+extern void rpmsgttf_cache_bitmap_enable(bool enable);
+
 static app_message_t prompter_msg = {
     .id   = APP_MSG_ID_PROMPTER,
     .name = APP_NAME_PROMPTER,
@@ -139,6 +141,8 @@ static bool prompter_msg_register_once(void) {
  * @return 无返回值。
  */
 static void prompter_app_on_start(void) {
+    rpmsgttf_cache_bitmap_enable(true);
+
     if (!prompter_msg_register_once()) {
         floatair_assert(false, "app_msg_register failed");
         return;
@@ -155,6 +159,7 @@ static void prompter_app_on_start(void) {
  */
 static void prompter_app_on_stop(void) {
     prompter_view_reset();
+    rpmsgttf_cache_bitmap_enable(false);
 }
 
 static app_t s_prompter_app = {

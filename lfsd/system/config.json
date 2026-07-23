@@ -6,8 +6,8 @@
     },
     "wearDetectionEnabled": true,
     "headGestureConfig": {
-        "up_enabled": true,
-        "down_enabled": true,
+        "up_enabled": false,
+        "down_enabled": false,
         "up_deg": 25,
         "down_deg": 15,
         "base_deg": 0
@@ -15,19 +15,25 @@
     "touchpadEnabled": true,
     "notificationEnabled": true,
     "keywordSpottingEnabled": true,
+    "kwsHitValue": 5,
     "idleDetectionEnabled": true,
     "displayMode": 0,
     "lcd_sleep_timeout": 30,
     "deep_sleep_timeout": 60,
     "inactivity_timeout": 120,
-    "bl_auto": true,
+    "bl_auto": false,
     "brightness": 128,
     "curlang": "",
     "simpleguide": true,
-    "userguide": false,
-    "userguidefinish": false,
+    "userguide": "false",
     "playaudio": true,
     "displaylevel": 1,
-    "quicklaunch": "",
-    "homeunits": []
+    "platform": "android",
+    "homeunits": [
+        "prompter",
+        "translate",
+        "transcribe",
+        "ai",
+        "navigation"
+    ]
 }

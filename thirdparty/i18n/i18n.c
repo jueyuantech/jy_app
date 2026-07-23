@@ -41,6 +41,30 @@ static inline char* i18n_strdup(const char* s) {
     return d;
 }
 
+/**
+ * @brief 复制国际化 value，并将 CSV 中保留的 `\n` 转成真实换行。
+ * @param[in] s 待复制的原始字符串。
+ * @return 成功时返回新字符串，失败时返回 `NULL`。
+ */
+static char* i18n_strdup_value(const char* s) {
+    if (!s) return NULL;
+    size_t n = strlen(s);
+    if (n == 0) return NULL;
+    char* d = (char*)malloc(n + 1);
+    if (!d) return NULL;
+    size_t out = 0;
+    for (size_t i = 0; s[i] != '\0'; i++) {
+        if (s[i] == '\\' && s[i + 1] == 'n') {
+            d[out++] = '\n';
+            i++;
+        } else {
+            d[out++] = s[i];
+        }
+    }
+    d[out] = '\0';
+    return d;
+}
+
 static bool i18n_load_lang(const char* dir, const char* lang, i18n_kv_t** out_kvs, int* out_cnt) {
     if (!dir || !lang || strlen(lang) == 0 || !out_kvs || !out_cnt) return false;
     char path[SYSTEM_MAX_PATH_LEN];
@@ -114,7 +138,7 @@ static bool i18n_load_lang(const char* dir, const char* lang, i18n_kv_t** out_kv
             }
         }
         if (exist >= 0) {
-            char* nv = i18n_strdup(item->valuestring);
+            char* nv = i18n_strdup_value(item->valuestring);
             if (nv) {
                 free(kvs[exist].value);
                 kvs[exist].value = nv;
@@ -122,7 +146,7 @@ static bool i18n_load_lang(const char* dir, const char* lang, i18n_kv_t** out_kv
             continue;
         }
         kvs[idx].key = i18n_strdup(item->string);
-        kvs[idx].value = i18n_strdup(item->valuestring);
+        kvs[idx].value = i18n_strdup_value(item->valuestring);
         if (!kvs[idx].key || !kvs[idx].value) {
             free(kvs[idx].key);
             free(kvs[idx].value);

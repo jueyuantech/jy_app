@@ -32,6 +32,36 @@
     }
   },
   {
+    "name": "translate.setProgressVisible.custom.show",
+    "id": 0,
+    "biz": "SystemControl",
+    "cmd": "setProgressVisible",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "visible": 1,
+      "text": "翻译中",
+      "opa": 80
+    }
+  },
+  {
+    "name": "translate.updateSttInfo.notice",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "updateSttInfo",
+    "type": "DATA_UNRELIABLE",
+    "data": {
+      "id": 100,
+      "area": 2,
+      "msgId": "translate_notice",
+      "msgType": 0,
+      "actionType": 1,
+      "isFinal": 1,
+      "user": "System",
+      "transcribe": "点击开始翻译",
+      "createdAt": 1776916799000
+    }
+  },
+  {
     "name": "translate.updateSttInfo",
     "id": 3,
     "biz": "translate",
@@ -184,6 +214,26 @@
     }
   },
   {
+    "name": "translate.setState.started",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setState",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "state": 1
+    }
+  },
+  {
+    "name": "translate.setState.stopped",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setState",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "state": 0
+    }
+  },
+  {
     "name": "translate.setTextMode",
     "id": 3,
     "biz": "translate",
@@ -231,6 +281,16 @@
     "type": "DATA_RELIABLE",
     "data": {
       "audioSourceIndicator": 1
+    }
+  },
+  {
+    "name": "translate.setAudioSourceIndicator.watch",
+    "id": 3,
+    "biz": "translate",
+    "cmd": "setAudioSourceIndicator",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "audioSourceIndicator": 2
     }
   },
   {

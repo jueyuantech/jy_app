@@ -43,28 +43,30 @@ void system_init(void);
  */
 void system_deinit(void);
 
+#define SYSTEM_USERGUIDE_PROGRESS_FALSE "false" ///< 新手引导未开始。
+#define SYSTEM_USERGUIDE_PROGRESS_STEP1 "step1" ///< 新手引导第 1 步。
+#define SYSTEM_USERGUIDE_PROGRESS_STEP2 "step2" ///< 新手引导第 2 步。
+#define SYSTEM_USERGUIDE_PROGRESS_STEP3 "step3" ///< 新手引导第 3 步。
+#define SYSTEM_USERGUIDE_PROGRESS_STEP4 "step4" ///< 新手引导第 4 步。
+#define SYSTEM_USERGUIDE_PROGRESS_STEP5 "step5" ///< 新手引导第 5 步。
+#define SYSTEM_USERGUIDE_PROGRESS_TRUE  "true"  ///< 新手引导已完成。
+
 /**
- * @brief 获取是否启用新手引导。
- * @return `true` 表示启用，`false` 表示未启用。
+ * @brief 获取新手引导进度。
+ * @return 返回 `"false"`、`"step1"` 至 `"step5"` 或 `"true"`。
  */
-bool system_config_get_userguide(void);
+const char* system_config_get_userguide(void);
 /**
- * @brief 设置是否启用新手引导。
- * @param[in] userguide 引导开关状态。
+ * @brief 设置新手引导进度。
+ * @param[in] progress 新手引导进度字符串。
  * @return `true` 表示保存成功，`false` 表示保存失败。
  */
-bool system_config_set_userguide(bool userguide);
+bool system_config_set_userguide(const char* progress);
 /**
  * @brief 获取新手引导是否已完成。
  * @return `true` 表示已完成，`false` 表示未完成。
  */
-bool system_config_get_userguide_finish(void);
-/**
- * @brief 设置新手引导完成状态。
- * @param[in] finish 新手引导完成状态。
- * @return `true` 表示保存成功，`false` 表示保存失败。
- */
-bool system_config_set_userguide_finish(bool finish);
+bool system_config_is_userguide_finished(void);
 /**
  * @brief 获取语言选择流程是否已完成。
  * @return `true` 表示已完成，`false` 表示未完成。
@@ -121,6 +123,11 @@ bool system_config_get_keyword_spotting_enabled(void);
  * @return `true` 表示保存成功，`false` 表示保存失败。
  */
 bool system_config_set_keyword_spotting_enabled(bool keyword_spotting_enabled);
+/**
+ * @brief 获取当前产品需要响应的 KWS 命中值。
+ * @return 返回需要响应的 KWS 命中值。
+ */
+uint32_t system_config_get_kws_hit_value(void);
 /**
  * @brief 获取闲置检测开关状态。
  * @return `true` 表示开启，`false` 表示关闭。
@@ -261,17 +268,6 @@ char* system_config_get_curlang(void);
  */
 bool system_config_set_curlang(char* curlang);
 /**
- * @brief 获取快捷启动应用配置。
- * @return 返回快捷启动应用名称字符串；未配置时返回空字符串。
- */
-const char* system_config_get_quicklaunch(void);
-/**
- * @brief 设置快捷启动应用配置。
- * @param[in] quicklaunch 快捷启动应用名称字符串；传 `NULL` 表示清空。
- * @return `true` 表示保存成功，`false` 表示保存失败。
- */
-bool system_config_set_quicklaunch(const char* quicklaunch);
-/**
  * @brief 获取 Home 当前配置显示的应用数量。
  * @return 返回 `homeunits` 中的应用数量；为空时返回 0。
  */
@@ -338,7 +334,7 @@ bool system_keep_alive(void);
 /**
  * @brief 判断 LCD 灭屏时是否允许处理指定 host 消息。
  * @param[in] msg 已解析的 host 消息头。
- * @return `true` 表示允许继续处理，`false` 表示应直接返回 `ErrNotReady`。
+ * @return `true` 表示允许继续处理，`false` 表示应直接返回 `ErrScreenOff`。
  */
 bool system_host_message_allowed_when_lcd_off(const msg_pack_t* msg);
 /**
@@ -375,6 +371,16 @@ void system_report_kws_hit_response_finish(void);
  */
 bool system_report_assistant_close(void);
 /**
+ * @brief 上报新手引导已打开。
+ * @return `true` 表示上报成功，`false` 表示上报失败。
+ */
+bool system_report_guide_open(void);
+/**
+ * @brief 上报新手引导已关闭。
+ * @return `true` 表示上报成功，`false` 表示上报失败。
+ */
+bool system_report_guide_close(void);
+/**
  * @brief 上报系统亮灭屏状态。
  * @param[in] state 系统状态值。
  * @return `true` 表示上报成功，`false` 表示上报失败。
@@ -392,6 +398,12 @@ bool system_report_charge_state(uint8_t state);
  * @return `true` 表示上报成功，`false` 表示上报失败。
  */
 bool system_report_battery(uint32_t battery);
+/**
+ * @brief 上报当前屏幕亮度。
+ * @param[in] brightness 亮度值，范围 0-255。
+ * @return `true` 表示上报成功，`false` 表示上报失败。
+ */
+bool system_report_brightness(uint8_t brightness);
 
 /**
  * @brief 获取下一条上报消息序号。

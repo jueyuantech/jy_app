@@ -18,8 +18,8 @@
 #include "system/system_file_transfer.h"
 #include "system/system_res.h"
 #include "system/system_runtime_ui.h"
+#include "common/widgets/container.h"
 #include "common/widgets/label.h"
-#include "common/widgets/msgbox.h"
 #include "common/widgets/paged_text.h"
 #include "common/widgets/progress_indicator.h"
 #include "common/widgets/roller.h"
@@ -40,6 +40,9 @@ typedef enum {
     PROMPTER_VIEW_MODE_TEXT,     ///< 正文态，展示分页后的提词文本。
 } prompter_view_mode_t;
 
+#define PROMPTER_STATUS_HEADER_X 100     ///< 提词状态信息在状态栏内的固定横坐标。
+#define PROMPTER_STATUS_HEADER_WIDTH 280 ///< 提词状态信息区域固定宽度。
+
 static prompter_view_mode_t s_view_mode = PROMPTER_VIEW_MODE_INIT;
 static prompter_entry_overlay_ui_t s_entry_overlay_ui;
 static prompter_file_transfer_ui_t s_file_transfer_ui;
@@ -51,6 +54,7 @@ static prompter_menu_item_t* s_menu_items = NULL;      ///< 当前文件列表�
 static const char** s_menu_labels = NULL;              ///< 当前文件列表菜单项显示文案数组。
 static uint32_t s_menu_count = 0;                      ///< 当前文件列表菜单项数量。
 static uint32_t s_menu_selected_index = 0;             ///< 当前文件列表菜单选中索引。
+static bool s_menu_received = false;                   ///< 是否已收到手机端文件列表消息。
 
 static char* s_file_buf = NULL;
 /* 记录当前缓存页在源文件中的起点和长度，用于跳过重复文件读取。 */
@@ -60,9 +64,6 @@ static char s_file_path[SYSTEM_MAX_PATH_LEN] = {0};
 static uint32_t s_file_size = 0;
 static uint32_t s_tick_seconds = 0;                       ///< 当前手机端同步的提词计时秒数。
 static prompter_state_t s_prompter_state = PROMPTER_STATE_PAUSE; ///< 当前手机端同步的提词播放状态。
-
-/* Prompter 退出确认弹窗。 */
-static msgbox_t* s_prompter_exit_msgbox = NULL;
 
 /* 记录运行时最终命中的系统注册字号，配置字号仍保留在 prompter_font_info 中。 */
 static uint32_t s_prompter_font_size_resolved = 0;
@@ -399,14 +400,16 @@ static void prompter_transfer_set_progress(uint32_t percent) {
 static void prompter_view_apply_visibility(void) {
     bool init_mode = (s_view_mode == PROMPTER_VIEW_MODE_INIT);
     bool transfer_mode = (s_view_mode == PROMPTER_VIEW_MODE_TRANSFER);
-    bool show_empty = init_mode && s_menu_count == 0;
-    bool show_menu = init_mode && s_menu_count > 0;
+    bool text_mode = (s_view_mode == PROMPTER_VIEW_MODE_TEXT);
+    bool show_empty = init_mode && s_menu_received && s_menu_count == 0;
+    bool show_menu = init_mode && s_menu_received && s_menu_count > 0;
 
     ui_widget_set_visible(UI_WIDGET(s_entry_overlay_ui.overlay_box), show_empty);
     ui_widget_set_visible(UI_WIDGET(s_entry_overlay_ui.init_label), show_empty);
     ui_widget_set_visible(UI_WIDGET(s_file_roller_ui.file_menu_box), show_menu);
     ui_widget_set_visible(UI_WIDGET(s_file_transfer_ui.transfer_box), transfer_mode);
-    ui_widget_set_visible(UI_WIDGET(s_text_preview_ui.preview_box), s_view_mode == PROMPTER_VIEW_MODE_TEXT);
+    ui_widget_set_visible(UI_WIDGET(s_text_preview_ui.preview_box), text_mode);
+    ui_widget_set_visible(UI_WIDGET(s_text_preview_ui.header_box), text_mode);
     if (init_mode) {
         paged_text_hide_highlight_window(s_text_preview_ui.text_view);
     }
@@ -502,11 +505,11 @@ void prompter_text_apply_external_view(const prompter_external_view_t* view) {
         return;
     }
     start_time_us = (uint32_t)GetTimeUs();
-    prompter_update_progress_by_offset(view->offset);
     read_len = view->length;
     if (read_len > s_file_size - view->offset) {
         read_len = s_file_size - view->offset;
     }
+    prompter_update_progress_by_offset(view->offset + read_len);
     local_view = *view;
     local_view.offset = 0;
     local_view.length = read_len;
@@ -622,9 +625,6 @@ bool prompter_text_set_file(const char* path) {
  * @return 无返回值。
  */
 void prompter_view_reset(void) {
-    if (msgbox_is_valid(s_prompter_exit_msgbox)) {
-        msgbox_set_visible(s_prompter_exit_msgbox, false);
-    }
     paged_text_set_text(s_text_preview_ui.text_view, "");
     paged_text_hide_highlight_window(s_text_preview_ui.text_view);
     clear_file_state();
@@ -672,22 +672,6 @@ static void init_report_cur_event(void) {
 }
 
 /**
- * @brief 处理 Prompter 退出确认弹窗结果。
- * @param[in] box 触发确认的消息框。
- * @param[in] key 本次确认结果。
- * @param[in] user_data 用户透传数据。
- * @return 无返回值。
- */
-// static void prompter_exit_msgbox_on_result(msgbox_t* box, msgbox_key_t key, void* user_data) {
-//     (void)box;
-//     (void)user_data;
-
-//     if (key == MSGBOX_KEY_LEAVE) {
-//         (void)app_router_exit_current_app();
-//     }
-// }
-
-/**
  * @brief 处理 Prompter 页面点击、双击和左右手势事件。
  * @param[in] event LVGL 事件对象。
  * @return 无返回值。
@@ -695,10 +679,6 @@ static void init_report_cur_event(void) {
 static void touch_event_handle(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
     if (code == LV_EVENT_DCLICKED) {
-        // s_prompter_exit_msgbox = msgbox_show(s_prompter_exit_msgbox,
-        //                                      app_get_str("PROMPTER_EXIT_TITLE"),
-        //                                      MSGBOX_KEY_CANCEL | MSGBOX_KEY_LEAVE);
-        // msgbox_set_callback(s_prompter_exit_msgbox, prompter_exit_msgbox_on_result, NULL);
         (void)app_router_exit_current_app();
         return;
     }
@@ -706,12 +686,13 @@ static void touch_event_handle(lv_event_t* event) {
     if (s_view_mode == PROMPTER_VIEW_MODE_INIT) {
         switch (code) {
             case LV_EVENT_GESTURE_LEFT:
-                init_move_selection(-1);
-                break;
-            case LV_EVENT_GESTURE_RIGHT:
                 init_move_selection(1);
                 break;
+            case LV_EVENT_GESTURE_RIGHT:
+                init_move_selection(-1);
+                break;
             case LV_EVENT_CLICKED:
+            case LV_EVENT_LONG_PRESSED:
                 init_report_cur_event();
                 break;
             default:
@@ -722,6 +703,7 @@ static void touch_event_handle(lv_event_t* event) {
             case LV_EVENT_GESTURE_LEFT:
             case LV_EVENT_GESTURE_RIGHT:
             case LV_EVENT_CLICKED:
+            case LV_EVENT_LONG_PRESSED:
                 (void)system_report_touch_event(code);
                 break;
             default:
@@ -753,6 +735,26 @@ static void prompter_apply_runtime_ui_config(void) {
     paged_text_set_text(s_text_preview_ui.text_view, s_file_buf ? s_file_buf : "");
     paged_text_page_init(s_text_preview_ui.text_view);
     paged_text_hide_highlight_window(s_text_preview_ui.text_view);
+}
+
+/**
+ * @brief 将正文态计时和进度栏挂到底部状态栏。
+ * @return 无返回值。
+ */
+static void prompter_attach_header_to_status_bar(void) {
+    lv_obj_t* status_bar = system_get_status_bar(STATUS_BAR_POS_BOTTOM);
+    lv_obj_t* header_obj = container_get_obj(s_text_preview_ui.header_box);
+
+    if (status_bar == NULL || !lv_obj_is_valid(status_bar) || header_obj == NULL) {
+        return;
+    }
+
+    if (lv_obj_get_parent(header_obj) != status_bar) {
+        lv_obj_set_parent(header_obj, status_bar);
+    }
+    lv_obj_set_size(header_obj, PROMPTER_STATUS_HEADER_WIDTH, STATUS_BAR_HEIGHT);
+    lv_obj_set_pos(header_obj, PROMPTER_STATUS_HEADER_X, 0);
+    lv_obj_move_foreground(header_obj);
 }
 
 /**
@@ -788,6 +790,7 @@ static void prompter_build_ui_from_json(lv_obj_t* root) {
 
     paged_text_set_base_dir(s_text_preview_ui.text_view, LV_BASE_DIR_AUTO);
     paged_text_set_align(s_text_preview_ui.text_view, LABEL_ALIGN_AUTO);
+    prompter_attach_header_to_status_bar();
     prompter_apply_runtime_ui_config();
     prompter_menu_sync_roller();
 }
@@ -835,6 +838,7 @@ bool prompter_menu_set(uint32_t menu_id,
     s_menu_labels = new_labels;
     s_menu_count = count;
     s_menu_selected_index = selected_index;
+    s_menu_received = true;
 
     clear_file_state();
     paged_text_set_text(s_text_preview_ui.text_view, "");
@@ -892,11 +896,11 @@ static void prompter_page_destroy(void) {
 
     system_file_transfer_clear_progress_callback(prompter_on_file_transfer_progress, NULL);
 
-    msgbox_destroy(s_prompter_exit_msgbox);
-    s_prompter_exit_msgbox = NULL;
+    ui_widget_destroy(UI_WIDGET(s_text_preview_ui.header_box));
 
     clear_file_state();
     prompter_menu_release();
+    s_menu_received = false;
 
     memset(&s_entry_overlay_ui, 0, sizeof(s_entry_overlay_ui));
     memset(&s_file_transfer_ui, 0, sizeof(s_file_transfer_ui));

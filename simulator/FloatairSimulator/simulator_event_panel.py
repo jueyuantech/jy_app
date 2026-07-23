@@ -13,7 +13,7 @@ GROUPS = [
         ("Host Connected", "SET_JYP_HOST_CONNECTED"),
         ("Host Disconnected", "SET_JYP_HOST_DISCONNECTED"),
         ("TWS Broken", "SET_TWS_LINK_BROKEN"),
-        ("KWS Hit", "SET_KWS_HIT"),
+        ("KWS Hit (Configured)", "SET_KWS_HIT"),
     ]),
     ("Battery", [
         ("Low Battery", "SET_JYT_LOW_BATTERY_WARNING"),
@@ -30,7 +30,7 @@ GROUPS = [
         ("Double Click", "SET_FORCE_DOUBLE_CLICK"),
         ("Triple Click", "SET_FORCE_TRI_CLICK"),
         ("Long Press", "SET_FORCE_LONG_PRESSED"),
-        ("Slide Forward", "SET_SLIDE_FORWARD"),
+        ("Slide Forward", "SET_SLIDE_FORWARD")
     ]),
     ("IMU", [
         ("IMU Single Tap", "SET_IMU_SINGLE_TAP"),

@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +18,7 @@
 #include "sim_socket.h"
 #include "simulator_platform.h"
 #include "sys_adapter.h"
+#include "system.h"
 
 /**
  * @brief 文本命令与系统事件类型映射表。
@@ -31,6 +33,7 @@ typedef struct {
 enum {
     SIM_FIFO_PARAM_NONE = 0,
     SIM_FIFO_PARAM_SIMPLE_FIXED_U8,
+    SIM_FIFO_PARAM_KWS_CONFIGURED,
     SIM_FIFO_PARAM_SIMPLE_U8,
     SIM_FIFO_PARAM_PAYLOAD_U8,
     SIM_FIFO_PARAM_PAYLOAD_U32,
@@ -67,7 +70,7 @@ static const simulator_fifo_event_map_t g_simulator_fifo_events[] = {
     {"SET_BAT_SOC", SET_BAT_VOLT_CHANGED, SIM_FIFO_PARAM_BAT_SOC_ONLY, 0},
     {"SET_CHARGER_ON", SET_BAT_VOLT_CHANGED, SIM_FIFO_PARAM_CHARGER_FIXED, 1},
     {"SET_CHARGER_OFF", SET_BAT_VOLT_CHANGED, SIM_FIFO_PARAM_CHARGER_FIXED, 0},
-    {"SET_KWS_HIT", SET_KWS_HIT, SIM_FIFO_PARAM_SIMPLE_FIXED_U8, 1},
+    {"SET_KWS_HIT", SET_KWS_HIT, SIM_FIFO_PARAM_KWS_CONFIGURED, 0},
     {"SET_REPORT_DEVICE_STATE_NOW", SET_REPORT_DEVICE_STATE, SIM_FIFO_PARAM_DEVICE_STATE_NOW, 0},
     {"SET_REPORT_DEVICE_STATE", SET_REPORT_DEVICE_STATE, SIM_FIFO_PARAM_DEVICE_STATE_EPOCH, 0},
     {"SET_BT_CALL_RINGING", SET_BT_CALL_SETUP_EVENT, SIM_FIFO_PARAM_CALL_STATE_TEXT, SIM_CALL_EVENT_RINGING},
@@ -147,6 +150,21 @@ static void simulator_event_fifo_handle_line(char* line) {
             if (g_simulator_fifo_events[i].param_mode == SIM_FIFO_PARAM_SIMPLE_FIXED_U8) {
                 simulator_post_system_event_ex(g_simulator_fifo_events[i].event_type,
                                                (uint8_t)g_simulator_fifo_events[i].fixed_value,
+                                               NULL,
+                                               0);
+                return;
+            }
+
+            if (g_simulator_fifo_events[i].param_mode == SIM_FIFO_PARAM_KWS_CONFIGURED) {
+                uint32_t kws_hit = system_config_get_kws_hit_value();
+
+                if (kws_hit > UINT8_MAX) {
+                    floatair_warn("configured kws hit out of simulator range: %lu",
+                                  (unsigned long)kws_hit);
+                    return;
+                }
+                simulator_post_system_event_ex(g_simulator_fifo_events[i].event_type,
+                                               (uint8_t)kws_hit,
                                                NULL,
                                                0);
                 return;

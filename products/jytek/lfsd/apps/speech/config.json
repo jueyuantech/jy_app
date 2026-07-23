@@ -1,7 +1,8 @@
 {
     "fontinfo": {
-        "weight": 24,
+        "weight": 32,
         "wordSpace": 0,
         "rowSpace": 0
-    }
+    },
+    "exitdoubleclick" : false
 }

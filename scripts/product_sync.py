@@ -44,10 +44,6 @@ PRODUCT_FILE_OVERLAYS = (
     (Path("StringPool.csv"), Path("StringPool.csv")),
 )
 
-PRODUCT_OPTIONAL_FILE_OVERLAYS = (
-    (Path("build_apps_denylist.txt"), Path("build_apps_denylist.txt")),
-)
-
 PRODUCT_TREE_OVERLAYS = (
     Path("lfsd"),
 )
@@ -173,7 +169,6 @@ def generate_ui_res_json(images_dir: Path, output_file: Path) -> None:
 
 def clean_product_overlay(repo_root: Path) -> None:
     overlay_files = {dst for _, dst in PRODUCT_FILE_OVERLAYS}
-    overlay_files.update(dst for _, dst in PRODUCT_OPTIONAL_FILE_OVERLAYS)
     overlay_files.add(UI_RES_JSON)
     products_dir = repo_root / "products"
 
@@ -240,16 +235,6 @@ def apply_product_overlay(repo_root: Path, product_name: str) -> None:
             print_info(f"copy tree: {src_tree} -> {dst_tree}")
             tree_total, tree_copied = copy_tree(src_tree, dst_tree)
             print_success(f"tree overlaid: {tree_rel.as_posix()} {tree_copied}/{tree_total}")
-
-    for src_rel, dst_rel in PRODUCT_OPTIONAL_FILE_OVERLAYS:
-        src = product_dir / src_rel
-        dst = repo_root / dst_rel
-        if src.is_file():
-            print_info(f"copy file: {src} -> {dst}")
-            copy_file(src, dst)
-            print_success(f"overlaid: {dst_rel.as_posix()}")
-        elif remove_file_if_exists(dst):
-            print_info(f"removed optional overlay: {dst_rel.as_posix()}")
 
 
 def main() -> int:

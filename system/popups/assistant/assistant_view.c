@@ -8,10 +8,12 @@
 #include "app_def.h"
 #include "stt_view_common.h"
 #include "common/app_framework/app_layers.h"
+#include "common/app_framework/app_manager.h"
 #include "common/widgets/container.h"
 #include "common/widgets/label.h"
 #include "system/stt_common.h"
 #include "system/system_def.h"
+#include "system/system.h"
 
 #include <string.h>
 
@@ -251,9 +253,18 @@ bool assistant_handle_event(lv_event_code_t code) {
         case LV_EVENT_LONG_PRESSED:
             system_report_touch_event(code);
             return true;
-        case LV_EVENT_DCLICKED:
+        case LV_EVENT_DCLICKED: {
+            lv_obj_t* page_root = NULL;
+
             (void)assistant_close(true);
+            if (!system_config_is_userguide_finished()) {
+                page_root = app_manager_current_content_root();
+                if (page_root != NULL) {
+                    (void)lv_obj_send_event(page_root, assistant_get_close_event(), NULL);
+                }
+            }
             return true;
+        }
         case LV_EVENT_GESTURE_LEFT:
             if (s_ui.scroll) {
                 container_scroll_up(s_ui.scroll, 3.0f / 4.0f);

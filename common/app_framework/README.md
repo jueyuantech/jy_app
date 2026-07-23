@@ -116,7 +116,7 @@ on_back       页面自定义返回；返回 true 表示已消费
 
 新增 App 时通常需要：
 
-1. 在 `cmake/CommonSources.cmake` 的 app 列表中登记构建宏来源，并确认未被 `build_apps_denylist.txt` 屏蔽；`app_build_config.h` 是生成文件，不要手动修改。
+1. 将 App 源码放入 `apps/<app_name>/`，构建系统会自动收集源码与 UI 资源。
 2. 在 `app_router.c` 引入 app 头文件并注册 `*_app_register()`。
 3. 确认 `*_app_register()` 已在 `app_router_init()` 注册。
 4. 检查首页配置、远端 `setView` 名称和退出返回首页行为。

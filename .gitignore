@@ -11,8 +11,10 @@
 /StringPool.csv
 /apps/home/home_cfg.c
 /lfsd/apps/logo/logo.png
+/lfsd/system/config.json
 /lfsd/apps/golf/
-/build_apps_denylist.txt
+/lfsd/apps/phone/
+/lfsd/apps/speech/
 /ui.res.json
 /romfs/system/images/*
 !/romfs/system/images/.gitkeep

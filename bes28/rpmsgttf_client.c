@@ -106,12 +106,17 @@ static bool rpmsgttf_get_glyph_dsc_cb(const lv_font_t* font,
 static const void* rpmsgttf_get_glyph_bitmap_cb(lv_font_glyph_dsc_t* g_dsc,
                                                   lv_draw_buf_t* draw_buf)
 {
-    LV_UNUSED(draw_buf);
     uint32_t glyph_index = g_dsc->gid.index;
     const lv_font_t* font = g_dsc->resolved_font;
     rpmsgttf_font_desc_t* dsc = (rpmsgttf_font_desc_t*)font->dsc;
 
+    /* Provide draw_buf to rpmsgttf_get_glyph_bmp via resp fields:
+     * m33_addr = buffer address, data_size = buffer capacity.
+     * The function writes directly into this buffer. */
     struct rpmsgttf_glyph_bmp_resp_s resp;
+    resp.m33_addr  = (uint32_t)(uintptr_t)draw_buf->data;
+    resp.data_size = draw_buf->data_size;
+
     int ret = rpmsgttf_get_glyph_bmp(dsc->font_id, glyph_index, &resp);
     if (ret != 0) {
         floatair_err("[RTTF] glyph_bmp failed: font_id=%" PRId32 " gi=%" PRIu32 " ret=%d",
@@ -119,13 +124,14 @@ static const void* rpmsgttf_get_glyph_bitmap_cb(lv_font_glyph_dsc_t* g_dsc,
         return NULL;
     }
 
-    /* Set up bitmap wrapper pointing to OS-side buffer */
+    /* Rasterization wrote directly into draw_buf->data — no memcpy needed */
+    dsc->bitmap_wrapper.data = draw_buf->data;
+    dsc->bitmap_wrapper.header = draw_buf->header;
     dsc->bitmap_wrapper.header.w = resp.w;
     dsc->bitmap_wrapper.header.h = resp.h;
     dsc->bitmap_wrapper.header.stride = resp.stride;
     dsc->bitmap_wrapper.header.cf = LV_COLOR_FORMAT_A8;
     dsc->bitmap_wrapper.data_size = resp.data_size;
-    dsc->bitmap_wrapper.data = (uint8_t*)(uintptr_t)resp.m33_addr;
 
     dsc->current_pool_slot = resp.pool_slot;
     dsc->wrapper_in_use = 1;

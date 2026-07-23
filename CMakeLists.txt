@@ -29,6 +29,29 @@ project(jy_app C)
 
 jy_app_validate_target_toolchain("${JY_APP_TARGET_PLATFORM}")
 
+execute_process(
+    COMMAND git describe --tags --long --always --abbrev=8
+    WORKING_DIRECTORY "${PROJECT_ROOT}"
+    OUTPUT_VARIABLE JY_APP_VERSION_INFO
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(JY_APP_VERSION_INFO STREQUAL "")
+    set(JY_APP_VERSION_INFO "unknown")
+endif()
+execute_process(
+    COMMAND git status --porcelain --untracked-files=no
+    WORKING_DIRECTORY "${PROJECT_ROOT}"
+    OUTPUT_VARIABLE JY_APP_GIT_STATUS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT JY_APP_GIT_STATUS STREQUAL "")
+    string(APPEND JY_APP_VERSION_INFO "-dirty")
+endif()
+set(JY_APP_VERSION_STRING "${JY_APP_VERSION_INFO}_${JY_APP_PRODUCT}" CACHE STRING "jy_app version string" FORCE)
+message(STATUS "jy_app version: ${JY_APP_VERSION_STRING}")
+
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 jy_app_apply_product_overlay()
@@ -82,6 +105,9 @@ target_include_directories(${TARGET_NAME} PRIVATE
 )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE ${PLATFORM_COMPILE_DEFS})
+target_compile_definitions(${TARGET_NAME} PRIVATE
+    JY_APP_VERSION_STRING=\"${JY_APP_VERSION_STRING}\"
+)
 
 if(JY_APP_TARGET_PLATFORM STREQUAL "arm")
     jy_app_configure_arm_target(${TARGET_NAME})

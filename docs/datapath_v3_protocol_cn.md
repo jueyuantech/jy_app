@@ -11,10 +11,9 @@
 - `system/system_notification.c`
 - `system/popups/assistant/assistant_msg.c`
 - `system/stt_common.c`
-- `apps/transcribe/transcribe_msg.c`
-- `apps/translate/translate_msg.c`
+- `apps/speech/speech_msg.c`
 - `apps/ai/ai_msg.c`
-- `apps/prompter/prompter_msg.c`
+- `apps/prompter_pro/prompter_msg.c`
 - `apps/gallery/gallery_msg.c`
 
 ## 1. 协议边界
@@ -128,8 +127,8 @@ map(2) {
 | 15 | `ErrBadFilePath` | 文件路径错误 |
 | 16 | `ErrBtErr` | 蓝牙错误 |
 | 17 | `ErrBadCRC` | CRC 错误 |
-
-注意：`ErrBadCRC` 没有专用文案；如果返回该错误码，`msg` 会落到 `"Unknown Error"`。
+| 18 | `ErrScreenOff` | 设备息屏，命令被拒绝 |
+| 19 | `ErrGuideStepMismatch` | 命令不允许在当前新手引导步骤处理 |
 
 ## 4. 消息 ID
 
@@ -146,12 +145,14 @@ map(2) {
 
 1. 解析根节点 `id`。
 2. 解析 `payload.seq/type/cmd/biz`。
-3. 如果当前顶层 app 声明消费 host message，则优先交给该 app。
-4. 如果蓝牙断连遮罩或 popup 状态不允许处理，则返回 `ErrNotReady`。
-5. 校验 `data`：缺省或 `nil` 允许；非 map 返回 `ErrDataErr`。
-6. 按 `id` 查找注册的 `app_message_t`。
-7. 调用目标模块路由函数。
-8. 处理成功后刷新睡眠计时器；通知类特殊消息可抑制该刷新。
+3. 如果当前处于息屏状态且命令不在息屏白名单内，则返回 `ErrScreenOff`。
+4. 如果当前顶层 app 声明消费 host message，则优先交给该 app。
+5. 如果蓝牙断连遮罩或 popup 状态不允许处理，则返回 `ErrNotReady`。
+6. 如果新手引导进行中且命令和当前引导步骤无关，则返回 `ErrGuideStepMismatch`。
+7. 校验 `data`：缺省或 `nil` 允许；非 map 返回 `ErrDataErr`。
+8. 按 `id` 查找注册的 `app_message_t`。
+9. 调用目标模块路由函数。
+10. 处理成功后刷新睡眠计时器；通知类特殊消息可抑制该刷新。
 
 ## 5. System 协议
 
@@ -165,6 +166,7 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 | `SystemControl` | `system_msg_syscontrol.c` | 系统控制、切 view、assistant、触控注入 |
 | `SystemInd` | `system_msg_sysind.c` | 接收远端心跳、保活、关键词响应 |
 | `Notification` | `system_notification.c` | 通知增删改 |
+| `Toast` | `system_msg_toast.c` | Toast 弹窗显示 |
 | `File` | `system_msg_file.c` | 文件列表、写入、删除、存在性和清目录 |
 
 未知 `biz` 或未知 `cmd` 都返回 `ErrCmdErr`。
@@ -229,7 +231,7 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 | `getNotificationEnabled` | `{}` | `{ "notificationEnabled": uint8 }` |
 | `setNotificationEnabled` | `{ "notificationEnabled": uint8 }` | `{}` |
 
-`setTimeConfig.time` 使用 `yyyy-MM-dd HH:mm:ss` 格式。开关字段用 `0/1` 表示关闭/打开。
+`setTimeConfig.time` 使用 `yyyy-MM-dd HH:mm:ss` 格式。开关字段用 `0/1` 表示关闭/打开。`autoBrightnessEnabled` 开启时，`setBrightness` 返回 NACK `ErrNotReady`，且不会修改 LCD 亮度。
 
 ### 5.3 SystemStatus
 
@@ -253,6 +255,8 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 | `getView` | `{}` | `{ "view": string }` |
 | `setView` | `{ "viewName": string }` | `{}` |
 | `sendTouchEvent` | `{ "event": uint8 }` | `{}` |
+| `openGuide` | `{}` | `{}` |
+| `closeGuide` | `{}` | `{}` |
 | `openAssistant` | `{}` | `{}` |
 | `updateAssistantSttInfo` | 见 [6.1 文本记录](#61-文本记录) | `{}` |
 | `closeAssistant` | `{}` | `{}` |
@@ -274,6 +278,8 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 
 Assistant 的文本字段见 [6.6 Assistant Popup](#66-assistant-popup)。
 
+`openGuide` 会将 `SystemConfig.userguide` 写回 `"false"` 并切到 Guide 应用；`closeGuide` 会重置新手引导运行态，将 `SystemConfig.userguide` 写回 `"true"`，返回 Home，并上报 `viewName="home"` 的 `onViewChangedByName`。手机端触发的 `openGuide` 和 `closeGuide` 不会上报 `onGuideOpen` 或 `onGuideClose`。眼镜端自己进入新手引导时上报 `onGuideOpen`；眼镜端完成或跳过新手引导时先上报 `onGuideClose`，再上报 `viewName="home"` 的 `onViewChangedByName`。Guide 内部流转不会上报 `onViewChangedByName`。
+
 ### 5.5 SystemInd
 
 接收方向：
@@ -283,6 +289,8 @@ Assistant 的文本字段见 [6.6 Assistant Popup](#66-assistant-popup)。
 | `heartBeat` | `{}` | `{}` |
 | `keepAlive` | `{}` | `{}` |
 | `onKeywordSpotting` | ACK `{}` 或 NACK `{ "code": uint32, "msg": string }` | 不再二次回包 |
+| `onGuideOpen` | `{}` | `{}` |
+| `onGuideClose` | `{}` | `{}` |
 
 眼镜主动上报方向：
 
@@ -292,9 +300,12 @@ Assistant 的文本字段见 [6.6 Assistant Popup](#66-assistant-popup)。
 | `onViewChangedByName` | `DATA_UNRELIABLE` | `{ "viewName": string }` |
 | `onKeywordSpotting` | `DATA_RELIABLE` | `{}` |
 | `onAssistantClose` | `DATA_UNRELIABLE` | `{}` |
+| `onGuideOpen` | `DATA_UNRELIABLE` | `{}` |
+| `onGuideClose` | `DATA_UNRELIABLE` | `{}` |
 | `onSysStateChanged` | `DATA_UNRELIABLE` | `{ "sysState": uint8 }` |
 | `onChargeStateChanged` | `DATA_UNRELIABLE` | `{ "chargeState": uint8 }` |
 | `onBatteryChanged` | `DATA_UNRELIABLE` | `{ "battery": uint32 }` |
+| `onBrightnessChanged` | `DATA_UNRELIABLE` | `{ "brightness": uint8 }` |
 
 ### 5.6 Notification
 
@@ -341,7 +352,15 @@ map(1) {
 }
 ```
 
-### 5.7 File
+### 5.7 Toast
+
+| cmd | 请求 `data` | 成功 ACK `data` |
+| --- | --- | --- |
+| `showToast` | `{ "text": string, "position": uint8, "postion": uint8, "duration": uint32 }` | `{}` |
+
+`showToast.text` 必填。`position` 可缺省：`1` 顶部，`2` 中间，`3` 底部。为兼容示例里的拼写，也接受 `postion` 字段。`duration` 可缺省，单位毫秒；缺省、0、负数或非法值统一使用默认 `3000`。
+
+### 5.8 File
 
 文件类型：
 
@@ -555,6 +574,7 @@ map(1) {
 | --- | --- |
 | `0` | 眼镜音源 |
 | `1` | 手机音源 |
+| `2` | 手表音源 |
 
 #### `setMicDirectional`
 

@@ -21,19 +21,25 @@
 extern "C" {
 #endif
 extern app_cmd_func_t system_deviceinfo_cmd_funcs[];
+extern app_cmd_func_t system_deviceconnection_cmd_funcs[];
 extern app_cmd_func_t system_systemconfig_cmd_funcs[];
 extern app_cmd_func_t system_systemstatus_cmd_funcs[];
 extern app_cmd_func_t system_systemcontrol_cmd_funcs[];
 extern app_cmd_func_t system_systemind_cmd_funcs[];
 extern app_cmd_func_t system_notification_cmd_funcs[];
+extern app_cmd_func_t system_toast_cmd_funcs[];
 extern app_cmd_func_t system_file_cmd_funcs[];
+extern app_cmd_func_t system_draw_cmd_funcs[];
 extern const size_t system_deviceinfo_cmd_funcs_count;
+extern const size_t system_deviceconnection_cmd_funcs_count;
 extern const size_t system_systemconfig_cmd_funcs_count;
 extern const size_t system_systemstatus_cmd_funcs_count;
 extern const size_t system_systemcontrol_cmd_funcs_count;
 extern const size_t system_systemind_cmd_funcs_count;
 extern const size_t system_notification_cmd_funcs_count;
+extern const size_t system_toast_cmd_funcs_count;
 extern const size_t system_file_cmd_funcs_count;
+extern const size_t system_draw_cmd_funcs_count;
 #ifdef __cplusplus
 }
 #endif
@@ -57,6 +63,12 @@ bool system_route_cmd(mpack_node_t node, msg_pack_t* msg) {
         return dispatch_cmd(
             system_deviceinfo_cmd_funcs, system_deviceinfo_cmd_funcs_count, node, msg);
     }
+    if (strcmp(msg->biz, "DeviceConnection") == 0) {
+        return dispatch_cmd(system_deviceconnection_cmd_funcs,
+                            system_deviceconnection_cmd_funcs_count,
+                            node,
+                            msg);
+    }
     if (strcmp(msg->biz, "SystemConfig") == 0) {
         return dispatch_cmd(
             system_systemconfig_cmd_funcs, system_systemconfig_cmd_funcs_count, node, msg);
@@ -77,8 +89,14 @@ bool system_route_cmd(mpack_node_t node, msg_pack_t* msg) {
         return dispatch_cmd(
             system_notification_cmd_funcs, system_notification_cmd_funcs_count, node, msg);
     }
+    if (strcmp(msg->biz, "Toast") == 0) {
+        return dispatch_cmd(system_toast_cmd_funcs, system_toast_cmd_funcs_count, node, msg);
+    }
     if (strcmp(msg->biz, "File") == 0) {
         return dispatch_cmd(system_file_cmd_funcs, system_file_cmd_funcs_count, node, msg);
+    }
+    if (strcmp(msg->biz, "Draw") == 0) {
+        return dispatch_cmd(system_draw_cmd_funcs, system_draw_cmd_funcs_count, node, msg);
     }
     floatair_err("unknown biz: %s", msg->biz);
     return app_mpack_send_ack(msg, ErrCmdErr);

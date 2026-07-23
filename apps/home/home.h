@@ -26,8 +26,6 @@ typedef struct app_page_t app_page_t;
 #include "i18n.h"
 
 extern bool simple_guide;
-extern bool user_guide;
-extern bool user_guide_finish;
 extern int32_t idle_img_center_h;
 extern int32_t idle_img_center_w;
 extern int32_t idle_img_left_h;
@@ -77,12 +75,6 @@ const app_page_t* home_page_get(void);
  * @return `true` 表示支持，`false` 表示不支持。
  */
 bool home_is_supported_app(const char* app_name);
-/**
- * @brief 判断指定 App 是否可作为 Home quicklaunch 目标。
- * @param[in] app_name App 名称。
- * @return `true` 表示合法，`false` 表示非法。
- */
-bool home_is_valid_quicklaunch_app(const char* app_name);
 
 /**
  * @brief Show home icons view
@@ -110,6 +102,17 @@ void update_home_uint(lv_obj_t* root);
  * @brief 刷新 Home 页面当前蓝牙连接态展示。
  */
 void home_view_reload(void);
+/**
+ * @brief 获取 Home 当前选中的应用名称。
+ * @return 返回应用名称；Home 无可用应用时返回 `NULL`。
+ */
+const char* home_view_get_selected_app_name(void);
+/**
+ * @brief 设置 Home 当前运行时选中的应用。
+ * @param[in] app_name 目标应用名称。
+ * @return `true` 表示设置成功，`false` 表示应用不在当前 Home 显示列表中。
+ */
+bool home_view_select_app_by_name(const char* app_name);
 void home_view_reset_selection(void);
 
 /** @} */

@@ -353,7 +353,7 @@ static bool lv_bidi_letter_is_rtl(uint32_t letter)
     /*Check for Persian and Arabic characters [https://en.wikipedia.org/wiki/Arabic_script_in_Unicode]*/
     if(letter >= 0x600 && letter <= 0x6FF) return true;
     if(letter >= 0xFB50 && letter <= 0xFDFF) return true;
-    if(letter >= 0xFE70 && letter <= 0xFEFF) return true;
+    if(letter >= 0xFE70 && letter <= 0xFEFE) return true; /* U+FEFF is the UTF-8 BOM, not Arabic text. */
 
     /*Check for Hebrew characters [https://en.wikipedia.org/wiki/Unicode_and_HTML_for_the_Hebrew_alphabet]*/
     if(letter >= 0x590 && letter <= 0x5FF) return true;
@@ -371,6 +371,7 @@ static bool lv_bidi_letter_is_neutral(uint32_t letter)
 {
     uint16_t i;
     const char * neutrals = " \t\n\r.,:;'\"`!?%/\\-=()[]{}<>@#&$|";
+    if(letter == 0xFEFF) return true; /* UTF-8 BOM has no text direction. */
     if(custom_neutrals) {
         neutrals = custom_neutrals;
     }

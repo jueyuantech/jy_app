@@ -10,6 +10,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,6 +23,18 @@ typedef enum {
     APP_ROUTER_ENTRY_LOCAL = 0,  ///< 本地进入
     APP_ROUTER_ENTRY_REMOTE = 1, ///< 远端拉起
 } app_router_entry_t;
+
+/**
+ * @brief 上位机平台类型。
+ */
+typedef enum {
+    APP_ROUTER_APP_PLATFORM_NONE = 0,    ///< 尚未收到上位机平台配置。
+    APP_ROUTER_APP_PLATFORM_ANDROID = 1, ///< Android 上位机。
+    APP_ROUTER_APP_PLATFORM_IOS = 2,     ///< iOS 上位机。
+    APP_ROUTER_APP_PLATFORM_MACOS = 3,   ///< macOS 上位机。
+    APP_ROUTER_APP_PLATFORM_WINDOWS = 4, ///< Windows 上位机。
+    APP_ROUTER_APP_PLATFORM_WATCH = 5,   ///< 手表上位机。
+} app_router_app_platform_t;
 
 /**
  * @brief 初始化App framework 路由。
@@ -52,6 +65,38 @@ bool app_router_is_busy(void);
  * @return `true` 表示进入成功，`false` 表示进入失败。
  */
 bool app_router_call_home(void);
+
+/**
+ * @brief 获取当前路由配置解析出的首页应用名称。
+ * @return 返回当前应作为首页的应用名称字符串。
+ */
+const char* app_router_get_home_viewname(void);
+
+/**
+ * @brief 应用上位机平台配置并按平台进入初始应用。
+ * @param[in] app_platform 上位机平台类型，取值见 `app_router_app_platform_t`。
+ * @return `true` 表示配置生效并完成路由决策，`false` 表示平台非法或路由失败。
+ */
+bool app_router_apply_app_config(uint32_t app_platform);
+
+/**
+ * @brief 设置产品配置中的默认上位机平台，但不主动进入首页应用。
+ * @param[in] platform 上位机平台名称，空字符串表示等待 `setAppConfig`。
+ * @return `true` 表示默认平台配置成功，`false` 表示平台名称非法。
+ */
+bool app_router_set_default_app_platform(const char* platform);
+
+/**
+ * @brief 判断本次连接是否已收到上位机平台配置。
+ * @return `true` 表示已收到平台配置，`false` 表示仍需等待。
+ */
+bool app_router_has_app_config(void);
+
+/**
+ * @brief 清除本次连接收到的上位机平台配置。
+ * @return 无返回值。
+ */
+void app_router_clear_app_config(void);
 
 /**
  * @brief 退出当前应用并返回首页。

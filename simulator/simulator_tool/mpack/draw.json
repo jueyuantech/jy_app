@@ -1,0 +1,241 @@
+[
+  {
+    "name": "Draw.drawText",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawText",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 100,
+      "x": 40,
+      "y": 40,
+      "w": 460,
+      "h": 80,
+      "text": "Hello Draw Text",
+      "align": 2,
+      "font_size": 26,
+      "isbolder": 1,
+      "isfloat": 0
+    }
+  },
+  {
+    "name": "Draw.drawTextUpdateSameId",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawText",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 100,
+      "x": 40,
+      "y": 40,
+      "w": 460,
+      "h": 80,
+      "text": "Hello Draw Text (Updated)",
+      "align": 3,
+      "font_size": 26,
+      "isbolder": 1,
+      "isfloat": 0
+    }
+  },
+  {
+    "name": "Draw.drawTextAutoAlign",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawText",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 102,
+      "x": 40,
+      "y": 90,
+      "w": 460,
+      "h": 40,
+      "text": "AUTO align (0)",
+      "align": 0,
+      "font_size": 20,
+      "isbolder": 0,
+      "isfloat": 0
+    }
+  },
+  {
+    "name": "Draw.drawTextFloat",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawText",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 101,
+      "x": 40,
+      "y": 140,
+      "w": 460,
+      "h": 80,
+      "text": "Float Text (3D)",
+      "align": 2,
+      "font_size": 26,
+      "isbolder": 0,
+      "isfloat": 1
+    }
+  },
+  {
+    "name": "Draw.drawProgress",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawProgress",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 200,
+      "x": 40,
+      "y": 240,
+      "w": 460,
+      "h": 20,
+      "progress": 66,
+      "isfloat": 0
+    }
+  },
+  {
+    "name": "Draw.drawProgressFloat",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawProgress",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 201,
+      "x": 40,
+      "y": 265,
+      "w": 460,
+      "h": 20,
+      "progress": 20,
+      "isfloat": 1
+    }
+  },
+  {
+    "name": "Draw.updateProgress",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "updateProgress",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 200,
+      "progress": 90
+    }
+  },
+  {
+    "name": "Draw.updateProgressTo100",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "updateProgress",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 200,
+      "progress": 100
+    }
+  },
+  {
+    "name": "Draw.updateProgressUnknownId_EXPECT_NAK",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "updateProgress",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 9999,
+      "progress": 10
+    }
+  },
+  {
+    "name": "Draw.drawImageByPath",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawImage",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 300,
+      "x": 40,
+      "y": 290,
+      "w": 160,
+      "h": 160,
+      "path": "/romfs/system/images/ota.jpg",
+      "isfloat": 0
+    }
+  },
+  {
+    "name": "Draw.drawImageInvalidPath_EXPECT_NAK",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawImage",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 301,
+      "x": 220,
+      "y": 290,
+      "w": 160,
+      "h": 160,
+      "path": "/romfs/system/images/__not_exist__.jpg",
+      "isfloat": 0
+    }
+  },
+  {
+    "name": "Draw.drawTextInvalidAlign_EXPECT_NAK",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawText",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 103,
+      "x": 40,
+      "y": 120,
+      "w": 460,
+      "h": 40,
+      "text": "Invalid align",
+      "align": 9,
+      "font_size": 20,
+      "isbolder": 0,
+      "isfloat": 0
+    }
+  },
+  {
+    "name": "Draw.drawTextInvalidFont_EXPECT_NAK",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "drawText",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 104,
+      "x": 40,
+      "y": 160,
+      "w": 460,
+      "h": 40,
+      "text": "Invalid font_size",
+      "align": 2,
+      "font_size": 10,
+      "isbolder": 0,
+      "isfloat": 0
+    }
+  },
+  {
+    "name": "Draw.clearDraw",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "clearDrawId",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 100
+    }
+  },
+  {
+    "name": "Draw.clearDrawUnknownId",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "clearDrawId",
+    "type": "DATA_RELIABLE",
+    "data": {
+      "id": 9999
+    }
+  },
+  {
+    "name": "Draw.clearDrawAll",
+    "id": 0,
+    "biz": "Draw",
+    "cmd": "clearDrawAll",
+    "type": "DATA_RELIABLE",
+    "data": {}
+  }
+]

@@ -5,6 +5,7 @@
 #ifndef SYSTEM_POPUPS_NOTIFY_NOTIFY_H
 #define SYSTEM_POPUPS_NOTIFY_NOTIFY_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -80,6 +81,17 @@ notify_t* notify_show_with_cfg(const notify_cfg_t* cfg);
  * @return 无返回值。
  */
 void notify_set_callbacks(notify_t* notify, notify_event_cb_t on_event, void* user_data);
+
+/**
+ * @brief 设置 Notify 底部操作提示是否显示。
+ *
+ * 仅作用于当前活动 Notify；用于少数只需要顶部消息提示、不需要操作引导的场景。
+ *
+ * @param notify 目标 Notify 句柄。
+ * @param visible `true` 表示显示，`false` 表示隐藏。
+ * @return 无返回值。
+ */
+void notify_set_body_hint_visible(notify_t* notify, bool visible);
 
 /**
  * @brief 处理当前活动 Notify 的输入事件。

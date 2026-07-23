@@ -318,6 +318,13 @@ void notify_set_callbacks(notify_t* notify, notify_event_cb_t on_event, void* us
     notify->callback_user_data = user_data;
 }
 
+void notify_set_body_hint_visible(notify_t* notify, bool visible) {
+    if (!notify_is_active_valid(notify)) {
+        return;
+    }
+    ui_widget_set_visible(UI_WIDGET(notify->ui.body_label), visible);
+}
+
 bool notify_handle_active_event(lv_event_code_t code) {
     notify_t* active_notify = s_active_notify;
 

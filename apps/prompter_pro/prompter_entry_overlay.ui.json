@@ -5,6 +5,7 @@
     "id": "overlay_box",
     "geometry": { "x": 0, "y": 0, "w": "100%", "h": "100%" },
     "opa": "cover",
+    "visible": false,
     "layout": {
       "type": "vbox",
       "spacing": 0,

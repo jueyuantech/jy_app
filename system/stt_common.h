@@ -31,6 +31,7 @@ extern "C" {
 
 #define AUDIOSOURCE_GLASSES                         0     ///< 眼镜端收音。
 #define AUDIOSOURCE_PHONE                           1     ///< 手机端收音。
+#define AUDIOSOURCE_WATCH                           2     ///< 手表端收音。
 #define AUDIOSOURCE_INVALID                         0xFF  ///< 音频来源未下发，不显示来源图标。
 
 #define OMNIDIRECTIONAL                            0  ///< omnidirectional
@@ -38,6 +39,8 @@ extern "C" {
 
 #define TEXT_DIRECTION_LTR                            0  ///< left to right direction
 #define TEXT_DIRECTION_RTL                            1  ///< right to left direction
+
+#define STT_INFO_AREA_CENTER                          2  ///< 居中说明文案区域。
 
 /**
  * @brief STT information structure

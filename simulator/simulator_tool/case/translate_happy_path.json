@@ -1,0 +1,2885 @@
+{
+    "type": "case",
+    "biz": "translate",
+    "defaults": {
+        "intervalMs": 500
+    },
+    "description": "以 NASA Artemis 月球到火星探索为主题重新撰写的中英双语长文，用于模拟参数配置、启动、STT 阶梯式增量识别、逐段最终译文和停止流程；每次增量约增加 8 个汉字。",
+    "name": "月球到火星双语长文翻译流程",
+    "source": {
+        "note": "正文依据公开主题资料重新组织和翻译，并非网页原文转载。",
+        "title": "Moon to Mars | NASA's Artemis Program",
+        "url": "https://www.nasa.gov/humans-in-space/artemis/"
+    },
+    "steps": [
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "SystemControl",
+                "cmd": "setView",
+                "data": {
+                    "viewName": "translate"
+                },
+                "id": 0,
+                "name": "SystemControl.setView",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "进入翻译页面"
+        },
+        {
+            "action": "send",
+            "intervalMs": 300,
+            "message": {
+                "biz": "translate",
+                "cmd": "clearView",
+                "data": {
+                },
+                "id": 3,
+                "name": "translate.clearView",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "清空翻译内容"
+        },
+        {
+            "action": "send",
+            "intervalMs": 1000,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 1,
+                    "area": 2,
+                    "createdAt": 1776916799000,
+                    "id": 100,
+                    "isFinal": 1,
+                    "msgId": "translate_case_notice",
+                    "msgType": 0,
+                    "transcribe": "翻译启动中",
+                    "user": "System"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.notice",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "显示操作提示"
+        },
+        {
+            "action": "send",
+            "intervalMs": 200,
+            "message": {
+                "biz": "translate",
+                "cmd": "setFontConfig",
+                "data": {
+                    "fontConfig": {
+                        "rowSpace": 0,
+                        "weight": 32,
+                        "wordSpace": 0
+                    }
+                },
+                "id": 3,
+                "name": "translate.setFontConfig",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "设置字体参数"
+        },
+        {
+            "action": "send",
+            "intervalMs": 200,
+            "message": {
+                "biz": "translate",
+                "cmd": "setLanguageHint",
+                "data": {
+                    "languageHint": {
+                        "mode": 1,
+                        "source": "en-US",
+                        "target": "zh-CN"
+                    }
+                },
+                "id": 3,
+                "name": "translate.setLanguageHint",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "设置翻译语言"
+        },
+        {
+            "action": "send",
+            "intervalMs": 200,
+            "message": {
+                "biz": "translate",
+                "cmd": "setTextMode",
+                "data": {
+                    "textMode": 1
+                },
+                "id": 3,
+                "name": "translate.setTextMode",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "设置双语文本模式"
+        },
+        {
+            "action": "send",
+            "intervalMs": 200,
+            "message": {
+                "biz": "translate",
+                "cmd": "setAudioTrackState",
+                "data": {
+                    "audioTrack": 1
+                },
+                "id": 3,
+                "name": "translate.setAudioTrackState",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "设置音频轨道"
+        },
+        {
+            "action": "send",
+            "intervalMs": 200,
+            "message": {
+                "biz": "translate",
+                "cmd": "setTransMode",
+                "data": {
+                    "transMode": 1
+                },
+                "id": 3,
+                "name": "translate.setTransMode",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "设置翻译模式"
+        },
+        {
+            "action": "send",
+            "intervalMs": 300,
+            "message": {
+                "biz": "translate",
+                "cmd": "setAudioSourceIndicator",
+                "data": {
+                    "audioSourceIndicator": 1
+                },
+                "id": 3,
+                "name": "translate.setAudioSourceIndicator",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "显示音频来源"
+        },
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "translate",
+                "cmd": "setState",
+                "data": {
+                    "state": 1
+                },
+                "id": 3,
+                "name": "translate.setState.started",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "启动翻译"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916800000,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked",
+                    "translate": "人类一直把月球视",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.1",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 1"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916800180,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as",
+                    "translate": "人类一直把月球视为既熟悉又遥远的",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.2",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 2"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916800360,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.3",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 3"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916800540,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.4",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 4"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916800720,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.5",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 5"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916800900,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.6",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 6"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916801080,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity into a practical journey:",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、机器人探测器、科",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.7",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 7"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916801260,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity into a practical journey: astronauts, robotic explorers, scientists,",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、机器人探测器、科学家、工程师以及",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.8",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 8"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916801440,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity into a practical journey: astronauts, robotic explorers, scientists, engineers, and international",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、机器人探测器、科学家、工程师以及国际合作伙伴共同",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.9",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 9"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916801620,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity into a practical journey: astronauts, robotic explorers, scientists, engineers, and international partners work together to",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、机器人探测器、科学家、工程师以及国际合作伙伴共同努力，探索人类如",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.10",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 10"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916801800,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity into a practical journey: astronauts, robotic explorers, scientists, engineers, and international partners work together to learn how people can",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、机器人探测器、科学家、工程师以及国际合作伙伴共同努力，探索人类如何能够离开地球走",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.11",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 11"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916801980,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity into a practical journey: astronauts, robotic explorers, scientists, engineers, and international partners work together to learn how people can travel farther from",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、机器人探测器、科学家、工程师以及国际合作伙伴共同努力，探索人类如何能够离开地球走得更远，并在遥远",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.12",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 12"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916802160,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity into a practical journey: astronauts, robotic explorers, scientists, engineers, and international partners work together to learn how people can travel farther from Earth and remain there",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、机器人探测器、科学家、工程师以及国际合作伙伴共同努力，探索人类如何能够离开地球走得更远，并在遥远的环境中更安全、",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.13",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 13"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916802340,
+                    "id": 1,
+                    "isFinal": 0,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity into a practical journey: astronauts, robotic explorers, scientists, engineers, and international partners work together to learn how people can travel farther from Earth and remain there safely for longer periods.",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、机器人探测器、科学家、工程师以及国际合作伙伴共同努力，探索人类如何能够离开地球走得更远，并在遥远的环境中更安全、更长久地工作与生",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.1.14",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段阶梯更新 14"
+        },
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 1,
+                    "area": 0,
+                    "createdAt": 1776916802520,
+                    "id": 1,
+                    "isFinal": 1,
+                    "msgId": "translate_case_1",
+                    "msgType": 0,
+                    "transcribe": "Humanity has always looked at the Moon as both a familiar neighbor and a distant frontier. The Artemis program turns that curiosity into a practical journey: astronauts, robotic explorers, scientists, engineers, and international partners work together to learn how people can travel farther from Earth and remain there safely for longer periods.",
+                    "translate": "人类一直把月球视为既熟悉又遥远的邻居。阿尔忒弥斯计划把这种好奇心变成一段切实可行的旅程：宇航员、机器人探测器、科学家、工程师以及国际合作伙伴共同努力，探索人类如何能够离开地球走得更远，并在遥远的环境中更安全、更长久地工作与生活。",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.final.1",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第1段最终翻译结果"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916803320,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record",
+                    "translate": "与不断变化的地球",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.1",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 1"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916803500,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar",
+                    "translate": "与不断变化的地球表面相比，月球更",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.2",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 2"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916803680,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.3",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 3"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916803860,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.4",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 4"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916804040,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the surface of Earth. By",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录。通过研究月岩、",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.5",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 5"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916804220,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the surface of Earth. By studying its rocks, craters,",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录。通过研究月岩、撞击坑和永久阴影",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.6",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 6"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916804400,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the surface of Earth. By studying its rocks, craters, and permanently shadowed regions,",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录。通过研究月岩、撞击坑和永久阴影区，科研人员能够",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.7",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 7"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916804580,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the surface of Earth. By studying its rocks, craters, and permanently shadowed regions, researchers can investigate how the",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录。通过研究月岩、撞击坑和永久阴影区，科研人员能够了解行星如何形成",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.8",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 8"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916804760,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the surface of Earth. By studying its rocks, craters, and permanently shadowed regions, researchers can investigate how the planets formed, how impacts",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录。通过研究月岩、撞击坑和永久阴影区，科研人员能够了解行星如何形成、撞击事件怎样塑",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.9",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 9"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916804940,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the surface of Earth. By studying its rocks, craters, and permanently shadowed regions, researchers can investigate how the planets formed, how impacts shaped their history, and",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录。通过研究月岩、撞击坑和永久阴影区，科研人员能够了解行星如何形成、撞击事件怎样塑造它们的历史，以",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.10",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 10"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916805120,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the surface of Earth. By studying its rocks, craters, and permanently shadowed regions, researchers can investigate how the planets formed, how impacts shaped their history, and where useful resources such as",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录。通过研究月岩、撞击坑和永久阴影区，科研人员能够了解行星如何形成、撞击事件怎样塑造它们的历史，以及水冰等可利用资",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.11",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 11"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916805300,
+                    "id": 2,
+                    "isFinal": 0,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the surface of Earth. By studying its rocks, craters, and permanently shadowed regions, researchers can investigate how the planets formed, how impacts shaped their history, and where useful resources such as water ice may be",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录。通过研究月岩、撞击坑和永久阴影区，科研人员能够了解行星如何形成、撞击事件怎样塑造它们的历史，以及水冰等可利用资源可能分布在什么",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.2.12",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段阶梯更新 12"
+        },
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 1,
+                    "area": 0,
+                    "createdAt": 1776916805480,
+                    "id": 2,
+                    "isFinal": 1,
+                    "msgId": "translate_case_2",
+                    "msgType": 0,
+                    "transcribe": "The Moon preserves a record of the early solar system that has been altered far less than the surface of Earth. By studying its rocks, craters, and permanently shadowed regions, researchers can investigate how the planets formed, how impacts shaped their history, and where useful resources such as water ice may be found.",
+                    "translate": "与不断变化的地球表面相比，月球更完整地保存了太阳系早期历史的记录。通过研究月岩、撞击坑和永久阴影区，科研人员能够了解行星如何形成、撞击事件怎样塑造它们的历史，以及水冰等可利用资源可能分布在什么地方。",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.final.2",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第2段最终翻译结果"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916806280,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not",
+                    "translate": "月球任务不仅关乎",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.1",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 1"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916806460,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a",
+                    "translate": "月球任务不仅关乎抵达一个目的地，",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.2",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 2"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916806640,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.3",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 3"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916806820,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.4",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 4"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916807000,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of transportation, navigation, communication, power",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、生命保障和应急规",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.5",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 5"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916807180,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of transportation, navigation, communication, power generation, life support, and",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、生命保障和应急规划的严格考验。当",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.6",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 6"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916807360,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of transportation, navigation, communication, power generation, life support, and emergency planning. Every system",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、生命保障和应急规划的严格考验。当乘员远离地面即时",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.7",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 7"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916807540,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of transportation, navigation, communication, power generation, life support, and emergency planning. Every system must continue to function",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、生命保障和应急规划的严格考验。当乘员远离地面即时支援时，每一套系",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.8",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 8"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916807720,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of transportation, navigation, communication, power generation, life support, and emergency planning. Every system must continue to function when crews are far",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、生命保障和应急规划的严格考验。当乘员远离地面即时支援时，每一套系统都必须继续可靠",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.9",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 9"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916807900,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of transportation, navigation, communication, power generation, life support, and emergency planning. Every system must continue to function when crews are far from immediate help, and",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、生命保障和应急规划的严格考验。当乘员远离地面即时支援时，每一套系统都必须继续可靠运行；任务中获得",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.10",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 10"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916808080,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of transportation, navigation, communication, power generation, life support, and emergency planning. Every system must continue to function when crews are far from immediate help, and every lesson can improve",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、生命保障和应急规划的严格考验。当乘员远离地面即时支援时，每一套系统都必须继续可靠运行；任务中获得的每一条经验，也",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.11",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 11"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916808260,
+                    "id": 3,
+                    "isFinal": 0,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of transportation, navigation, communication, power generation, life support, and emergency planning. Every system must continue to function when crews are far from immediate help, and every lesson can improve the design of the",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、生命保障和应急规划的严格考验。当乘员远离地面即时支援时，每一套系统都必须继续可靠运行；任务中获得的每一条经验，也都能帮助改进后续",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.3.12",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段阶梯更新 12"
+        },
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 1,
+                    "area": 0,
+                    "createdAt": 1776916808440,
+                    "id": 3,
+                    "isFinal": 1,
+                    "msgId": "translate_case_3",
+                    "msgType": 0,
+                    "transcribe": "A lunar mission is not only about reaching a destination. It is also a demanding test of transportation, navigation, communication, power generation, life support, and emergency planning. Every system must continue to function when crews are far from immediate help, and every lesson can improve the design of the mission that follows.",
+                    "translate": "月球任务不仅关乎抵达一个目的地，它也是对运输、导航、通信、能源、生命保障和应急规划的严格考验。当乘员远离地面即时支援时，每一套系统都必须继续可靠运行；任务中获得的每一条经验，也都能帮助改进后续任务的设计。",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.final.3",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第3段最终翻译结果"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916809240,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through",
+                    "translate": "猎户座飞船负责搭",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.1",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 1"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916809420,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.2",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 2"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916809600,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.3",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 3"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916809780,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while the Space Launch System",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境，太空发射系统则",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.4",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 4"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916809960,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while the Space Launch System supplies the energy needed to",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境，太空发射系统则提供启程所需的强",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.5",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 5"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916810140,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while the Space Launch System supplies the energy needed to begin the voyage. Around",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境，太空发射系统则提供启程所需的强大能量。在月球周",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.6",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 6"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916810320,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while the Space Launch System supplies the energy needed to begin the voyage. Around the Moon, surface vehicles,",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境，太空发射系统则提供启程所需的强大能量。在月球周围，月面车辆、着",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.7",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 7"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916810500,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while the Space Launch System supplies the energy needed to begin the voyage. Around the Moon, surface vehicles, landing systems, scientific instruments,",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境，太空发射系统则提供启程所需的强大能量。在月球周围，月面车辆、着陆系统、科学仪器",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.8",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 8"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916810680,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while the Space Launch System supplies the energy needed to begin the voyage. Around the Moon, surface vehicles, landing systems, scientific instruments, and future habitats must",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境，太空发射系统则提供启程所需的强大能量。在月球周围，月面车辆、着陆系统、科学仪器和未来栖息地必须",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.9",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 9"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916810860,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while the Space Launch System supplies the energy needed to begin the voyage. Around the Moon, surface vehicles, landing systems, scientific instruments, and future habitats must operate as parts of one",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境，太空发射系统则提供启程所需的强大能量。在月球周围，月面车辆、着陆系统、科学仪器和未来栖息地必须组成相互连接的整",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.10",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 10"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916811040,
+                    "id": 4,
+                    "isFinal": 0,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while the Space Launch System supplies the energy needed to begin the voyage. Around the Moon, surface vehicles, landing systems, scientific instruments, and future habitats must operate as parts of one connected architecture rather than",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境，太空发射系统则提供启程所需的强大能量。在月球周围，月面车辆、着陆系统、科学仪器和未来栖息地必须组成相互连接的整体架构，而不是彼",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.4.11",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段阶梯更新 11"
+        },
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 1,
+                    "area": 0,
+                    "createdAt": 1776916811220,
+                    "id": 4,
+                    "isFinal": 1,
+                    "msgId": "translate_case_4",
+                    "msgType": 0,
+                    "transcribe": "Orion carries the crew through the harsh environment beyond low Earth orbit, while the Space Launch System supplies the energy needed to begin the voyage. Around the Moon, surface vehicles, landing systems, scientific instruments, and future habitats must operate as parts of one connected architecture rather than as isolated machines.",
+                    "translate": "猎户座飞船负责搭载乘员穿越近地轨道之外的严酷环境，太空发射系统则提供启程所需的强大能量。在月球周围，月面车辆、着陆系统、科学仪器和未来栖息地必须组成相互连接的整体架构，而不是彼此孤立地运行。",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.final.4",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第4段最终翻译结果"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916812020,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar",
+                    "translate": "月球南极附近的探",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.1",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 1"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916812200,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both",
+                    "translate": "月球南极附近的探索既充满机遇，也",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.2",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 2"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916812380,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty.",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.3",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 3"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916812560,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.4",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 4"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916812740,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.5",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 5"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916812920,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water,",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.6",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 6"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916813100,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water, yet low sunlight,",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧烈的温度变化、崎",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.7",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 7"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916813280,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water, yet low sunlight, extreme temperature changes, rugged",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧烈的温度变化、崎岖地形以及受限的",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.8",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 8"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916813460,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water, yet low sunlight, extreme temperature changes, rugged terrain, and limited",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧烈的温度变化、崎岖地形以及受限的视野，会让每项活",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.9",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 9"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916813640,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water, yet low sunlight, extreme temperature changes, rugged terrain, and limited visibility complicate every activity.",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧烈的温度变化、崎岖地形以及受限的视野，会让每项活动都变得更加复杂",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.10",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 10"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916813820,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water, yet low sunlight, extreme temperature changes, rugged terrain, and limited visibility complicate every activity. Crews and robots will",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧烈的温度变化、崎岖地形以及受限的视野，会让每项活动都变得更加复杂。乘员和机器人需",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.11",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 11"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916814000,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water, yet low sunlight, extreme temperature changes, rugged terrain, and limited visibility complicate every activity. Crews and robots will need detailed maps,",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧烈的温度变化、崎岖地形以及受限的视野，会让每项活动都变得更加复杂。乘员和机器人需要精细地图、可靠",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.12",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 12"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916814180,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water, yet low sunlight, extreme temperature changes, rugged terrain, and limited visibility complicate every activity. Crews and robots will need detailed maps, dependable tools, and flexible",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧烈的温度变化、崎岖地形以及受限的视野，会让每项活动都变得更加复杂。乘员和机器人需要精细地图、可靠工具，以及能够应",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.13",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 13"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916814360,
+                    "id": 5,
+                    "isFinal": 0,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water, yet low sunlight, extreme temperature changes, rugged terrain, and limited visibility complicate every activity. Crews and robots will need detailed maps, dependable tools, and flexible plans for the",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧烈的温度变化、崎岖地形以及受限的视野，会让每项活动都变得更加复杂。乘员和机器人需要精细地图、可靠工具，以及能够应对意外情况的灵活",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.5.14",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段阶梯更新 14"
+        },
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 1,
+                    "area": 0,
+                    "createdAt": 1776916814540,
+                    "id": 5,
+                    "isFinal": 1,
+                    "msgId": "translate_case_5",
+                    "msgType": 0,
+                    "transcribe": "Exploration near the lunar south pole presents both opportunity and difficulty. Some locations may provide access to ancient material and frozen water, yet low sunlight, extreme temperature changes, rugged terrain, and limited visibility complicate every activity. Crews and robots will need detailed maps, dependable tools, and flexible plans for the unexpected.",
+                    "translate": "月球南极附近的探索既充满机遇，也面临困难。某些区域可能保存着古老物质和冻结的水，但微弱的阳光、剧烈的温度变化、崎岖地形以及受限的视野，会让每项活动都变得更加复杂。乘员和机器人需要精细地图、可靠工具，以及能够应对意外情况的灵活方案。",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.final.5",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第5段最终翻译结果"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916815340,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation",
+                    "translate": "国际合作与商业合",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.1",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 1"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916815520,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single",
+                    "translate": "国际合作与商业合作能够拓展单个机",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.2",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 2"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916815700,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish.",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.3",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 3"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916815880,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft,",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.4",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 4"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916816060,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications,",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.5",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 5"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916816240,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.6",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 6"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916816420,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways of solving engineering",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后勤支持以及解决工",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.7",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 7"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916816600,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways of solving engineering problems. Shared standards and",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后勤支持以及解决工程问题的新方法。",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.8",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 8"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916816780,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways of solving engineering problems. Shared standards and transparent coordination are",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后勤支持以及解决工程问题的新方法。统一标准和透明协",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.9",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 9"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916816960,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways of solving engineering problems. Shared standards and transparent coordination are essential because equipment built",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后勤支持以及解决工程问题的新方法。统一标准和透明协调尤为重要，因为",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.10",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 10"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916817140,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways of solving engineering problems. Shared standards and transparent coordination are essential because equipment built in different places",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后勤支持以及解决工程问题的新方法。统一标准和透明协调尤为重要，因为在不同地点制造的",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.11",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 11"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916817320,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways of solving engineering problems. Shared standards and transparent coordination are essential because equipment built in different places must still connect correctly",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后勤支持以及解决工程问题的新方法。统一标准和透明协调尤为重要，因为在不同地点制造的设备仍然必须正确",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.12",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 12"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916817500,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways of solving engineering problems. Shared standards and transparent coordination are essential because equipment built in different places must still connect correctly and protect everyone who",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后勤支持以及解决工程问题的新方法。统一标准和透明协调尤为重要，因为在不同地点制造的设备仍然必须正确连接，并保护所有",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.13",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 13"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916817680,
+                    "id": 6,
+                    "isFinal": 0,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways of solving engineering problems. Shared standards and transparent coordination are essential because equipment built in different places must still connect correctly and protect everyone who depends on it.",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后勤支持以及解决工程问题的新方法。统一标准和透明协调尤为重要，因为在不同地点制造的设备仍然必须正确连接，并保护所有依赖这些设备的人",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.6.14",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段阶梯更新 14"
+        },
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 1,
+                    "area": 0,
+                    "createdAt": 1776916817860,
+                    "id": 6,
+                    "isFinal": 1,
+                    "msgId": "translate_case_6",
+                    "msgType": 0,
+                    "transcribe": "International and commercial cooperation expands what a single organization can accomplish. Different partners contribute spacecraft, scientific knowledge, communications, logistics, and new ways of solving engineering problems. Shared standards and transparent coordination are essential because equipment built in different places must still connect correctly and protect everyone who depends on it.",
+                    "translate": "国际合作与商业合作能够拓展单个机构所能完成的工作边界。不同伙伴带来航天器、科学知识、通信能力、后勤支持以及解决工程问题的新方法。统一标准和透明协调尤为重要，因为在不同地点制造的设备仍然必须正确连接，并保护所有依赖这些设备的人。",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.final.6",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第6段最终翻译结果"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916818660,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a",
+                    "translate": "月球是通往火星的",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.1",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 1"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916818840,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars",
+                    "translate": "月球是通往火星的重要试验场，因为",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.2",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 2"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916819020,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.3",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 3"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916819200,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.4",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 4"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916819380,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.5",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 5"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916819560,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away.",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.6",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 6"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916819740,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away. Mars demands much greater",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离。火星任务则要求",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.7",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 7"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916819920,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away. Mars demands much greater independence: messages take",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离。火星任务则要求更强的自主能力：",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.8",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 8"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916820100,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away. Mars demands much greater independence: messages take time to cross space,",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离。火星任务则要求更强的自主能力：通信信号需要较长",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.9",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 9"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916820280,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away. Mars demands much greater independence: messages take time to cross space, resupply cannot arrive",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离。火星任务则要求更强的自主能力：通信信号需要较长时间才能穿越太空",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.10",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 10"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916820460,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away. Mars demands much greater independence: messages take time to cross space, resupply cannot arrive quickly, and crews must",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离。火星任务则要求更强的自主能力：通信信号需要较长时间才能穿越太空，补给无法迅速抵",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.11",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 11"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916820640,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away. Mars demands much greater independence: messages take time to cross space, resupply cannot arrive quickly, and crews must diagnose problems with",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离。火星任务则要求更强的自主能力：通信信号需要较长时间才能穿越太空，补给无法迅速抵达，乘员必须依靠",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.12",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 12"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916820820,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away. Mars demands much greater independence: messages take time to cross space, resupply cannot arrive quickly, and crews must diagnose problems with the materials and expertise",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离。火星任务则要求更强的自主能力：通信信号需要较长时间才能穿越太空，补给无法迅速抵达，乘员必须依靠现场已有的材料和",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.13",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 13"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916821000,
+                    "id": 7,
+                    "isFinal": 0,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away. Mars demands much greater independence: messages take time to cross space, resupply cannot arrive quickly, and crews must diagnose problems with the materials and expertise already available to them.",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离。火星任务则要求更强的自主能力：通信信号需要较长时间才能穿越太空，补给无法迅速抵达，乘员必须依靠现场已有的材料和知识诊断并解决问",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.7.14",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段阶梯更新 14"
+        },
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 1,
+                    "area": 0,
+                    "createdAt": 1776916821180,
+                    "id": 7,
+                    "isFinal": 1,
+                    "msgId": "translate_case_7",
+                    "msgType": 0,
+                    "transcribe": "The Moon is a proving ground for Mars because it allows explorers to practice far from Earth while remaining only days away. Mars demands much greater independence: messages take time to cross space, resupply cannot arrive quickly, and crews must diagnose problems with the materials and expertise already available to them.",
+                    "translate": "月球是通往火星的重要试验场，因为探索者能够在远离地球的环境中演练，同时仍与地球保持数日航程的距离。火星任务则要求更强的自主能力：通信信号需要较长时间才能穿越太空，补给无法迅速抵达，乘员必须依靠现场已有的材料和知识诊断并解决问题。",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.final.7",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第7段最终翻译结果"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916821980,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is",
+                    "translate": "探索的价值不仅由",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.1",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 1"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916822160,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by",
+                    "translate": "探索的价值不仅由航行距离衡量，也",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.2",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 2"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916822340,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.3",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 3"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916822520,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology,",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.4",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 4"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916822700,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home.",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.5",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 5"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916822880,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home. A successful campaign can deepen",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的探索计划能够加深",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.6",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 6"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916823060,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home. A successful campaign can deepen our understanding of Earth",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的探索计划能够加深我们对地球及其邻",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.7",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 7"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916823240,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home. A successful campaign can deepen our understanding of Earth and its neighbors, inspire",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的探索计划能够加深我们对地球及其邻近天体的认识，激",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.8",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 8"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916823420,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home. A successful campaign can deepen our understanding of Earth and its neighbors, inspire new generations to study",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的探索计划能够加深我们对地球及其邻近天体的认识，激励新一代学习科学",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.9",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 9"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916823600,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home. A successful campaign can deepen our understanding of Earth and its neighbors, inspire new generations to study science and engineering, and",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的探索计划能够加深我们对地球及其邻近天体的认识，激励新一代学习科学与工程，并证明周",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.10",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 10"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916823780,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home. A successful campaign can deepen our understanding of Earth and its neighbors, inspire new generations to study science and engineering, and demonstrate how careful preparation can",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的探索计划能够加深我们对地球及其邻近天体的认识，激励新一代学习科学与工程，并证明周密准备可以把一个",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.11",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 11"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916823960,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home. A successful campaign can deepen our understanding of Earth and its neighbors, inspire new generations to study science and engineering, and demonstrate how careful preparation can transform an ambitious idea",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的探索计划能够加深我们对地球及其邻近天体的认识，激励新一代学习科学与工程，并证明周密准备可以把一个宏大的设想转化为",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.12",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 12"
+        },
+        {
+            "action": "send",
+            "intervalMs": 180,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 0,
+                    "area": 0,
+                    "createdAt": 1776916824140,
+                    "id": 8,
+                    "isFinal": 0,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home. A successful campaign can deepen our understanding of Earth and its neighbors, inspire new generations to study science and engineering, and demonstrate how careful preparation can transform an ambitious idea into a sequence of",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的探索计划能够加深我们对地球及其邻近天体的认识，激励新一代学习科学与工程，并证明周密准备可以把一个宏大的设想转化为一系列能够逐步完",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.partial.8.13",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段阶梯更新 13"
+        },
+        {
+            "action": "send",
+            "intervalMs": 800,
+            "message": {
+                "biz": "translate",
+                "cmd": "updateSttInfo",
+                "data": {
+                    "actionType": 1,
+                    "area": 0,
+                    "createdAt": 1776916824320,
+                    "id": 8,
+                    "isFinal": 1,
+                    "msgId": "translate_case_8",
+                    "msgType": 0,
+                    "transcribe": "The value of exploration is measured not only by distance traveled, but also by the knowledge, technology, and confidence brought home. A successful campaign can deepen our understanding of Earth and its neighbors, inspire new generations to study science and engineering, and demonstrate how careful preparation can transform an ambitious idea into a sequence of achievable steps.",
+                    "translate": "探索的价值不仅由航行距离衡量，也体现在带回地球的知识、技术和信心之中。一项成功的探索计划能够加深我们对地球及其邻近天体的认识，激励新一代学习科学与工程，并证明周密准备可以把一个宏大的设想转化为一系列能够逐步完成的目标。",
+                    "user": "Narrator"
+                },
+                "id": 3,
+                "name": "translate.updateSttInfo.final.8",
+                "type": "DATA_UNRELIABLE"
+            },
+            "name": "第8段最终翻译结果"
+        },
+        {
+            "action": "send",
+            "intervalMs": 0,
+            "message": {
+                "biz": "translate",
+                "cmd": "setState",
+                "data": {
+                    "state": 0
+                },
+                "id": 3,
+                "name": "translate.setState.stopped",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "停止翻译"
+        }
+    ],
+    "version": 1
+}

@@ -17,6 +17,7 @@
 #include "floatair_lcd.h"
 #include "common/app_framework/app_manager.h"
 #include "common/app_framework/app_layers.h"
+#include "common/app_framework/app_router.h"
 #include "common/app_framework/app_stereo.h"
 #include "system/popups/notify/notify.h"
 #include "common/widgets/toast.h"
@@ -42,15 +43,42 @@ static bool g_status_bar_time_valid = false;          ///< 设备时间戳缓存
 static bool g_status_bar_time_reliable = false;       ///< 时间是否已通过手机对表确认可靠
 static bool g_status_bar_refresh_pending = false;     ///< 灭屏期间状态栏缓存变化后待亮屏刷新标记
 static bool g_screen_refresh_pending = false;         ///< 灭屏期间收到强制刷屏请求后的待刷新标记
+static uint32_t g_progress_hint_event_id = 0;         ///< 自定义进度提示事件 ID
 
 static void system_ui_sync_app_layer_scene(void);
+
+uint32_t system_ui_get_progress_hint_event(void) {
+    if (g_progress_hint_event_id == 0) {
+        g_progress_hint_event_id = lv_event_register_id();
+    }
+
+    return g_progress_hint_event_id;
+}
+
+bool system_ui_send_progress_hint(const system_progress_hint_param_t* param) {
+    lv_obj_t* root = NULL;
+
+    if (param == NULL) {
+        return false;
+    }
+
+    root = app_manager_current_content_root();
+    if (root == NULL || !lv_obj_is_valid(root)) {
+        floatair_err("current page root is NULL");
+        return false;
+    }
+
+    (void)lv_obj_send_event(root, system_ui_get_progress_hint_event(), (void*)param);
+    return true;
+}
 
 /**
  * @brief 判断蓝牙断连遮罩是否应按连接态显示。
  * @return `true` 表示允许显示断连遮罩，`false` 表示当前应让前置流程独占页面。
  */
 static bool system_bt_disconnect_overlay_should_show(void) {
-    return !system_get_btconn_state() && system_config_get_langselection_finish();
+    return system_config_get_langselection_finish() &&
+           (!system_get_btconn_state() || !app_router_has_app_config());
 }
 
 /**

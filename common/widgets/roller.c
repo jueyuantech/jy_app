@@ -657,13 +657,13 @@ bool roller_key_handler(roller_t* roller, lv_event_code_t code) {
 
     if (code == LV_EVENT_GESTURE_LEFT) {
         if (roller->count > 1) {
-            roller_set_selected_internal(roller, roller->selected + roller->count - 1, true);
+            roller_set_selected_internal(roller, roller->selected + roller->count + 1, true);
         }
         return true;
     }
     if (code == LV_EVENT_GESTURE_RIGHT) {
         if (roller->count > 1) {
-            roller_set_selected_internal(roller, roller->selected + 1, true);
+            roller_set_selected_internal(roller, roller->selected - 1, true);
         }
         return true;
     }

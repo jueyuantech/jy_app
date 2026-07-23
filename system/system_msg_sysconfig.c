@@ -13,6 +13,7 @@
 #include "floatair_dbg.h"
 #include "message.h"
 #include "system/system.h"
+#include "system/system_runtime_state.h"
 #include "system/system_timer.h"
 #include "app_lcd.h"
 #include "common/app_framework/app_manager.h"
@@ -25,6 +26,190 @@
 #include <stdlib.h>
 #include <string.h>
 #include "sys_adapter.h"
+
+static bool system_home_menu_name_to_id(const char* name, uint32_t* id) {
+    if (name == NULL || id == NULL) {
+        return false;
+    }
+    for (size_t i = 0; i < g_home_units_count; ++i) {
+        if (g_home_units_arr[i].name != NULL && strcmp(g_home_units_arr[i].name, name) == 0) {
+            *id = g_home_units_arr[i].id;
+            return true;
+        }
+    }
+    return false;
+}
+
+static const char* system_home_menu_id_to_name(uint32_t id) {
+    for (size_t i = 0; i < g_home_units_count; ++i) {
+        if (g_home_units_arr[i].id == id) {
+            return g_home_units_arr[i].name;
+        }
+    }
+    return NULL;
+}
+
+static bool system_home_menu_is_supported_name(const char* name) {
+    return name != NULL && home_is_supported_app(name);
+}
+
+static bool system_home_menu_names_contains(char** names, size_t count, const char* name) {
+    if (names == NULL || name == NULL) {
+        return false;
+    }
+    for (size_t i = 0; i < count; ++i) {
+        if (names[i] != NULL && strcmp(names[i], name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static const char* system_home_menu_visible_name_at(size_t index) {
+    size_t configured_count = system_config_get_homeunits_count();
+
+    if (configured_count > 0) {
+        return system_config_get_homeunit(index);
+    }
+    return index < g_home_units_count ? g_home_units_arr[index].name : NULL;
+}
+
+static size_t system_home_menu_visible_count(void) {
+    size_t configured_count = system_config_get_homeunits_count();
+
+    return configured_count > 0 ? configured_count : g_home_units_count;
+}
+
+static bool system_home_menu_visible_first_occurrence(size_t index) {
+    const char* name = system_home_menu_visible_name_at(index);
+
+    if (!system_home_menu_is_supported_name(name)) {
+        return false;
+    }
+    for (size_t i = 0; i < index; ++i) {
+        const char* prev_name = system_home_menu_visible_name_at(i);
+
+        if (prev_name != NULL && strcmp(prev_name, name) == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static size_t system_home_menu_count_name_ids(bool all_apps) {
+    size_t count = all_apps ? g_home_units_count : system_home_menu_visible_count();
+    size_t valid_count = 0;
+
+    for (size_t i = 0; i < count; ++i) {
+        const char* name = all_apps ? g_home_units_arr[i].name : system_home_menu_visible_name_at(i);
+        uint32_t id = 0;
+
+        if (system_home_menu_name_to_id(name, &id) &&
+            (all_apps || system_home_menu_visible_first_occurrence(i))) {
+            valid_count++;
+        }
+    }
+    return valid_count;
+}
+
+static void system_home_menu_write_name_ids(msg_pack_writer_t* writer, const char* key, bool all_apps) {
+    size_t count = all_apps ? g_home_units_count : system_home_menu_visible_count();
+
+    mpack_write_cstr(&writer->writer, key);
+    mpack_start_array(&writer->writer, (uint32_t)system_home_menu_count_name_ids(all_apps));
+    for (size_t i = 0; i < count; ++i) {
+        const char* name = all_apps ? g_home_units_arr[i].name : system_home_menu_visible_name_at(i);
+        uint32_t id = 0;
+
+        if (system_home_menu_name_to_id(name, &id) &&
+            (all_apps || system_home_menu_visible_first_occurrence(i))) {
+            mpack_write_u32(&writer->writer, id);
+        }
+    }
+    mpack_finish_array(&writer->writer);
+}
+
+static uint32_t system_home_menu_get_selected_id(void) {
+    const char* selected_name = home_view_get_selected_app_name();
+    uint32_t selected_id = 0;
+
+    if (system_home_menu_name_to_id(selected_name, &selected_id)) {
+        return selected_id;
+    }
+    selected_name = system_home_menu_visible_name_at(0);
+    if (system_home_menu_name_to_id(selected_name, &selected_id)) {
+        return selected_id;
+    }
+    return 0;
+}
+
+static bool system_home_menu_parse_visible(mpack_node_t node, char*** out_names, size_t* out_count) {
+    mpack_node_t visible_node = mpack_node_map_cstr_optional(node, "visible");
+    char** names = NULL;
+    size_t count = 0;
+
+    if (out_names == NULL || out_count == NULL) {
+        return false;
+    }
+    *out_names = NULL;
+    *out_count = 0;
+    if (mpack_node_is_missing(visible_node) || mpack_node_type(visible_node) != mpack_type_array) {
+        floatair_err("visible is invalid");
+        return false;
+    }
+    count = mpack_node_array_length(visible_node);
+    if (count == 0) {
+        floatair_err("visible is empty");
+        return false;
+    }
+    names = (char**)calloc(count, sizeof(char*));
+    if (names == NULL) {
+        floatair_err("alloc visible failed");
+        return false;
+    }
+    for (size_t i = 0; i < count; ++i) {
+        mpack_node_t item = mpack_node_array_at(visible_node, i);
+        uint32_t id = 0;
+        const char* name = NULL;
+
+        if (mpack_node_type(item) != mpack_type_uint) {
+            floatair_err("visible[%u] type err", (unsigned)i);
+            goto fail;
+        }
+        id = mpack_node_u32(item);
+        name = system_home_menu_id_to_name(id);
+        if (!system_home_menu_is_supported_name(name) ||
+            system_home_menu_names_contains(names, i, name)) {
+            floatair_err("visible[%u] unsupported or duplicate id=%" PRIu32, (unsigned)i, id);
+            goto fail;
+        }
+        names[i] = strdup(name);
+        if (names[i] == NULL) {
+            floatair_err("visible[%u] dup failed", (unsigned)i);
+            goto fail;
+        }
+    }
+    *out_names = names;
+    *out_count = count;
+    return true;
+
+fail:
+    for (size_t i = 0; i < count; ++i) {
+        free(names[i]);
+    }
+    free(names);
+    return false;
+}
+
+static void system_home_menu_free_names(char** names, size_t count) {
+    if (names == NULL) {
+        return;
+    }
+    for (size_t i = 0; i < count; ++i) {
+        free(names[i]);
+    }
+    free(names);
+}
 
 static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     (void) node;
@@ -63,12 +248,11 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     uint8_t auto_bl_en  = system_config_get_bl_auto() ? 1 : 0;
     uint8_t font_size   = get_system_font_size();
     uint32_t display_level = system_config_get_displaylevel();
-    const char* quicklaunch = system_config_get_quicklaunch();
     size_t homeunits_count = system_config_get_homeunits_count();
     system_head_gesture_config_t head_gesture = {0};
     (void)system_config_get_head_gesture_config(&head_gesture);
 
-    mpack_start_map(&writer->writer, 18);
+    mpack_start_map(&writer->writer, 17);
     mpack_write_cstr(&writer->writer, "time");
     mpack_write_u64(&writer->writer, ts);
 
@@ -101,9 +285,6 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
 
     mpack_write_cstr(&writer->writer, "language");
     mpack_write_cstr(&writer->writer, lang ? lang : "NA");
-
-    mpack_write_cstr(&writer->writer, "quicklaunch");
-    mpack_write_cstr(&writer->writer, quicklaunch != NULL ? quicklaunch : "");
 
     mpack_write_cstr(&writer->writer, "homeunits");
     mpack_start_array(&writer->writer, (uint32_t)homeunits_count);
@@ -241,6 +422,10 @@ static bool system_systemconfig_getbrightness(mpack_node_t node, msg_pack_t* msg
 static bool system_systemconfig_setbrightness(mpack_node_t node, msg_pack_t* msg) {
     floatair_assert(msg != NULL, "msg is NULL");
     uint8_t brightness = 0;
+    if (system_config_get_bl_auto()) {
+        floatair_warn("setBrightness rejected while auto brightness enabled");
+        return app_mpack_send_ack(msg, ErrNotReady);
+    }
     if (!app_msg_get_u8(node, false, "brightness", &brightness)) {
         floatair_err("brightness is NULL");
         return app_mpack_send_ack(msg, ErrBadParam);
@@ -309,49 +494,6 @@ static bool system_systemconfig_setlanguage(mpack_node_t node, msg_pack_t* msg) 
             app_router_reset_state();
         }
     }
-    return app_mpack_send_ack(msg, Dp_ErrNone);
-}
-
-static bool system_systemconfig_getquicklaunch(mpack_node_t node, msg_pack_t* msg) {
-    (void) node;
-    floatair_assert(msg != NULL, "msg is NULL");
-    msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
-    floatair_assert(writer, "writer err");
-    mpack_start_map(&writer->writer, 1);
-    mpack_write_cstr(&writer->writer, "quicklaunch");
-    mpack_write_cstr(&writer->writer, system_config_get_quicklaunch());
-    mpack_finish_map(&writer->writer);
-    return app_mpack_send_writer(writer);
-}
-
-static bool system_systemconfig_setquicklaunch(mpack_node_t node, msg_pack_t* msg) {
-    floatair_assert(msg != NULL, "msg is NULL");
-    mpack_node_t quicklaunch_node = mpack_node_map_cstr_optional(node, "quicklaunch");
-    char* quicklaunch = NULL;
-    bool ok = false;
-
-    if (mpack_node_is_missing(quicklaunch_node) || mpack_node_type(quicklaunch_node) != mpack_type_str) {
-        floatair_err("quicklaunch is invalid");
-        return app_mpack_send_ack(msg, ErrBadParam);
-    }
-    quicklaunch = mpack_node_utf8_cstr_alloc(quicklaunch_node, MSG_STR_MAX_LEN);
-    if (quicklaunch == NULL) {
-        floatair_err("quicklaunch alloc failed");
-        return app_mpack_send_ack(msg, ErrBadParam);
-    }
-    floatair_info("quicklaunch %s", quicklaunch);
-    if (quicklaunch[0] != '\0' && !home_is_valid_quicklaunch_app(quicklaunch)) {
-        floatair_err("quicklaunch out of supported range: %s", quicklaunch);
-        free(quicklaunch);
-        return app_mpack_send_ack(msg, ErrBadParam);
-    }
-    ok = system_config_set_quicklaunch(quicklaunch);
-    free(quicklaunch);
-    if (!ok) {
-        floatair_err("set quicklaunch failed");
-        return app_mpack_send_ack(msg, ErrDataErr);
-    }
-    home_view_reset_selection();
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
@@ -424,6 +566,58 @@ static bool system_systemconfig_sethomeunits(mpack_node_t node, msg_pack_t* msg)
         return app_mpack_send_ack(msg, ErrDataErr);
     }
     home_view_reset_selection();
+    return app_mpack_send_ack(msg, Dp_ErrNone);
+}
+
+static bool system_systemconfig_gethomemenuconfig(mpack_node_t node, msg_pack_t* msg) {
+    (void) node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
+    floatair_assert(writer, "writer err");
+
+    mpack_start_map(&writer->writer, 3);
+    system_home_menu_write_name_ids(writer, "all", true);
+    system_home_menu_write_name_ids(writer, "visible", false);
+    mpack_write_cstr(&writer->writer, "selected");
+    mpack_write_u32(&writer->writer, system_home_menu_get_selected_id());
+    mpack_finish_map(&writer->writer);
+    return app_mpack_send_writer(writer);
+}
+
+static bool system_systemconfig_sethomemenuconfig(mpack_node_t node, msg_pack_t* msg) {
+    floatair_assert(msg != NULL, "msg is NULL");
+    char** visible_names = NULL;
+    size_t visible_count = 0;
+    uint32_t selected_id = 0;
+    const char* selected_name = NULL;
+    bool ok = false;
+
+    if (!system_home_menu_parse_visible(node, &visible_names, &visible_count)) {
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    if (!app_msg_get_u32(node, false, "selected", &selected_id)) {
+        floatair_err("selected is invalid");
+        system_home_menu_free_names(visible_names, visible_count);
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    selected_name = system_home_menu_id_to_name(selected_id);
+    if (!system_home_menu_names_contains(visible_names, visible_count, selected_name)) {
+        floatair_err("selected not in visible, id=%" PRIu32, selected_id);
+        system_home_menu_free_names(visible_names, visible_count);
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+
+    ok = system_config_set_homeunits((const char* const*)visible_names, visible_count);
+    system_home_menu_free_names(visible_names, visible_count);
+    if (!ok) {
+        floatair_err("set home menu config failed");
+        return app_mpack_send_ack(msg, ErrDataErr);
+    }
+    home_view_reset_selection();
+    if (!home_view_select_app_by_name(selected_name)) {
+        floatair_err("select home menu failed: %s", selected_name != NULL ? selected_name : "NULL");
+        return app_mpack_send_ack(msg, ErrDataErr);
+    }
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
@@ -761,9 +955,13 @@ static bool system_systemconfig_setautobrightnessenabled(mpack_node_t node, msg_
         floatair_err("autoBrightnessEnabled is NULL");
         return app_mpack_send_ack(msg, ErrBadParam);
     }
-    if (!system_config_set_bl_auto(tmp != 0)) {
+    bool enabled = (tmp != 0);
+    if (!system_config_set_bl_auto(enabled)) {
         floatair_err("set autoBrightnessEnabled failed");
         return app_mpack_send_ack(msg, ErrDataErr);
+    }
+    if (enabled) {
+        (void)system_runtime_state_apply_auto_brightness();
     }
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
@@ -896,10 +1094,10 @@ app_cmd_func_t system_systemconfig_cmd_funcs[] = {
     {"setRowSpace", system_systemconfig_setrowspace},
     {"getLanguage", system_systemconfig_getlanguage},
     {"setLanguage", system_systemconfig_setlanguage},
-    {"getQuickLaunch", system_systemconfig_getquicklaunch},
-    {"setQuickLaunch", system_systemconfig_setquicklaunch},
     {"getHomeUnits", system_systemconfig_gethomeunits},
     {"setHomeUnits", system_systemconfig_sethomeunits},
+    {"getHomeMenuConfig", system_systemconfig_gethomemenuconfig},
+    {"setHomeMenuConfig", system_systemconfig_sethomemenuconfig},
     {"getDisplayConfig", system_systemconfig_getdisplayconfig},
     {"setDisplayConfig", system_systemconfig_setdisplayconfig},
     {"getDisplayDistanceLevel", system_systemconfig_getdisplaydistancelevel},

@@ -21,6 +21,15 @@ static bool s_assistant_factoryreset_registered = false;
 static bool assistant_config_reset_to_default(void);
 static bool assistant_config_ensure_by_path(const char* config_path);
 
+uint32_t assistant_get_close_event(void) {
+    static uint32_t s_assistant_close_event_id = 0; ///< assistant 关闭事件 ID。
+
+    if (s_assistant_close_event_id == 0) {
+        s_assistant_close_event_id = lv_event_register_id();
+    }
+    return s_assistant_close_event_id;
+}
+
 static bool assistant_config_is_valid_root(cJSON* root) {
     if (!root || !cJSON_IsObject(root)) {
         return false;

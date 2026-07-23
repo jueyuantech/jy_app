@@ -72,6 +72,8 @@ typedef enum {
     ErrBadFilePath        = 15, ///< Bad file path
     ErrBtErr              = 16, ///< Bluetooth error
     ErrBadCRC             = 17, ///< Bad CRC error
+    ErrScreenOff          = 18, ///< Screen off, command rejected
+    ErrGuideStepMismatch  = 19, ///< Current guide step rejects this command
 } MsgDpErr;
 
 /**

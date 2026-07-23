@@ -289,6 +289,9 @@ void stt_view_update_audio_source(lv_obj_t* audio_source) {
     } else if (AUDIOSOURCE_GLASSES == stt_config.audioSourceIndicator) {
         lv_image_set_src(audio_source, UI_RES_IMAGE_SOUND_GLASS);
         lv_obj_remove_flag(audio_source, LV_OBJ_FLAG_HIDDEN);
+    } else if (AUDIOSOURCE_WATCH == stt_config.audioSourceIndicator) {
+        lv_image_set_src(audio_source, UI_RES_IMAGE_SOUND_WATCH);
+        lv_obj_remove_flag(audio_source, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(audio_source, LV_OBJ_FLAG_HIDDEN);
     }
