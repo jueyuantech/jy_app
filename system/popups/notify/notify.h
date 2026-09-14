@@ -20,6 +20,8 @@ extern "C" {
  */
 typedef struct notify_t notify_t;
 
+#define NOTIFY_SUCCESS_PREFIX "\xEE\x80\x80\xE2\x80\x89" ///< U+E000 圆环对钩和 U+2009 窄空格。
+
 /**
  * @brief Notify 输入事件回调。
  *
@@ -35,8 +37,9 @@ typedef void (*notify_event_cb_t)(notify_t* notify, lv_event_code_t code, void* 
  * @brief Notify 显示模式。
  */
 typedef enum {
-    NOTIFY_MODE_MESSAGE = 1,
-    NOTIFY_MODE_CALL = 2,
+    NOTIFY_MODE_MESSAGE = 1, ///< 普通消息通知，按配置显示来源图片。
+    NOTIFY_MODE_CALL = 2,    ///< 电话通知。
+    NOTIFY_MODE_SUCCESS = 3, ///< 成功通知，使用字库内置圆环对钩且不显示来源图片。
 } notify_mode_t;
 
 /**
@@ -53,7 +56,7 @@ typedef enum {
  */
 typedef struct {
     const char* title;              ///< 标题文本；传 `NULL` 或空串时视为无标题。
-    const void* image_src;          ///< 图片源；可传 32x32 L8 原始像素数据、路径或 LVGL 图片描述符。
+    const void* image_src;          ///< 图片源；可传 32x32 L8 原始像素数据、路径或 LVGL 图片描述符；成功模式忽略。
     size_t image_src_size;          ///< `image_src` 为 L8 原始像素数据时对应长度；其他图片源传 `0`。
     notify_mode_t mode;             ///< Notify 显示模式。
     notify_call_state_t call_state; ///< 电话阶段；仅在 `NOTIFY_MODE_CALL` 下生效。

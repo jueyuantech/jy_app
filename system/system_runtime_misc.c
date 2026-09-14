@@ -46,6 +46,8 @@ static bool system_runtime_misc_system_control_allowed(const msg_pack_t* msg,
                                                        size_t extra_count) {
     static const char* const common_cmds[] = {
         "getView",
+        "getScreenOnScope",
+        "setScreenOnScope",
         "sendTouchEvent",
         "sendHeartbeat",
         "sendKeepAlive",
@@ -75,6 +77,8 @@ bool system_host_message_allowed_when_lcd_off(const msg_pack_t* msg) {
     static const char* const system_control_cmds[] = {
         "getView",
         "setView",
+        "getScreenOnScope",
+        "setScreenOnScope",
         "sendHeartbeat",
         "sendKeepAlive",
         "sendHandshake",

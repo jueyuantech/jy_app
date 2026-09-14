@@ -650,6 +650,18 @@ static system_attachment_state_t s_attachment_state = {
 };
 
 /**
+ * @brief 获取主从两侧最近一次收到的附件类型快照。
+ * @param[out] snapshot 返回仅保存在内存中的附件状态。
+ * @return 无返回值。
+ */
+void system_get_attachment_state(system_attachment_snapshot_t* snapshot) {
+    floatair_assert(snapshot != NULL, "snapshot is NULL");
+    memcpy(snapshot->type_by_side,
+           s_attachment_state.type_by_side,
+           sizeof(snapshot->type_by_side));
+}
+
+/**
  * @brief 处理主从两侧附件变化，并按附件数量更新本机业务状态。
  * @param[in] msg 系统事件消息，payload[0] 为附件类型，payload[1] 为主从侧身份。
  * @return `true` 表示本机处理和手机上报均成功，`false` 表示消息无效或上报失败。
@@ -1259,6 +1271,11 @@ static bool system_handle_ancs_event(const JYT_ELF_MQ_MSG* msg) {
         return true;
     }
 
+    if (!system_config_get_notification_enabled()) {
+        floatair_info("ANCS notifications disabled, ignore ANCS batch");
+        return true;
+    }
+
     payload = msg->payload;
     payload_len = msg->payload_len;
     count = ancs_u16_le(payload);
@@ -1409,11 +1426,19 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
         case SET_IMU_SINGLE_TAP:
         case SET_IMU_DOUBLE_TAP:
         {
+            if (!system_config_get_imudoubletap_enabled()) {
+                floatair_info("imu_double_tap_enabled is false, imu double tap disabled");
+                break;
+            }
             ret = system_imu_event_convert_to_touch((uint8_t)event_type);
             break;
         }
         case SET_IMU_TILT:
         {
+            if (!system_config_get_imutilt_enabled()) {
+                floatair_info("imu_tilt_enabled is false, imu tilt disabled");
+                break;
+            }
             ret = system_update_imu_tilt(msg);
             //floatair_info("IMU_TILT ignore");
             break;
@@ -1510,6 +1535,9 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
             break;
         }
         case SET_TWS_LINK_BROKEN:
+        {
+            break;
+        }
         case SET_JYP_HOST_DISCONNECTED:
         {
             system_set_btconn_state(false);

@@ -57,22 +57,20 @@ static bool s_step2_hid_home_float_content = false; ///< Step2 是否实际隐�
 static home_guide_ops_t s_ops = {0};      ///< Home 教学异步事件使用的页面动作。
 
 /**
- * @brief 展示 Home 教学消息通知。
+ * @brief 展示 Home 教学完成或跳过提示，统一带圆环对钩。
  * @param[in] title 通知标题。
  * @return 无返回值。
  */
 static void home_guide_show_message_notify(const char* title) {
     notify_cfg_t cfg = notify_default_cfg();
-    notify_t* notify = NULL;
 
     cfg.title = title;
-    cfg.image_src = UI_RES_IMAGE_IM_MESSAGE;
+    cfg.image_src = NULL;
     cfg.image_src_size = 0;
-    cfg.mode = NOTIFY_MODE_MESSAGE;
+    cfg.mode = NOTIFY_MODE_SUCCESS;
     cfg.duration_ms = HOME_GUIDE_NOTIFY_DURATION_MS;
     cfg.passthrough_input = true;
-    notify = notify_show_with_cfg(&cfg);
-    notify_set_body_hint_visible(notify, false);
+    (void)notify_show_with_cfg(&cfg);
 }
 
 /**

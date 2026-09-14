@@ -28,6 +28,14 @@ extern "C" {
 #define LV_NUTTX_LCD_FLUSH_PARTIAL_AREA 0 /**< 是否按 LVGL 当前脏区外接矩形提交 LCD 刷屏区域。 */
 #endif
 
+#ifndef LV_NUTTX_LCD_FLUSH_STEREO_VERTICAL
+#ifdef CONFIG_LV_NUTTX_LCD_FLUSH_STEREO_VERTICAL
+#define LV_NUTTX_LCD_FLUSH_STEREO_VERTICAL CONFIG_LV_NUTTX_LCD_FLUSH_STEREO_VERTICAL
+#else
+#define LV_NUTTX_LCD_FLUSH_STEREO_VERTICAL 0 /**< 是否将上下堆叠双眼脏区折叠到单眼坐标系。 */
+#endif
+#endif
+
 /**********************
  *      TYPEDEFS
  **********************/

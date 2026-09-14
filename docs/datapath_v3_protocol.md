@@ -203,7 +203,7 @@ Unknown `biz` or unknown `cmd` returns `ErrCmdErr`.
 
 | cmd | Request `data` | ACK / NACK `data` |
 | --- | --- | --- |
-| `getAll` | `{}` | `{ "time": uint64, "timeConfig": { "time": string, "timestamp": uint64, "timezone": string, "userFormat": string }, "displayConfig": { "mode": uint8 }, "brightness": uint8, "autoBrightnessEnabled": uint8, "fontSize": uint8, "language": string, "homeunits": string[], "inactivityTimeout": uint16, "poweroffTimeout": uint16, "wearDetectionEnabled": uint8, "headGestureConfig": { "upEnabled": uint8, "downEnabled": uint8, "upDeg": int32, "downDeg": int32, "baseDeg": int32 }, "touchpadEnabled": uint8, "idleDetectionEnabled": uint8, "displayDistanceLevel": uint32, "keywordSpottingEnabled": uint8, "notificationEnabled": uint8 }` |
+| `getAll` | `{}` | `{ "time": uint64, "timeConfig": { "time": string, "timestamp": uint64, "timezone": string, "userFormat": string }, "displayConfig": { "mode": uint8 }, "brightness": uint8, "autoBrightnessEnabled": uint8, "fontSize": uint8, "language": string, "homeUnits": string[], "inactivityTimeout": uint16, "poweroffTimeout": uint16, "wearDetectionEnabled": uint8, "headGestureConfig": { "upEnabled": uint8, "downEnabled": uint8, "upDeg": int32, "downDeg": int32, "baseDeg": int32 }, "imuDoubleTapEnabled": uint8, "touchpadEnabled": uint8, "idleDetectionEnabled": uint8, "displayDistanceLevel": uint32, "keywordSpottingEnabled": uint8, "notificationEnabled": uint8 }` |
 | `setTime` | `{ "time": uint32 }` | NACK `{ "code": 12, "msg": string }` |
 | `getTimeConfig` | `{}` | NACK `{ "code": 12, "msg": string }` |
 | `setTimeConfig` | `{ "time": string, "timestamp": uint64, "timezone": string, "userFormat": string }`; `timezone` is optional | `{}` |
@@ -215,8 +215,8 @@ Unknown `biz` or unknown `cmd` returns `ErrCmdErr`.
 | `setRowSpace` | `{}` | NACK `{ "code": 12, "msg": string }` |
 | `getLanguage` | `{}` | `{ "language": string }` |
 | `setLanguage` | `{ "language": string }` | `{}` |
-| `getHomeUnits` | `{}` | `{ "homeunits": string[] }` |
-| `setHomeUnits` | `{ "homeunits": string[] }` | `{}` |
+| `getHomeUnits` | `{}` | `{ "homeUnits": string[] }` |
+| `setHomeUnits` | `{ "homeUnits": string[] }` | `{}` |
 | `getHomeMenuConfig` | `{}` | `{ "all": uint32[], "visible": uint32[], "selected": uint32 }` |
 | `setHomeMenuConfig` | `{ "visible": uint32[], "selected": uint32 }` | `{}`; `selected` must be included in `visible` |
 | `getDisplayConfig` | `{}` | NACK `{ "code": 12, "msg": string }` |
@@ -237,6 +237,8 @@ Unknown `biz` or unknown `cmd` returns `ErrCmdErr`.
 | `setWearDetectionEnabled` | `{ "wearDetectionEnabled": uint8 }` | `{}` |
 | `getAutoBrightnessEnabled` | `{}` | `{ "autoBrightnessEnabled": uint8 }` |
 | `setAutoBrightnessEnabled` | `{ "autoBrightnessEnabled": uint8 }` | `{}` |
+| `getImuDoubleTapEnabled` | `{}` | `{ "imuDoubleTapEnabled": uint8 }` |
+| `setImuDoubleTapEnabled` | `{ "imuDoubleTapEnabled": uint8 }` | `{}` |
 | `getTouchpadEnabled` | `{}` | `{ "touchpadEnabled": uint8 }` |
 | `setTouchpadEnabled` | `{ "touchpadEnabled": uint8 }` | `{}` |
 | `getIdleDetectionEnabled` | `{}` | `{ "idleDetectionEnabled": uint8 }` |
@@ -259,7 +261,10 @@ The Jytek home protocol units are `prompter(5)`, `translate(3)`, `transcribe(2)`
 | `setSysState` | `{ "sysState": uint8 }` | `{}` |
 | `getChargeState` | `{}` | `{ "chargeState": uint8 }` |
 | `getBattery` | `{}` | `{ "battery": uint8 }` |
+| `getAttachmentState` | `{}` | `{ "attachments": [{ "attachmentSide": uint8, "attachmentType": uint8 }] }` |
 | `getRomUsage` | `{}` | `{ "total": uint32, "used": uint32, "remaining": uint32 }` |
+
+`getAttachmentState.attachments` always contains one item for the master side and one for the slave side. It returns the most recently received attachment types cached in `jy_app` memory. See `onAttachmentTypeChanged` in [5.5 SystemInd](#55-systemind) for the `attachmentSide` and `attachmentType` values.
 
 `getRomUsage` reports the LFSD file system containing `/jyt_d`; all three capacity fields are measured in bytes.
 
@@ -273,6 +278,8 @@ The Jytek home protocol units are `prompter(5)`, `translate(3)`, `transcribe(2)`
 | `recovery` | `{}` | NACK `{ "code": 12, "msg": string }` |
 | `getView` | `{}` | `{ "view": string }` |
 | `setView` | `{ "viewName": string }` | `{}` |
+| `getScreenOnScope` | `{}` | `{ "scope": uint8 }` |
+| `setScreenOnScope` | `{ "scope": uint8 }` | `{}` |
 | `sendTouchEvent` | `{ "event": uint8 }` | `{}` |
 | `openGuide` | `{}` | `{}` |
 | `closeGuide` | `{}` | `{}` |
@@ -298,6 +305,14 @@ The Jytek home protocol units are `prompter(5)`, `translate(3)`, `transcribe(2)`
 | `0x05` | Swipe down |
 | `0x06` | Swipe left |
 | `0x07` | Swipe right |
+
+`getScreenOnScope` returns the current in-memory temporary screen-on scope. `setScreenOnScope.scope` changes only that in-memory state and does not change the persisted inactivity timeout configuration:
+
+| Value | Description |
+| --- | --- |
+| `0` | Disable temporary screen-on mode and restart the inactivity timer from now |
+| `1` | Keep the screen on within the current app; restore the inactivity timer after leaving the current app or phone disconnection |
+| `2` | Keep the screen on for the current phone connection; restore the inactivity timer after phone disconnection |
 
 Assistant text fields are defined in [6.6 Assistant Popup](#66-assistant-popup).
 
@@ -427,11 +442,7 @@ map(1) {
 | `closeTapMsgbox` | `{}` | `{}` |
 | `closeDownloadProgress` | `{}` | `{}` |
 
-The normal prompt and download progress use separate protocol entry points for both showing and closing, while sharing one prompt component and destruction path on the glasses; only one instance is active at a time. Progress for `showDownloadProgress` is supplied entirely by the phone. The glasses do not start a timer or increment it locally. Whenever progress changes, the phone should send another complete command with the current value, and the glasses update the active prompt in place.
-
-This protocol is supported only when `product.json` selects `"msgbox": "compact"`. Products selecting `classic` return `ErrNotReady` for all four commands above.
-
-While either prompt is visible, it intercepts input intended for the underlying page. Single- and double-clicks are reported through `SystemInd.onTouchEvent` as `event=1` and `event=2`. A normal prompt remains visible until the phone sends `closeTapMsgbox`; download progress remains visible until the phone sends `closeDownloadProgress`. Closing destroys the component and releases its memory. Repeated close commands succeed.
+Jytek does not support phone-controlled TapMsgbox prompts. All four commands above return `ErrNotReady`.
 
 ### 5.9 File
 
@@ -856,7 +867,7 @@ Assistant popup is routed under `SystemControl`:
 
 ## 7. Prompter
 
-Prompter uses `id=5` and routes by `cmd`. With `reportdoubleclick=true`, a double-click is reported through `SystemInd.onTouchEvent` with `event=2`. With `reportdoubleclick=false`, the glasses handle it locally: the compact implementation displays an exit confirmation dialog and exits only after confirmation, while the generic implementation exits the Prompter directly.
+Prompter uses `id=5` and routes by `cmd`. With `reportdoubleclick=true`, a double-click is reported through `SystemInd.onTouchEvent` with `event=2`. With `reportdoubleclick=false`, the glasses handle it locally and exit the Prompter directly.
 
 | cmd | Request `data` | Success ACK `data` |
 | --- | --- | --- |
@@ -868,7 +879,7 @@ Prompter uses `id=5` and routes by `cmd`. With `reportdoubleclick=true`, a doubl
 | `setTick` | `{ "tick": uint32 }` | `{}` |
 | `setState` | `{ "state": uint32 }`, `0` pause, `1` running | `{}` |
 
-The standard Prompter implementation supports the optional `seekTo.duration` field in milliseconds. When omitted or set to `0`, the view jumps directly to the target text position without animation. When greater than `0`, adjacent text windows that can be joined scroll for the requested duration; non-contiguous windows still jump directly. The compact implementation does not use this optional field.
+Prompter supports the optional `seekTo.duration` field in milliseconds. When omitted or set to `0`, the view jumps directly to the target text position without animation. When greater than `0`, adjacent text windows that can be joined scroll for the requested duration; non-contiguous windows still jump directly.
 
 `setFileListMenu`:
 

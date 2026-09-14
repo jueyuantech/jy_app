@@ -264,7 +264,7 @@ class UicTests(unittest.TestCase):
                         "label": {
                             "size": {"w": "100%", "h": "content"},
                             "font": {"weight": 32, "wordSpace": 1, "rowSpace": 2},
-                            "align": "center",
+                            "align": "left",
                             "overflow": "clip",
                         },
                         "selected_font": {"weight": 36},
@@ -296,6 +296,7 @@ class UicTests(unittest.TestCase):
         self.assertIn("document_roller_cfg.items = document_roller_items;", source)
         self.assertIn("document_roller_cfg.count = 2;", source)
         self.assertIn("document_roller_cfg.label.w = LV_PCT(100);", source)
+        self.assertIn("document_roller_cfg.label.align = LABEL_ALIGN_LEFT;", source)
         self.assertIn("document_roller_cfg.label.font.weight = 32;", source)
         self.assertIn("document_roller_cfg.selected_font.weight = 36;", source)
         self.assertIn("document_roller_cfg.overflow_mode = ROLLER_OVERFLOW_EXPAND_HEIGHT;", source)

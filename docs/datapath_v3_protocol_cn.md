@@ -203,7 +203,7 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 
 | cmd | 请求 `data` | ACK / NACK `data` |
 | --- | --- | --- |
-| `getAll` | `{}` | `{ "time": uint64, "timeConfig": { "time": string, "timestamp": uint64, "timezone": string, "userFormat": string }, "displayConfig": { "mode": uint8 }, "brightness": uint8, "autoBrightnessEnabled": uint8, "fontSize": uint8, "language": string, "homeunits": string[], "inactivityTimeout": uint16, "poweroffTimeout": uint16, "wearDetectionEnabled": uint8, "headGestureConfig": { "upEnabled": uint8, "downEnabled": uint8, "upDeg": int32, "downDeg": int32, "baseDeg": int32 }, "touchpadEnabled": uint8, "idleDetectionEnabled": uint8, "displayDistanceLevel": uint32, "keywordSpottingEnabled": uint8, "notificationEnabled": uint8 }` |
+| `getAll` | `{}` | `{ "time": uint64, "timeConfig": { "time": string, "timestamp": uint64, "timezone": string, "userFormat": string }, "displayConfig": { "mode": uint8 }, "brightness": uint8, "autoBrightnessEnabled": uint8, "fontSize": uint8, "language": string, "homeUnits": string[], "inactivityTimeout": uint16, "poweroffTimeout": uint16, "wearDetectionEnabled": uint8, "headGestureConfig": { "upEnabled": uint8, "downEnabled": uint8, "upDeg": int32, "downDeg": int32, "baseDeg": int32 }, "imuDoubleTapEnabled": uint8, "touchpadEnabled": uint8, "idleDetectionEnabled": uint8, "displayDistanceLevel": uint32, "keywordSpottingEnabled": uint8, "notificationEnabled": uint8 }` |
 | `setTime` | `{ "time": uint32 }` | NACK `{ "code": 12, "msg": string }` |
 | `getTimeConfig` | `{}` | NACK `{ "code": 12, "msg": string }` |
 | `setTimeConfig` | `{ "time": string, "timestamp": uint64, "timezone": string, "userFormat": string }`；`timezone` 可缺省 | `{}` |
@@ -215,8 +215,8 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 | `setRowSpace` | `{}` | NACK `{ "code": 12, "msg": string }` |
 | `getLanguage` | `{}` | `{ "language": string }` |
 | `setLanguage` | `{ "language": string }` | `{}` |
-| `getHomeUnits` | `{}` | `{ "homeunits": string[] }` |
-| `setHomeUnits` | `{ "homeunits": string[] }` | `{}` |
+| `getHomeUnits` | `{}` | `{ "homeUnits": string[] }` |
+| `setHomeUnits` | `{ "homeUnits": string[] }` | `{}` |
 | `getHomeMenuConfig` | `{}` | `{ "all": uint32[], "visible": uint32[], "selected": uint32 }` |
 | `setHomeMenuConfig` | `{ "visible": uint32[], "selected": uint32 }` | `{}`；`selected` 必须包含在 `visible` 中 |
 | `getDisplayConfig` | `{}` | NACK `{ "code": 12, "msg": string }` |
@@ -237,6 +237,8 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 | `setWearDetectionEnabled` | `{ "wearDetectionEnabled": uint8 }` | `{}` |
 | `getAutoBrightnessEnabled` | `{}` | `{ "autoBrightnessEnabled": uint8 }` |
 | `setAutoBrightnessEnabled` | `{ "autoBrightnessEnabled": uint8 }` | `{}` |
+| `getImuDoubleTapEnabled` | `{}` | `{ "imuDoubleTapEnabled": uint8 }` |
+| `setImuDoubleTapEnabled` | `{ "imuDoubleTapEnabled": uint8 }` | `{}` |
 | `getTouchpadEnabled` | `{}` | `{ "touchpadEnabled": uint8 }` |
 | `setTouchpadEnabled` | `{ "touchpadEnabled": uint8 }` | `{}` |
 | `getIdleDetectionEnabled` | `{}` | `{ "idleDetectionEnabled": uint8 }` |
@@ -259,7 +261,10 @@ Jytek 首页协议单元为 `prompter(5)`、`translate(3)`、`transcribe(2)`、`
 | `setSysState` | `{ "sysState": uint8 }` | `{}` |
 | `getChargeState` | `{}` | `{ "chargeState": uint8 }` |
 | `getBattery` | `{}` | `{ "battery": uint8 }` |
+| `getAttachmentState` | `{}` | `{ "attachments": [{ "attachmentSide": uint8, "attachmentType": uint8 }] }` |
 | `getRomUsage` | `{}` | `{ "total": uint32, "used": uint32, "remaining": uint32 }` |
+
+`getAttachmentState.attachments` 固定包含主侧和从侧两项，返回 `jy_app` 最近一次收到并保存在内存中的附件类型。`attachmentSide` 与 `attachmentType` 的取值见 [5.5 SystemInd](#55-systemind) 的 `onAttachmentTypeChanged` 定义。
 
 `getRomUsage` 统计 `/jyt_d` 所在 LFSD 文件系统，三个容量字段的单位均为字节。
 
@@ -273,6 +278,8 @@ Jytek 首页协议单元为 `prompter(5)`、`translate(3)`、`transcribe(2)`、`
 | `recovery` | `{}` | NACK `{ "code": 12, "msg": string }` |
 | `getView` | `{}` | `{ "view": string }` |
 | `setView` | `{ "viewName": string }` | `{}` |
+| `getScreenOnScope` | `{}` | `{ "scope": uint8 }` |
+| `setScreenOnScope` | `{ "scope": uint8 }` | `{}` |
 | `sendTouchEvent` | `{ "event": uint8 }` | `{}` |
 | `openGuide` | `{}` | `{}` |
 | `closeGuide` | `{}` | `{}` |
@@ -298,6 +305,14 @@ Jytek 首页协议单元为 `prompter(5)`、`translate(3)`、`transcribe(2)`、`
 | `0x05` | 下滑 |
 | `0x06` | 左滑 |
 | `0x07` | 右滑 |
+
+`getScreenOnScope` 返回当前内存中的临时常亮范围。`setScreenOnScope.scope` 仅修改该内存状态，不修改持久化的无操作灭屏配置：
+
+| 值 | 说明 |
+| --- | --- |
+| `0` | 关闭临时常亮，并从当前时刻重新起算无操作灭屏时间 |
+| `1` | 当前 App 内临时常亮；离开当前 App 或手机断连时恢复无操作灭屏 |
+| `2` | 本次手机连接内临时常亮；手机断连时恢复无操作灭屏 |
 
 Assistant 的文本字段见 [6.6 Assistant Popup](#66-assistant-popup)。
 
@@ -427,11 +442,7 @@ map(1) {
 | `closeTapMsgbox` | `{}` | `{}` |
 | `closeDownloadProgress` | `{}` | `{}` |
 
-普通提示框和下载进度的显示、关闭均使用各自的协议入口，但在眼镜端复用同一个提示框组件和销毁逻辑，同一时刻只保留一个实例。`showDownloadProgress` 的进度完全由手机端提供，眼镜端不启动定时器，也不自行递增；手机应在进度变化时重复下发包含完整当前进度的命令，眼镜端原地刷新。
-
-仅 `product.json` 选择 `"msgbox": "compact"` 的产品支持本协议；选择 `classic` 的产品对上述四个命令均返回 `ErrNotReady`。
-
-提示框显示期间，眼镜会拦截底层页面输入。单击、双击分别通过 `SystemInd.onTouchEvent` 上报 `event=1`、`event=2`。普通提示框保持显示，直到手机下发 `closeTapMsgbox`；下载进度保持显示，直到手机下发 `closeDownloadProgress`。关闭会直接销毁组件并释放内存，重复关闭按成功处理。
+Jytek 不支持手机端控制的 TapMsgbox 提示框，上述四个命令均返回 `ErrNotReady`。
 
 ### 5.9 File
 
@@ -856,7 +867,7 @@ Assistant popup 挂在 `SystemControl` 下：
 
 ## 7. Prompter
 
-Prompter 使用 `id=5`，按 `cmd` 路由。配置 `reportdoubleclick=true` 时，双击通过 `SystemInd.onTouchEvent` 上报 `event=2`；配置为 `false` 时由眼镜端处理，紧凑实现显示本地退出确认框并在确认后退出，通用实现直接退出提词器。
+Prompter 使用 `id=5`，按 `cmd` 路由。配置 `reportdoubleclick=true` 时，双击通过 `SystemInd.onTouchEvent` 上报 `event=2`；配置为 `false` 时由眼镜端处理并直接退出提词器。
 
 | cmd | 请求 `data` | 成功 ACK `data` |
 | --- | --- | --- |
@@ -868,7 +879,7 @@ Prompter 使用 `id=5`，按 `cmd` 路由。配置 `reportdoubleclick=true` 时�
 | `setTick` | `{ "tick": uint32 }` | `{}` |
 | `setState` | `{ "state": uint32 }`，`0` 暂停，`1` 运行 | `{}` |
 
-Prompter 实现支持可选的 `seekTo.duration`，单位毫秒。省略或传 `0` 时不播放滚动动画，直接跳转到目标文本位置；传入大于 `0` 的值时，相邻且可连续拼接的文本窗口按指定时长滚动，无法连续拼接时仍直接跳转。紧凑实现不使用该可选字段。
+Prompter 支持可选的 `seekTo.duration`，单位毫秒。省略或传 `0` 时不播放滚动动画，直接跳转到目标文本位置；传入大于 `0` 的值时，相邻且可连续拼接的文本窗口按指定时长滚动，无法连续拼接时仍直接跳转。
 
 `setFileListMenu`：
 

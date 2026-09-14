@@ -67,7 +67,6 @@ typedef enum {
 #define SPEECH_FUNCTION_MENU_ITEM_HEIGHT 64
 #define SPEECH_FUNCTION_MENU_ITEM_GAP 8
 #define SPEECH_FUNCTION_MENU_SIDE_PADDING 20
-#define SPEECH_FUNCTION_MENU_SELECTED_RADIUS 12
 #define SPEECH_FUNCTION_MENU_SELECTED_BORDER 2
 #define SPEECH_FUNCTION_MENU_NORMAL_OPA LV_OPA_60
 
@@ -402,7 +401,6 @@ static void speech_function_menu_apply_roller_cfg(speech_view_context_t* ctx) {
     cfg.row_height = SPEECH_FUNCTION_MENU_ITEM_HEIGHT;
     cfg.row_gap = SPEECH_FUNCTION_MENU_ITEM_GAP;
     cfg.selected_pad_ver = 0;
-    cfg.radius = SPEECH_FUNCTION_MENU_SELECTED_RADIUS;
     cfg.border_width = SPEECH_FUNCTION_MENU_SELECTED_BORDER;
     cfg.opa_normal = SPEECH_FUNCTION_MENU_NORMAL_OPA;
     cfg.opa_selected = LV_OPA_COVER;
@@ -1285,16 +1283,19 @@ void speech_activate_language_hint(void) {
 
 bool speech_set_state(uint8_t state) {
     speech_view_context_t* ctx = &s_speech_context;
+    const speech_app_profile_t* profile = speech_config(ctx);
+    bool is_translate = profile != NULL && profile->config_name != NULL &&
+                        strcmp(profile->config_name, "translate") == 0;
     const char* text_key = NULL;
     bool kws_intercepted = false;
 
     switch (state) {
     case SPEECH_STATE_PAUSED:
-        text_key = "TRANSCRIBE_TAP_START";
+        text_key = is_translate ? "TRANSLATE_TAP_START" : "TRANSCRIBE_TAP_START";
         kws_intercepted = false;
         break;
     case SPEECH_STATE_STARTED:
-        text_key = "TRANSCRIBE_TAP_PAUSE";
+        text_key = is_translate ? "TRANSLATE_TAP_PAUSE" : "TRANSCRIBE_TAP_PAUSE";
         kws_intercepted = true;
         break;
     default:

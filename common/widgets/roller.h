@@ -38,7 +38,7 @@ typedef enum {
 typedef struct {
     const char** items;                  ///< 初始选项文本数组。
     uint32_t count;                      ///< 初始选项数量。
-    label_cfg_t label;                   ///< 内部文本默认配置。
+    label_cfg_t label;                   ///< 内部文本配置；align 控制所有选项的对齐方式，默认居中。
     app_font_info_t selected_font;        ///< 当前项字体信息；字号为 0 时沿用 `label.font`。
     roller_overflow_mode_t overflow_mode;///< 当前项文本溢出处理方式。
     int32_t row_height;                  ///< 每一行的固定高度；小于等于 0 时按字体行高自动计算。

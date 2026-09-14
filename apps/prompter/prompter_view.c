@@ -56,10 +56,10 @@ static uint32_t s_menu_count = 0;                      ///< 当前文件列表�
 static uint32_t s_menu_selected_index = 0;             ///< 当前文件列表菜单选中索引。
 static bool s_menu_received = false;                   ///< 是否已收到手机端文件列表消息。
 
-static char* s_file_buf = NULL;
-/* 记录当前缓存页在源文件中的起点和长度，用于跳过重复文件读取。 */
-static uint32_t s_page_offset = 0;
-static uint32_t s_page_len = 0;
+static void* s_file_handle = NULL; ///< 页面生命周期内复用的提词文件句柄。
+static char* s_file_buf = NULL;    ///< 当前显示区间的提词正文缓存。
+static uint32_t s_page_offset = 0; ///< 当前正文缓存区间在源文件中的起点。
+static uint32_t s_page_len = 0;    ///< 当前正文缓存区间的有效字节数。
 static prompter_external_view_t s_last_external_view = {0}; ///< 上一次 seekTo 的逻辑窗口。
 static bool s_last_external_view_valid = false;             ///< 是否已有可用于滚动的上一帧。
 static char s_file_path[SYSTEM_MAX_PATH_LEN] = {0};
@@ -88,6 +88,10 @@ static void free_page_buffer(void) {
  * @return 无返回值。
  */
 static void clear_file_state(void) {
+    if (s_file_handle != NULL) {
+        floatair_fs_close(s_file_handle);
+        s_file_handle = NULL;
+    }
     free_page_buffer();
     memset(&s_last_external_view, 0, sizeof(s_last_external_view));
     s_last_external_view_valid = false;
@@ -518,7 +522,7 @@ static bool prompter_external_view_can_animate(const prompter_external_view_t* p
 }
 
 /**
- * @brief 从当前提词文件读取指定字节区间。
+ * @brief 从已打开的提词文件读取指定字节区间。
  * @param offset 文件起始字节偏移。
  * @param length 读取字节数。
  * @param out_buf 输出以 NUL 结尾的文本缓冲区。
@@ -526,30 +530,22 @@ static bool prompter_external_view_can_animate(const prompter_external_view_t* p
  */
 static bool prompter_read_text_range(uint32_t offset, uint32_t length, char** out_buf) {
     uint32_t br = 0;
-    void* fh = NULL;
     char* buf = NULL;
 
-    if (out_buf == NULL || length == 0) {
+    if (out_buf == NULL || length == 0 || s_file_handle == NULL) {
         return false;
     }
     *out_buf = NULL;
-    buf = (char*)malloc(length + 1);
+    buf = (char*)malloc((size_t)length + 1U);
     if (buf == NULL) {
         return false;
     }
-    fh = floatair_fs_open(s_file_path, FLOATAIR_FS_MODE_RD);
-    if (fh == NULL) {
-        free(buf);
-        return false;
-    }
-    if (floatair_fs_seek(fh, (int32_t)offset, SEEK_SET) != FLOATAIR_FS_OK ||
-        floatair_fs_read(fh, buf, length, &br) != FLOATAIR_FS_OK ||
+    if (floatair_fs_seek(s_file_handle, (int32_t)offset, SEEK_SET) != FLOATAIR_FS_OK ||
+        floatair_fs_read(s_file_handle, buf, length, &br) != FLOATAIR_FS_OK ||
         br != length) {
-        floatair_fs_close(fh);
         free(buf);
         return false;
     }
-    floatair_fs_close(fh);
     buf[length] = '\0';
     *out_buf = buf;
     return true;
@@ -683,6 +679,7 @@ void prompter_text_apply_external_view(const prompter_external_view_t* view) {
  */
 bool prompter_text_set_file(const char* path) {
     floatair_stat_t st = {0};
+    void* file_handle = NULL;
 
     if (!path) {
         floatair_err("prompter set file path is NULL");
@@ -701,7 +698,13 @@ bool prompter_text_set_file(const char* path) {
         return false;
     }
 
+    file_handle = floatair_fs_open(path, FLOATAIR_FS_MODE_RD);
+    if (file_handle == NULL) {
+        floatair_err("prompter file open failed: %s", path);
+        return false;
+    }
     clear_file_state();
+    s_file_handle = file_handle;
     snprintf(s_file_path, sizeof(s_file_path), "%s", path);
     s_file_size = st.size;
     prompter_update_progress_by_offset(0);

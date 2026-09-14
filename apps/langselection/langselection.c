@@ -18,11 +18,13 @@
 #include "i18n.h"
 #include "message.h"
 #include "common/widgets/roller.h"
+#include "common/widgets/img.h"
 #include "system/system.h"
 #include "system/system_config_json.h"
 #include "system/system_def.h"
 #include "system/system_res.h"
 #include "system/system_runtime_ui.h"
+#include "ui_res.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,8 +35,11 @@
 #define LANG_SELECTION_ROLLER_WIDTH LV_PCT(80)      ///< 语言滚轮宽度。
 #define LANG_SELECTION_ROLLER_ROW_HEIGHT 56         ///< 语言滚轮单行高度。
 #define LANG_SELECTION_ROLLER_ROW_GAP 18            ///< 语言滚轮行间距。
-#define LANG_SELECTION_ROLLER_RADIUS 10             ///< 语言滚轮选中框圆角。
 #define LANG_SELECTION_NOTICE_BOTTOM 8              ///< 底部操作提示文案下边距。
+#define LANG_SELECTION_GESTURE_WIDTH 120            ///< 镜腿滑动示意图宽度。
+#define LANG_SELECTION_GESTURE_HEIGHT 35            ///< 镜腿示意图原生高度，与 SVG 一致。
+#define LANG_SELECTION_GESTURE_GAP 10               ///< 示意图与下方文字的间距。
+#define LANG_SELECTION_ROLLER_GUIDE_OFFSET (-64)     ///< 有手势图时上移滚轮，避免遮挡。
 #define LANG_SELECTION_JSON_SUFFIX ".json"          ///< 语言资源文件后缀。
 
 static const char* s_lang_list[] = {
@@ -301,13 +306,12 @@ static void langselection_page_create(lv_obj_t* root, const app_page_data_t* dat
     roller_cfg = roller_default_cfg();
     roller_cfg.items = lang_items;
     roller_cfg.count = (uint32_t)s_lang_count;
-    roller_cfg.label.font.weight = 20;
-    roller_cfg.selected_font.weight = 36;
+    roller_cfg.label.font.weight = get_system_font_size();
+    roller_cfg.selected_font.weight = roller_cfg.label.font.weight;
     roller_cfg.overflow_mode = ROLLER_OVERFLOW_EXPAND_HEIGHT;
     roller_cfg.row_height = LANG_SELECTION_ROLLER_ROW_HEIGHT;
     roller_cfg.row_gap = LANG_SELECTION_ROLLER_ROW_GAP;
     roller_cfg.selected_pad_ver = 4;
-    roller_cfg.radius = LANG_SELECTION_ROLLER_RADIUS;
     s_lang_roller = roller_create(s_lang_cont, &roller_cfg);
     for (int i = 0; i < s_lang_count; i++) {
         if (lang_item_allocs[i] != NULL) {
@@ -342,6 +346,22 @@ static void langselection_page_create(lv_obj_t* root, const app_page_data_t* dat
     lv_label_set_text(s_setting_notice, app_get_str("SETTING_NOTICE"));
 
     update_lang_notice();
+#ifdef UI_RES_IMAGE_GUIDE_LANGUAGE
+    /* 使用目标尺寸资源，不对分块解码的 JPG 做运行时缩放。 */
+    img_cfg_t gesture_cfg = img_default_cfg();
+    img_t* gesture = NULL;
+    gesture_cfg.src = UI_RES_IMAGE_GUIDE_LANGUAGE;
+    gesture_cfg.w = LANG_SELECTION_GESTURE_WIDTH;
+    gesture_cfg.h = LANG_SELECTION_GESTURE_HEIGHT;
+    gesture_cfg.align = LV_IMAGE_ALIGN_CENTER;
+    gesture = img_create(s_lang_cont, &gesture_cfg);
+    floatair_assert(gesture != NULL, "lang gesture image missing");
+    lv_obj_align(roller_obj, LV_ALIGN_CENTER, 0, LANG_SELECTION_ROLLER_GUIDE_OFFSET);
+    lv_obj_update_layout(s_lang_cont);
+    lv_obj_align(ui_widget_get_obj(UI_WIDGET(gesture)), LV_ALIGN_BOTTOM_MID, 0,
+                 -(LANG_SELECTION_NOTICE_BOTTOM + lv_obj_get_height(s_setting_notice)
+                   + LANG_SELECTION_GESTURE_GAP));
+#endif
 }
 
 static void langselection_page_appear(lv_obj_t* root) {

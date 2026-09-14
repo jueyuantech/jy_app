@@ -140,7 +140,13 @@ static void rounder_cb(lv_event_t * e)
 }
 
 #if LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
-static void lcd_join_flush_area(lv_nuttx_lcd_t * lcd, const lv_area_t * area)
+/**
+ * @brief 将一个脏区合并到当前刷新帧的外接矩形。
+ * @param[in,out] lcd NuttX LCD 驱动上下文。
+ * @param[in] area 已转换到 LCD 逻辑坐标系的脏区。
+ * @return 无返回值。
+ */
+static void lcd_merge_flush_area(lv_nuttx_lcd_t * lcd, const lv_area_t * area)
 {
     if(lcd == NULL || area == NULL) {
         return;
@@ -152,7 +158,50 @@ static void lcd_join_flush_area(lv_nuttx_lcd_t * lcd, const lv_area_t * area)
         return;
     }
 
-    lv_area_join(&lcd->flush_area, &lcd->flush_area, area);
+    lcd->flush_area.x1 = LV_MIN(lcd->flush_area.x1, area->x1);
+    lcd->flush_area.y1 = LV_MIN(lcd->flush_area.y1, area->y1);
+    lcd->flush_area.x2 = LV_MAX(lcd->flush_area.x2, area->x2);
+    lcd->flush_area.y2 = LV_MAX(lcd->flush_area.y2, area->y2);
+}
+
+/**
+ * @brief 记录 LVGL 脏区；双眼上下堆叠时先折叠到单眼坐标系。
+ * @param[in,out] lcd NuttX LCD 驱动上下文。
+ * @param[in] area LVGL framebuffer 坐标系中的脏区。
+ * @return 无返回值。
+ */
+static void lcd_join_flush_area(lv_nuttx_lcd_t * lcd, const lv_area_t * area)
+{
+#if LV_NUTTX_LCD_FLUSH_STEREO_VERTICAL
+    int32_t ver_res;
+    int32_t eye_height;
+    lv_area_t folded;
+
+    if(lcd == NULL || lcd->disp == NULL || area == NULL) {
+        return;
+    }
+
+    ver_res = lv_display_get_vertical_resolution(lcd->disp);
+    eye_height = ver_res / 2;
+    if(eye_height > 0 && eye_height * 2 == ver_res) {
+        if(area->y1 < eye_height) {
+            folded = *area;
+            folded.y2 = LV_MIN(folded.y2, eye_height - 1);
+            lcd_merge_flush_area(lcd, &folded);
+        }
+
+        if(area->y2 >= eye_height) {
+            folded = *area;
+            folded.y1 = LV_MAX(folded.y1, eye_height);
+            folded.y2 = LV_MIN(folded.y2, ver_res - 1);
+            lv_area_move(&folded, 0, -eye_height);
+            lcd_merge_flush_area(lcd, &folded);
+        }
+        return;
+    }
+#endif
+
+    lcd_merge_flush_area(lcd, area);
 }
 
 static void lcd_clip_flush_area(lv_area_t * area, int32_t hor_res, int32_t ver_res)

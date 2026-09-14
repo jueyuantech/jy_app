@@ -59,17 +59,6 @@ bool home_unit_activate(const app_home_unit_t* unit);
 bool home_app_register(void);
 
 /**
- * @brief Get play audio switch
- * @return true enabled; false disabled
- */
-bool home_get_play_audio(void);
-/**
- * @brief Set play audio switch
- * @param[in] play switch value
- */
-void home_set_play_audio(bool play);
-
-/**
  * @brief 获取 Home 页面描述符。
  * @return 返回 Home 页面描述符。
  */

@@ -92,6 +92,38 @@ static bool system_systemstatus_getbattery(mpack_node_t node, msg_pack_t* msg) {
     return app_mpack_send_writer(writer);
 }
 
+/**
+ * @brief 获取主从两侧最近一次收到的附件类型快照。
+ * @param[in] node 消息数据节点，当前未使用。
+ * @param[in] msg 原始消息包，用于回复 ACK。
+ * @return `true` 表示回包发送成功，`false` 表示发送失败。
+ */
+static bool system_systemstatus_getattachmentstate(mpack_node_t node, msg_pack_t* msg) {
+    system_attachment_snapshot_t snapshot = {0};
+    msg_pack_writer_t* writer = NULL;
+
+    (void)node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    system_get_attachment_state(&snapshot);
+
+    writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
+    floatair_assert(writer != NULL, "writer err");
+    mpack_start_map(&writer->writer, 1);
+    mpack_write_cstr(&writer->writer, "attachments");
+    mpack_start_array(&writer->writer, SYSTEM_ATTACHMENT_SIDE_COUNT);
+    for (uint8_t side = 0; side < SYSTEM_ATTACHMENT_SIDE_COUNT; side++) {
+        mpack_start_map(&writer->writer, 2);
+        mpack_write_cstr(&writer->writer, "attachmentSide");
+        mpack_write_u8(&writer->writer, side);
+        mpack_write_cstr(&writer->writer, "attachmentType");
+        mpack_write_u8(&writer->writer, snapshot.type_by_side[side]);
+        mpack_finish_map(&writer->writer);
+    }
+    mpack_finish_array(&writer->writer);
+    mpack_finish_map(&writer->writer);
+    return app_mpack_send_writer(writer);
+}
+
 static bool system_systemstatus_getromusage(mpack_node_t node, msg_pack_t* msg) {
     floatair_fs_usage_t usage = {0};
 
@@ -120,6 +152,7 @@ app_cmd_func_t system_systemstatus_cmd_funcs[] = {
     {"setSysState", system_systemstatus_setsysstate},
     {"getChargeState", system_systemstatus_getchargestate},
     {"getBattery", system_systemstatus_getbattery},
+    {"getAttachmentState", system_systemstatus_getattachmentstate},
     {"getRomUsage", system_systemstatus_getromusage}};
 const size_t system_systemstatus_cmd_funcs_count =
     sizeof(system_systemstatus_cmd_funcs) / sizeof(system_systemstatus_cmd_funcs[0]);

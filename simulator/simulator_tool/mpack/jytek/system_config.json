@@ -132,7 +132,7 @@
         "biz": "SystemConfig",
         "cmd": "setHomeUnits",
         "data": {
-            "homeunits": [
+            "homeUnits": [
                 "monitor",
                 "translate",
                 "prompter"

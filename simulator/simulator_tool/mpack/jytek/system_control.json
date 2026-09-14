@@ -10,6 +10,38 @@
     },
     {
         "biz": "SystemControl",
+        "cmd": "getScreenOnScope",
+        "data": {},
+        "id": 0,
+        "name": "获取临时常亮范围",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "setScreenOnScope",
+        "data": { "scope": 0 },
+        "id": 0,
+        "name": "关闭临时常亮",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "setScreenOnScope",
+        "data": { "scope": 1 },
+        "id": 0,
+        "name": "当前应用内常亮",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
+        "cmd": "setScreenOnScope",
+        "data": { "scope": 2 },
+        "id": 0,
+        "name": "本次连接内常亮",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemControl",
         "cmd": "factoryReset",
         "data": {
         },

@@ -284,7 +284,7 @@ class PreviewRuntimeTests(unittest.TestCase):
         self.assertEqual(preview_runtime.opa_value("60%"), 153)
 
     def test_roller_preview_defaults_match_widget_defaults(self):
-        self.assertEqual(preview_runtime.ROLLER_DEFAULT_RADIUS, 16)
+        self.assertEqual(preview_runtime.ROLLER_DEFAULT_RADIUS, 12)
         self.assertEqual(preview_runtime.ROLLER_DEFAULT_BORDER_WIDTH, 2)
         self.assertEqual(preview_runtime.ROLLER_DEFAULT_NORMAL_OPA, 178)
         self.assertEqual(preview_runtime.ROLLER_DEFAULT_SELECTED_OPA, 255)

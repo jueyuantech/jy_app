@@ -558,6 +558,8 @@ static void system_runtime_state_refresh_btconn_state(bool connected) {
 
     g_bt_connected = connected;
     if (changed && !connected) {
+        app_sleep_timer_restore_screen_on_scope(
+            APP_SLEEP_SCREEN_ON_RESTORE_DISCONNECTED);
         system_runtime_state_clear_disconnected_host_data();
     }
     if (floatair_lcd_is_off()) {

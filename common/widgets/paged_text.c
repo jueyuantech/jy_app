@@ -31,6 +31,9 @@ struct paged_text_t {
     uint32_t page_count;               ///< 当前总页数。
     uint32_t current_page_idx;         ///< 当前页索引，从 0 开始。
     uint32_t lines_per_page;           ///< 当前每页可显示整行数。
+    int32_t view_width;                 ///< 最近一次已完成布局的视口宽度。
+    int32_t view_height;                ///< 最近一次已完成布局的视口高度。
+    int32_t text_content_width;         ///< 最近一次已完成布局的文本内容宽度。
 };
 
 /**
@@ -72,6 +75,22 @@ static void paged_text_set_label_y(void* obj, int32_t y) {
     lv_obj_set_y((lv_obj_t*)obj, (lv_coord_t)y);
 }
 
+/**
+ * @brief 动画到期时强制落到目标位置，并保留一次最终画面的重绘请求。
+ * @param anim 已完成的 LVGL 动画描述。
+ * @return 无返回值。
+ */
+static void paged_text_visible_text_animation_completed(lv_anim_t* anim) {
+    lv_obj_t* label_obj = anim != NULL ? (lv_obj_t*)anim->var : NULL;
+
+    if (label_obj == NULL || !lv_obj_is_valid(label_obj)) {
+        return;
+    }
+
+    lv_obj_set_y(label_obj, (lv_coord_t)anim->end_value);
+    lv_obj_invalidate(label_obj);
+}
+
 static void paged_text_stop_visible_text_animation(paged_text_t* paged_text) {
     lv_obj_t* label_obj = NULL;
 
@@ -83,6 +102,25 @@ static void paged_text_stop_visible_text_animation(paged_text_t* paged_text) {
     (void)lv_anim_delete(label_obj, paged_text_set_label_y);
 }
 
+/**
+ * @brief 在修改正文前同步并缓存分页文本组件的有效几何尺寸。
+ * @param[in] paged_text 目标分页文本组件。
+ * @return 无返回值。
+ */
+static void paged_text_refresh_geometry(paged_text_t* paged_text) {
+    lv_obj_t* label_obj = NULL;
+
+    if (!paged_text_handle_is_valid(paged_text)) {
+        return;
+    }
+
+    label_obj = label_get_obj(paged_text->label);
+    lv_obj_update_layout(paged_text->base.obj);
+    paged_text->view_width = (int32_t)lv_obj_get_width(paged_text->base.obj);
+    paged_text->view_height = (int32_t)lv_obj_get_height(paged_text->base.obj);
+    paged_text->text_content_width = (int32_t)lv_obj_get_content_width(label_obj);
+}
+
 static void paged_text_restore_label_view_height(paged_text_t* paged_text) {
     lv_obj_t* label_obj = NULL;
     int32_t view_height = 0;
@@ -92,8 +130,8 @@ static void paged_text_restore_label_view_height(paged_text_t* paged_text) {
     }
 
     label_obj = label_get_obj(paged_text->label);
-    lv_obj_update_layout(paged_text->base.obj);
-    view_height = lv_obj_get_height(paged_text->base.obj) - paged_text->text_inset * 2;
+    paged_text_refresh_geometry(paged_text);
+    view_height = paged_text->view_height - paged_text->text_inset * 2;
     lv_obj_set_height(label_obj, (lv_coord_t)LV_MAX(view_height, 1));
 }
 
@@ -536,12 +574,37 @@ static void paged_text_on_delete(lv_event_t* e) {
 static void paged_text_on_size_changed(lv_event_t* e) {
     lv_obj_t* obj = lv_event_get_target(e);
     paged_text_t* paged_text = (paged_text_t*)lv_obj_get_user_data(obj);
+    lv_obj_t* label_obj = NULL;
 
     if (paged_text == NULL) {
         return;
     }
 
+    label_obj = label_get_obj(paged_text->label);
+    paged_text->view_width = (int32_t)lv_obj_get_width(obj);
+    paged_text->view_height = (int32_t)lv_obj_get_height(obj);
+    if (label_obj != NULL && lv_obj_is_valid(label_obj)) {
+        paged_text->text_content_width = (int32_t)lv_obj_get_content_width(label_obj);
+    }
     paged_text_refresh(paged_text);
+}
+
+/**
+ * @brief 根对象样式变化时使几何缓存失效。
+ * @param[in] e LVGL 事件对象。
+ * @return 无返回值。
+ */
+static void paged_text_on_style_changed(lv_event_t* e) {
+    lv_obj_t* obj = lv_event_get_target(e);
+    paged_text_t* paged_text = (paged_text_t*)lv_obj_get_user_data(obj);
+
+    if (paged_text == NULL) {
+        return;
+    }
+
+    paged_text->view_width = 0;
+    paged_text->view_height = 0;
+    paged_text->text_content_width = 0;
 }
 
 /**
@@ -660,6 +723,8 @@ paged_text_t* paged_text_create(lv_obj_t* parent, const paged_text_cfg_t* cfg) {
         return NULL;
     }
     paged_text_refresh(paged_text);
+    paged_text_refresh_geometry(paged_text);
+    lv_obj_add_event_cb(root, paged_text_on_style_changed, LV_EVENT_STYLE_CHANGED, NULL);
 
     return paged_text;
 }
@@ -688,6 +753,8 @@ void paged_text_set_text(paged_text_t* paged_text, const char* text) {
  * @return 无返回值。
  */
 void paged_text_set_visible_text(paged_text_t* paged_text, const char* text) {
+    lv_obj_t* label_obj = NULL;
+
     if (!paged_text_handle_is_valid(paged_text)) {
         return;
     }
@@ -700,8 +767,90 @@ void paged_text_set_visible_text(paged_text_t* paged_text, const char* text) {
     paged_text->lines_per_page = 1;
     paged_text_clear_offsets(paged_text);
     (void)paged_text_append_page(paged_text, 0, paged_text->source_text_len);
+    label_obj = label_get_obj(paged_text->label);
     label_set_text(paged_text->label, paged_text->source_text);
-    lv_obj_set_y(label_get_obj(paged_text->label), (lv_coord_t)paged_text->text_inset);
+    lv_obj_set_y(label_obj, (lv_coord_t)paged_text->text_inset);
+}
+
+/**
+ * @brief 在一次换行扫描中计算两个 UTF-8 字节偏移对应的纵坐标。
+ *
+ * Prompter 只使用字符纵坐标驱动滚动，因此直接按字节偏移扫描行边界，避免
+ * `字节偏移 -> 字符索引 -> 字节偏移` 转换以及两次完整的字符位置查询。
+ *
+ * @param[in] label_obj 内部 LVGL 文本对象。
+ * @param[in] text 当前窗口文本。
+ * @param[in] text_len 当前窗口文本字节数。
+ * @param[in] first_offset 第一个 UTF-8 字节偏移。
+ * @param[in] second_offset 第二个 UTF-8 字节偏移。
+ * @param[in] max_width 已完成布局的文本内容宽度。
+ * @param[out] first_y 第一个偏移所在行的纵坐标。
+ * @param[out] second_y 第二个偏移所在行的纵坐标。
+ * @return 无返回值。
+ */
+static void paged_text_get_offset_pair_y(lv_obj_t* label_obj,
+                                         const char* text,
+                                         uint32_t text_len,
+                                         uint32_t first_offset,
+                                         uint32_t second_offset,
+                                         int32_t max_width,
+                                         int32_t* first_y,
+                                         int32_t* second_y) {
+    const lv_font_t* font = NULL;
+    uint32_t line_start = 0;
+    int32_t line_y = 0;
+    int32_t line_step = 0;
+    int32_t letter_space = 0;
+    bool first_found = false;
+    bool second_found = false;
+
+    *first_y = 0;
+    *second_y = 0;
+    if (label_obj == NULL || text == NULL || text[0] == '\0') {
+        return;
+    }
+
+    first_offset = LV_MIN(first_offset, text_len);
+    second_offset = LV_MIN(second_offset, text_len);
+    first_found = first_offset == 0;
+    second_found = second_offset == 0;
+    font = lv_obj_get_style_text_font(label_obj, LV_PART_MAIN);
+    letter_space = lv_obj_get_style_text_letter_space(label_obj, LV_PART_MAIN);
+    line_step = lv_font_get_line_height(font) +
+                lv_obj_get_style_text_line_space(label_obj, LV_PART_MAIN);
+
+    while ((!first_found || !second_found) && text[line_start] != '\0') {
+        uint32_t next_line = line_start +
+                             lv_text_get_next_line(text + line_start,
+                                                   font,
+                                                   letter_space,
+                                                   max_width,
+                                                   NULL,
+                                                   LV_TEXT_FLAG_NONE);
+        bool is_last_line = text[next_line] == '\0';
+
+        if (!first_found && (first_offset < next_line || is_last_line)) {
+            *first_y = line_y;
+            if (is_last_line && first_offset > 0 && first_offset == text_len &&
+                (text[first_offset - 1] == '\n' || text[first_offset - 1] == '\r')) {
+                *first_y += line_step;
+            }
+            first_found = true;
+        }
+        if (!second_found && (second_offset < next_line || is_last_line)) {
+            *second_y = line_y;
+            if (is_last_line && second_offset > 0 && second_offset == text_len &&
+                (text[second_offset - 1] == '\n' || text[second_offset - 1] == '\r')) {
+                *second_y += line_step;
+            }
+            second_found = true;
+        }
+        if (is_last_line || next_line <= line_start) {
+            break;
+        }
+        line_start = next_line;
+        line_y += line_step;
+    }
 }
 
 void paged_text_set_visible_text_animated(paged_text_t* paged_text,
@@ -710,10 +859,8 @@ void paged_text_set_visible_text_animated(paged_text_t* paged_text,
                                           uint32_t to_offset,
                                           uint32_t duration_ms) {
     lv_obj_t* label_obj = NULL;
-    lv_point_t from_pos = {0};
-    lv_point_t to_pos = {0};
-    uint32_t from_char_id = 0;
-    uint32_t to_char_id = 0;
+    int32_t from_offset_y = 0;
+    int32_t to_offset_y = 0;
     int32_t from_y = 0;
     int32_t to_y = 0;
 
@@ -737,16 +884,19 @@ void paged_text_set_visible_text_animated(paged_text_t* paged_text,
     (void)paged_text_append_page(paged_text, 0, paged_text->source_text_len);
 
     label_obj = label_get_obj(paged_text->label);
+    paged_text_refresh_geometry(paged_text);
     lv_obj_set_height(label_obj, LV_SIZE_CONTENT);
     label_set_text(paged_text->label, paged_text->source_text);
-    lv_obj_update_layout(label_obj);
-
-    from_char_id = lv_text_encoded_get_char_id(paged_text->source_text, from_offset);
-    to_char_id = lv_text_encoded_get_char_id(paged_text->source_text, to_offset);
-    lv_label_get_letter_pos(label_obj, from_char_id, &from_pos);
-    lv_label_get_letter_pos(label_obj, to_char_id, &to_pos);
-    from_y = paged_text->text_inset - from_pos.y;
-    to_y = paged_text->text_inset - to_pos.y;
+    paged_text_get_offset_pair_y(label_obj,
+                                 paged_text->source_text,
+                                 paged_text->source_text_len,
+                                 from_offset,
+                                 to_offset,
+                                 paged_text->text_content_width,
+                                 &from_offset_y,
+                                 &to_offset_y);
+    from_y = paged_text->text_inset - from_offset_y;
+    to_y = paged_text->text_inset - to_offset_y;
     lv_obj_set_y(label_obj, (lv_coord_t)from_y);
 
     if (duration_ms == 0 || from_y == to_y) {
@@ -760,6 +910,7 @@ void paged_text_set_visible_text_animated(paged_text_t* paged_text,
         lv_anim_set_duration(&anim, duration_ms);
         lv_anim_set_exec_cb(&anim, paged_text_set_label_y);
         lv_anim_set_path_cb(&anim, lv_anim_path_ease_out);
+        lv_anim_set_completed_cb(&anim, paged_text_visible_text_animation_completed);
         lv_anim_start(&anim);
     }
 }
@@ -984,9 +1135,11 @@ void paged_text_set_highlight_window(paged_text_t* paged_text,
         return;
     }
 
-    lv_obj_update_layout(paged_text->base.obj);
-    view_w = (int32_t)lv_obj_get_width(paged_text->base.obj);
-    view_h = (int32_t)lv_obj_get_height(paged_text->base.obj);
+    if (paged_text->view_width <= 0 || paged_text->view_height <= 0) {
+        paged_text_refresh_geometry(paged_text);
+    }
+    view_w = paged_text->view_width;
+    view_h = paged_text->view_height;
     top_mask_bottom = LV_CLAMP(0, top_mask_height + paged_text->text_inset, view_h);
     bottom_mask_top = LV_CLAMP(0, bottom_mask_height + paged_text->text_inset, view_h);
     if (bottom_mask_top < top_mask_bottom) {

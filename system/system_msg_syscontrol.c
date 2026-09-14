@@ -103,6 +103,47 @@ static bool system_systemcontrol_setview(mpack_node_t node, msg_pack_t* msg) {
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
+/**
+ * @brief 设置手机请求的临时常亮范围。
+ * @param[in] node 消息数据节点，必须包含 `scope` 字段。
+ * @param[in] msg 原始消息包，用于回复 ACK/NACK。
+ * @return `true` 表示回包发送成功，`false` 表示发送失败。
+ */
+static bool system_systemcontrol_setscreenonscope(mpack_node_t node, msg_pack_t* msg) {
+    uint8_t scope = APP_SLEEP_SCREEN_ON_SCOPE_OFF;
+
+    floatair_assert(msg != NULL, "msg is NULL");
+    if (!app_msg_get_u8(node, false, "scope", &scope)) {
+        floatair_err("screen-on scope is NULL");
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    if (!app_sleep_timer_set_screen_on_scope((app_sleep_screen_on_scope_t)scope)) {
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    return app_mpack_send_ack(msg, Dp_ErrNone);
+}
+
+/**
+ * @brief 获取当前手机请求的临时常亮范围。
+ * @param[in] node 消息数据节点，当前未使用。
+ * @param[in] msg 原始消息包，用于回复 ACK。
+ * @return `true` 表示回包发送成功，`false` 表示发送失败。
+ */
+static bool system_systemcontrol_getscreenonscope(mpack_node_t node, msg_pack_t* msg) {
+    msg_pack_writer_t* writer = NULL;
+
+    (void)node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
+    floatair_assert(writer != NULL, "writer err");
+    mpack_start_map(&writer->writer, 1);
+    mpack_write_cstr(&writer->writer, "scope");
+    mpack_write_u8(&writer->writer,
+                   (uint8_t)app_sleep_timer_get_screen_on_scope());
+    mpack_finish_map(&writer->writer);
+    return app_mpack_send_writer(writer);
+}
+
 static bool system_systemcontrol_sendtouchevent(mpack_node_t node, msg_pack_t* msg) {
     floatair_assert(msg != NULL, "msg is NULL");
     uint8_t event = 0;
@@ -334,6 +375,8 @@ app_cmd_func_t system_systemcontrol_cmd_funcs[] = {
     {"recovery", system_systemcontrol_recovery},
     {"getView", system_systemcontrol_getview},
     {"setView", system_systemcontrol_setview},
+    {"getScreenOnScope", system_systemcontrol_getscreenonscope},
+    {"setScreenOnScope", system_systemcontrol_setscreenonscope},
     {"sendTouchEvent", system_systemcontrol_sendtouchevent},
     {"openGuide", system_systemcontrol_openguide},
     {"closeGuide", system_systemcontrol_closeguide},

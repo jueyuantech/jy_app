@@ -284,6 +284,26 @@ def parse_home_guide_step2_mode(
     return mode, apps_by_key[demo_app_key]["macro"]
 
 
+def parse_home_guide_apps(
+    data: dict[str, Any],
+    apps_by_key: dict[str, dict[str, Any]],
+    demo_app_macro: str,
+) -> list[str]:
+    """校验独立教学菜单，返回按展示顺序排列的应用名称宏。"""
+    keys = data.get("home_guide_apps", [])
+    if not isinstance(keys, list) or any(not isinstance(key, str) for key in keys):
+        fail("home_guide_apps must be an array of app keys")
+    if len(keys) > 255 or len(set(keys)) != len(keys):
+        fail("home_guide_apps must contain at most 255 unique app keys")
+    for key in keys:
+        if key not in apps_by_key:
+            fail(f"home_guide_apps references unknown app key: {key!r}")
+    macros = [apps_by_key[key]["macro"] for key in keys]
+    if macros and demo_app_macro not in macros:
+        fail("home_guide_apps must include the step2 demo app")
+    return macros
+
+
 def cmake_quote(value: str) -> str:
     return value.replace("\\", "/").replace('"', '\\"')
 
@@ -316,6 +336,7 @@ def write_definitions_header(
     home_guide_step2_mode: str,
     home_guide_step2_app_macro: str,
     status_bar_headset: bool,
+    home_guide_apps: list[str],
 ) -> None:
     lines = [
         "/**",
@@ -349,7 +370,14 @@ def write_definitions_header(
             f"    APP_NAME_{home_guide_step2_app_macro}",
         ]
     )
-    lines.append("")
+    lines.extend([
+        "",
+        f"#define PRODUCT_HOME_GUIDE_APPS_COUNT ({len(home_guide_apps)}) ///< 独立教学菜单项数，0 沿用真实首页。",
+        "#define PRODUCT_HOME_GUIDE_APPS {" + ", ".join(
+            f"APP_NAME_{macro}" for macro in home_guide_apps
+        ) + "} ///< 独立教学菜单应用名，按左到右排列。",
+        "",
+    ])
     output.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -497,6 +525,7 @@ def generate(manifest: Path, apps_dir: Path, output_dir: Path) -> None:
         data,
         apps_by_key,
     )
+    home_guide_apps = parse_home_guide_apps(data, apps_by_key, home_guide_step2_app_macro)
     output_dir.mkdir(parents=True, exist_ok=True)
     write_sources_cmake(
         output_dir / "product_app_sources.cmake",
@@ -511,6 +540,7 @@ def generate(manifest: Path, apps_dir: Path, output_dir: Path) -> None:
         home_guide_step2_mode,
         home_guide_step2_app_macro,
         status_bar_headset,
+        home_guide_apps,
     )
     write_registry_source(output_dir / "product_app_generated.c", modules, apps, roles)
 

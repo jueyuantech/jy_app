@@ -403,6 +403,8 @@ bool app_router_set_app(const char* targetapp, app_router_entry_t mode) {
         }
         memset(g_router_curapp, 0, sizeof(g_router_curapp));
         g_router_entry_mode = APP_ROUTER_ENTRY_LOCAL;
+        app_sleep_timer_restore_screen_on_scope(
+            APP_SLEEP_SCREEN_ON_RESTORE_APP_CHANGED);
     }
 
     /* 清理目标 App 可能残留的旧页面栈，保持迁移前“切 App 即重新安装”的语义。 */

@@ -53,6 +53,14 @@
     },
     {
         "biz": "SystemStatus",
+        "cmd": "getAttachmentState",
+        "data": {},
+        "id": 0,
+        "name": "获取附件状态",
+        "type": "DATA_RELIABLE"
+    },
+    {
+        "biz": "SystemStatus",
         "cmd": "getRomUsage",
         "data": {},
         "id": 0,

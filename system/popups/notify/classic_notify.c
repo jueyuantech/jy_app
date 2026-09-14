@@ -11,6 +11,7 @@
 #include "common/widgets/label.h"
 #include "common/widgets/ui_widget.h"
 #include "system/system_timer.h"
+#include <stdio.h>
 
 #define NOTIFY_IMAGE_WIDTH 32
 #define NOTIFY_IMAGE_HEIGHT 32
@@ -183,11 +184,13 @@ static bool notify_init_ui(notify_t* notify, lv_obj_t* parent) {
     lv_obj_t* header_obj = NULL;
     lv_obj_t* body_slot_obj = NULL;
     bool call_mode = false;
+    bool success_mode = false;
 
     if (notify == NULL || parent == NULL) {
         return false;
     }
     call_mode = notify->mode == NOTIFY_MODE_CALL;
+    success_mode = notify->mode == NOTIFY_MODE_SUCCESS;
 
     root_cfg.x = 0;
     root_cfg.y = 0;
@@ -248,16 +251,18 @@ static bool notify_init_ui(notify_t* notify, lv_obj_t* parent) {
                         CONTAINER_ALIGN_CENTER,
                         CONTAINER_ALIGN_START);
 
-    image_cfg.w = NOTIFY_IMAGE_WIDTH;
-    image_cfg.h = NOTIFY_IMAGE_HEIGHT;
-    notify->image = img_create(header_obj, &image_cfg);
-    if (notify->image == NULL) {
-        return false;
+    if (!success_mode) {
+        image_cfg.w = NOTIFY_IMAGE_WIDTH;
+        image_cfg.h = NOTIFY_IMAGE_HEIGHT;
+        notify->image = img_create(header_obj, &image_cfg);
+        if (notify->image == NULL) {
+            return false;
+        }
     }
 
     header_label_cfg.w = LV_SIZE_CONTENT;
     header_label_cfg.h = LV_SIZE_CONTENT;
-    header_label_cfg.align = LABEL_ALIGN_LEFT;
+    header_label_cfg.align = success_mode ? LABEL_ALIGN_CENTER : LABEL_ALIGN_LEFT;
     header_label_cfg.overflow = LABEL_OVERFLOW_WRAP;
     header_label_cfg.max_lines = 3;
     notify->header_label = label_create(header_obj, &header_label_cfg);
@@ -285,10 +290,10 @@ static bool notify_init_ui(notify_t* notify, lv_obj_t* parent) {
     body_label_cfg.w = LV_SIZE_CONTENT;
     body_label_cfg.h = LV_SIZE_CONTENT;
     body_label_cfg.radius = 12;
-    body_label_cfg.border_width = 1;
+    body_label_cfg.border_width = 0;
     body_label_cfg.pad_hor = 12;
     body_label_cfg.pad_ver = 8;
-    body_label_cfg.text = app_get_str(call_mode ? "NOTIFY_CALL_HINT" : "NOTIFY_MESSAGE_HINT");
+    body_label_cfg.text = call_mode ? app_get_str("NOTIFY_CALL_HINT") : "";
     body_label_cfg.align = LABEL_ALIGN_LEFT;
     body_label_cfg.overflow = LABEL_OVERFLOW_WRAP;
     body_label_cfg.max_lines = 3;
@@ -297,7 +302,7 @@ static bool notify_init_ui(notify_t* notify, lv_obj_t* parent) {
         return false;
     }
     ui_widget_set_visible(UI_WIDGET(notify->body_label),
-                          !call_mode || notify->call_state == NOTIFY_CALL_STATE_RINGING);
+                          call_mode && notify->call_state == NOTIFY_CALL_STATE_RINGING);
     return true;
 }
 
@@ -308,6 +313,7 @@ static bool notify_init_ui(notify_t* notify, lv_obj_t* parent) {
  */
 static bool notify_apply_content(notify_t* notify) {
     lv_obj_t* root_obj = NULL;
+    char success_title[MSG_STR_MAX_LEN + sizeof(NOTIFY_SUCCESS_PREFIX)] = {0};
 
     if (!notify ||
         !notify->root ||
@@ -322,9 +328,18 @@ static bool notify_apply_content(notify_t* notify) {
         return false;
     }
 
-    label_set_text(notify->header_label, notify->title);
-    if (!notify_set_image_src(notify, notify->image_src, notify->image_src_size)) {
-        return false;
+    if (notify->mode == NOTIFY_MODE_SUCCESS) {
+        snprintf(success_title,
+                 sizeof(success_title),
+                 "%s%s",
+                 NOTIFY_SUCCESS_PREFIX,
+                 notify->title);
+        label_set_text(notify->header_label, success_title);
+    } else {
+        label_set_text(notify->header_label, notify->title);
+        if (!notify_set_image_src(notify, notify->image_src, notify->image_src_size)) {
+            return false;
+        }
     }
 
     lv_obj_update_layout(root_obj);
@@ -384,7 +399,14 @@ notify_t* notify_show_with_cfg(const notify_cfg_t* cfg) {
     if (cfg) {
         resolved_cfg = *cfg;
     }
-    resolved_cfg.mode = resolved_cfg.mode == NOTIFY_MODE_CALL ? NOTIFY_MODE_CALL : NOTIFY_MODE_MESSAGE;
+    if (resolved_cfg.mode != NOTIFY_MODE_CALL &&
+        resolved_cfg.mode != NOTIFY_MODE_SUCCESS) {
+        resolved_cfg.mode = NOTIFY_MODE_MESSAGE;
+    }
+    if (resolved_cfg.mode == NOTIFY_MODE_SUCCESS) {
+        resolved_cfg.image_src = NULL;
+        resolved_cfg.image_src_size = 0;
+    }
 
     if ((!resolved_cfg.title || resolved_cfg.title[0] == '\0') && resolved_cfg.image_src == NULL) {
         return NULL;
@@ -433,7 +455,7 @@ notify_t* notify_show_with_cfg(const notify_cfg_t* cfg) {
 
     ui_widget_move_foreground(UI_WIDGET(notify->root));
 
-    if (notify->mode == NOTIFY_MODE_MESSAGE && notify->duration_ms > 0) {
+    if (notify->mode != NOTIFY_MODE_CALL && notify->duration_ms > 0) {
         uint32_t timer_id = 0;
         if (!system_timer_autodestroy_start(notify->duration_ms, notify_timer_cb, notify, &timer_id)) {
             ui_widget_destroy(UI_WIDGET(notify->root));

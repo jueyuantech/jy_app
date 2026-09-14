@@ -1758,6 +1758,15 @@ menu "LVGL configuration"
 			  the NuttX LCD driver submits the bounding box of the current flush
 			  areas to LCDDEVIO_PUTAREA. When disabled, it submits the full screen.
 
+		config LV_NUTTX_LCD_FLUSH_STEREO_VERTICAL
+			bool "Fold vertically stacked stereo dirty areas into one-eye coordinates"
+			depends on LV_NUTTX_LCD_FLUSH_PARTIAL_AREA
+			default n
+			help
+			  Treat the upper and lower halves of the LVGL framebuffer as two eyes.
+			  Dirty areas from both halves are folded into upper-eye coordinates
+			  before their bounding box is submitted to LCDDEVIO_PUTAREA.
+
 		config LV_USE_NUTTX_TOUCHSCREEN
 			bool "Use NuttX touchscreen driver"
 			depends on LV_USE_NUTTX

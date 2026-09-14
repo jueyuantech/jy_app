@@ -9,6 +9,7 @@
  */
 #include "home.h"
 #include "home_guide.h"
+#include "guide_runtime.h"
 
 #include "app_def.h"
 #include "common/app_framework/app_layers.h"
@@ -40,6 +41,10 @@ static bool s_home_units_initialized = false;
 static size_t s_home_units_count = 0;
 static const app_home_unit_t* s_home_units_cur = NULL;
 static app_home_unit_t* s_home_units_filtered = NULL;
+#if PRODUCT_HOME_GUIDE_APPS_COUNT > 0
+static app_home_unit_t s_home_guide_units[PRODUCT_HOME_GUIDE_APPS_COUNT]; ///< 独立教学菜单，复用真实首页图标与文案。
+static bool s_home_using_guide_units = false; ///< 当前菜单是否为教学专用列表。
+#endif
 
 /**
  * @brief 创建 Home 选中项浮层容器。
@@ -284,6 +289,36 @@ static bool home_uints_init(void) {
     home_units_release_filtered();
     s_home_units_cur = g_home_units_arr;
     s_home_units_count = g_home_units_count;
+#if PRODUCT_HOME_GUIDE_APPS_COUNT > 0
+    s_home_using_guide_units = false;
+    if (guide_runtime_get_state() != GUIDE_RUNTIME_STATE_IDLE) {
+        const char* const guide_apps[] = PRODUCT_HOME_GUIDE_APPS;
+
+        for (size_t i = 0; i < PRODUCT_HOME_GUIDE_APPS_COUNT; ++i) {
+            size_t j;
+            for (j = 0; j < g_home_units_count; ++j) {
+                if (strcmp(g_home_units_arr[j].name, guide_apps[i]) == 0) {
+                    s_home_guide_units[i] = g_home_units_arr[j];
+                    break;
+                }
+            }
+            if (j == g_home_units_count) {
+                floatair_err("guide app missing from home configuration: %s", guide_apps[i]);
+                s_home_units_cur = NULL;
+                s_home_units_count = 0;
+                s_home_units_initialized = false;
+                home_select = 0;
+                return false;
+            }
+        }
+        s_home_units_cur = s_home_guide_units;
+        s_home_units_count = PRODUCT_HOME_GUIDE_APPS_COUNT;
+        s_home_using_guide_units = true;
+        home_select_app_by_name(PRODUCT_HOME_GUIDE_STEP2_APP_NAME);
+        s_home_units_initialized = true;
+        return true;
+    }
+#endif
     if (home_units_build_from_config(&s_home_units_filtered, &s_home_units_count)) {
         s_home_units_cur = s_home_units_filtered;
     } else {
@@ -393,7 +428,11 @@ static void home_page_create(lv_obj_t* root, const app_page_data_t* data) {
     const lv_font_t* system_font = get_system_font();
     int font_height = (int)get_font_height(system_font);
 
-    if (!s_home_units_initialized) {
+    if (!s_home_units_initialized
+#if PRODUCT_HOME_GUIDE_APPS_COUNT > 0
+        || s_home_using_guide_units != (guide_runtime_get_state() != GUIDE_RUNTIME_STATE_IDLE)
+#endif
+    ) {
         home_uints_init();
     }
     home_guide_apply_step1_selection(home_select_app_by_name, false, NULL);
@@ -483,6 +522,12 @@ static void home_page_appear(lv_obj_t* root) {
     };
 
     floatair_assert(root != NULL, "root is NULL");
+#if PRODUCT_HOME_GUIDE_APPS_COUNT > 0
+    /* 已缓存的 Home 再次出现时，也要隔离教学与真实菜单。 */
+    if (s_home_using_guide_units != (guide_runtime_get_state() != GUIDE_RUNTIME_STATE_IDLE)) {
+        home_uints_init();
+    }
+#endif
     system_status_bar_set_mode_at(
         true,
         PRODUCT_HOME_STATUS_BAR_AT_TOP ? STATUS_BAR_POS_TOP : STATUS_BAR_POS_BOTTOM);

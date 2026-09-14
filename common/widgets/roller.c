@@ -141,11 +141,12 @@ roller_cfg_t roller_default_cfg(void) {
     cfg.items = NULL;
     cfg.count = 0;
     cfg.label = label_default_cfg();
+    cfg.label.align = LABEL_ALIGN_CENTER;
     cfg.overflow_mode = ROLLER_OVERFLOW_SCROLL;
     cfg.row_height = 0;
     cfg.row_gap = -1;
     cfg.selected_pad_ver = 2;
-    cfg.radius = 16;
+    cfg.radius = 12;
     cfg.border_width = 2;
     cfg.opa_normal = LV_OPA_70;
     cfg.opa_selected = LV_OPA_100;
@@ -205,7 +206,7 @@ static void roller_apply_label_styles(roller_t* roller) {
         label_set_radius(labels[i], roller->cfg.radius);
         lv_obj_set_style_border_color(label_obj, lv_color_white(), 0);
         lv_obj_set_style_text_color(label_obj, lv_color_white(), 0);
-        label_set_align(labels[i], LABEL_ALIGN_CENTER);
+        label_set_align(labels[i], roller->cfg.label.align);
         label_set_border_width(labels[i], selected ? roller->cfg.border_width : 0);
         label_set_opacity(labels[i],
                           selected ? roller->cfg.opa_selected : roller->cfg.opa_normal);
@@ -428,6 +429,20 @@ static void roller_update_layout(roller_t* roller) {
         label_set_padding(roller->label_next,
                           0,
                           selected_label == roller->label_next ? roller->pad : 0);
+    }
+
+    /* 水平留白统一使用文本配置，非居中选项补齐选中框占用，避免切换时文字横跳。 */
+    {
+        label_t* labels[] = {roller->label_prev, roller->label_cur, roller->label_next};
+        for (uint32_t i = 0; i < 3; ++i) {
+            int32_t pad_hor = roller->cfg.label.pad_hor;
+            if (roller->cfg.label.align != LABEL_ALIGN_CENTER &&
+                labels[i] != selected_label && roller->cfg.border_width > 0) {
+                pad_hor += roller->cfg.border_width;
+            }
+            lv_obj_set_style_pad_left(label_get_obj(labels[i]), pad_hor, 0);
+            lv_obj_set_style_pad_right(label_get_obj(labels[i]), pad_hor, 0);
+        }
     }
 
     show_prev = !ui_widget_is_hidden(UI_WIDGET(roller->label_prev));
@@ -1036,7 +1051,7 @@ void roller_widget_set_style(lv_obj_t* roller_obj, const roller_widget_style_t* 
         roller->cfg.row_height = 0;
         roller->cfg.row_gap = -1;
         roller->cfg.selected_pad_ver = 2;
-        roller->cfg.radius = 16;
+        roller->cfg.radius = roller_default_cfg().radius;
         roller->cfg.border_width = 2;
         roller->cfg.opa_normal = LV_OPA_70;
         roller->cfg.opa_selected = LV_OPA_100;

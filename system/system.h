@@ -61,6 +61,13 @@ typedef enum {
 } system_attachment_side_t;
 
 /**
+ * @brief 主从两侧附件类型的内存快照。
+ */
+typedef struct {
+    uint8_t type_by_side[SYSTEM_ATTACHMENT_SIDE_COUNT]; ///< 按 `system_attachment_side_t` 索引的附件类型。
+} system_attachment_snapshot_t;
+
+/**
  * @brief 获取新手引导进度。
  * @return 返回 `"false"`、`"step1"` 至 `"step5"` 或 `"true"`。
  */
@@ -99,6 +106,26 @@ bool system_config_get_wear_detection_enabled(void);
  * @return `true` 表示保存成功，`false` 表示保存失败。
  */
 bool system_config_set_wear_detection_enabled(bool wear_detection_enabled);
+/**
+ * @brief 获取IMU Double Tap开关状态。
+ * @return `true` 表示开启，`false` 表示关闭。
+ */
+bool system_config_get_imudoubletap_enabled(void);
+/**
+ * @brief 设置IMU Double Tap开关状态。
+ * @return `true` 表示开启，`false` 表示关闭。
+ */
+bool system_config_set_imudoubletap_enabled(bool imudoubletap_enabled);
+/**
+ * @brief 获取IMU Tilt开关状态。
+ * @return `true` 表示开启，`false` 表示关闭。
+ */
+bool system_config_get_imutilt_enabled(void);
+/**
+ * @brief 设置IMU Tilt开关状态。
+ * @return `true` 表示开启，`false` 表示关闭。
+ */
+bool system_config_set_imutilt_enabled(bool imutilt_enabled);
 /**
  * @brief 获取触控板开关状态。
  * @return `true` 表示开启，`false` 表示关闭。
@@ -463,6 +490,13 @@ bool system_report_attachment_type(uint8_t attachment_type,
                                    system_attachment_side_t attachment_side);
 
 /**
+ * @brief 获取主从两侧最近一次收到的附件类型快照。
+ * @param[out] snapshot 返回仅保存在内存中的附件状态。
+ * @return 无返回值。
+ */
+void system_get_attachment_state(system_attachment_snapshot_t* snapshot);
+
+/**
  * @brief 获取下一条上报消息序号。
  * @return 返回下一条消息序号。
  */
@@ -528,6 +562,23 @@ void system_update_time(void);
 bool system_is_image_file(const char *name);
 
 /**
+ * @brief 手机请求的临时常亮生效范围。
+ */
+typedef enum {
+    APP_SLEEP_SCREEN_ON_SCOPE_OFF = 0,        ///< 关闭临时常亮，恢复无操作灭屏。
+    APP_SLEEP_SCREEN_ON_SCOPE_APP = 1,        ///< 仅当前 App 内常亮，切换 App 或断连时恢复。
+    APP_SLEEP_SCREEN_ON_SCOPE_CONNECTION = 2, ///< 本次连接内常亮，断连时恢复。
+} app_sleep_screen_on_scope_t;
+
+/**
+ * @brief 临时常亮的自动恢复原因。
+ */
+typedef enum {
+    APP_SLEEP_SCREEN_ON_RESTORE_APP_CHANGED = 0,  ///< 当前 App 已发生切换。
+    APP_SLEEP_SCREEN_ON_RESTORE_DISCONNECTED,     ///< 手机连接已断开。
+} app_sleep_screen_on_restore_t;
+
+/**
  * @brief 初始化息屏定时器。
  * @return 无返回值。
  */
@@ -544,6 +595,26 @@ void app_sleep_timer_reset(void);
  * @return 无返回值。
  */
 void app_sleep_timer_set_wear_removed(bool removed);
+
+/**
+ * @brief 设置手机请求的临时常亮范围，并同步启停无操作灭屏定时器。
+ * @param[in] scope 临时常亮范围。
+ * @return `true` 表示设置成功，`false` 表示范围无效。
+ */
+bool app_sleep_timer_set_screen_on_scope(app_sleep_screen_on_scope_t scope);
+
+/**
+ * @brief 获取当前手机请求的临时常亮范围。
+ * @return 返回当前仅保存在内存中的临时常亮范围。
+ */
+app_sleep_screen_on_scope_t app_sleep_timer_get_screen_on_scope(void);
+
+/**
+ * @brief 按运行时事件恢复临时常亮策略。
+ * @param[in] reason App 切换或手机断连。
+ * @return 无返回值。
+ */
+void app_sleep_timer_restore_screen_on_scope(app_sleep_screen_on_restore_t reason);
 
 /**
  * @brief 打印蓝牙信息缓存。

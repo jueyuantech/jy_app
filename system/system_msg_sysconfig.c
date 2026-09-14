@@ -247,6 +247,8 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     uint16_t inactivity = system_config_get_inactivity_timeout();
     uint16_t poweroff   = system_config_get_deep_sleep_timeout();
     uint8_t wear_en     = system_config_get_wear_detection_enabled() ? 1 : 0;
+    uint8_t imudoubletap_en = system_config_get_imudoubletap_enabled() ? 1 : 0;
+    uint8_t imutilt_en  = system_config_get_imutilt_enabled() ? 1 : 0;
     uint8_t touch_en    = system_config_get_touchpad_enabled() ? 1 : 0;
     uint8_t idle_en     = system_config_get_idle_detection_enabled() ? 1 : 0;
     uint8_t notif_en    = system_config_get_notification_enabled() ? 1 : 0;
@@ -259,7 +261,7 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     system_head_gesture_config_t head_gesture = {0};
     (void)system_config_get_head_gesture_config(&head_gesture);
 
-    mpack_start_map(&writer->writer, 18);
+    mpack_start_map(&writer->writer, 20);
     mpack_write_cstr(&writer->writer, "time");
     mpack_write_u64(&writer->writer, ts);
 
@@ -293,7 +295,7 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     mpack_write_cstr(&writer->writer, "language");
     mpack_write_cstr(&writer->writer, lang ? lang : "NA");
 
-    mpack_write_cstr(&writer->writer, "homeunits");
+    mpack_write_cstr(&writer->writer, "homeUnits");
     mpack_start_array(&writer->writer, (uint32_t)homeunits_count);
     for (size_t i = 0; i < homeunits_count; ++i) {
         const char* homeunit = system_config_get_homeunit(i);
@@ -323,6 +325,12 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     mpack_write_cstr(&writer->writer, "baseDeg");
     mpack_write_i32(&writer->writer, head_gesture.base_deg);
     mpack_finish_map(&writer->writer);
+
+    mpack_write_cstr(&writer->writer, "imuDoubleTapEnabled");
+    mpack_write_u8(&writer->writer, imudoubletap_en);
+
+    mpack_write_cstr(&writer->writer, "imutiltEnabled");
+    mpack_write_u8(&writer->writer, imutilt_en);
 
     mpack_write_cstr(&writer->writer, "touchpadEnabled");
     mpack_write_u8(&writer->writer, touch_en);
@@ -522,7 +530,7 @@ static bool system_systemconfig_gethomeunits(mpack_node_t node, msg_pack_t* msg)
     size_t count = system_config_get_homeunits_count();
 
     mpack_start_map(&writer->writer, 1);
-    mpack_write_cstr(&writer->writer, "homeunits");
+    mpack_write_cstr(&writer->writer, "homeUnits");
     mpack_start_array(&writer->writer, (uint32_t)count);
     for (size_t i = 0; i < count; ++i) {
         const char* homeunit = system_config_get_homeunit(i);
@@ -535,13 +543,13 @@ static bool system_systemconfig_gethomeunits(mpack_node_t node, msg_pack_t* msg)
 
 static bool system_systemconfig_sethomeunits(mpack_node_t node, msg_pack_t* msg) {
     floatair_assert(msg != NULL, "msg is NULL");
-    mpack_node_t homeunits_node = mpack_node_map_cstr_optional(node, "homeunits");
+    mpack_node_t homeunits_node = mpack_node_map_cstr_optional(node, "homeUnits");
     char** homeunits = NULL;
     bool ok = false;
     size_t count = 0;
 
     if (mpack_node_is_missing(homeunits_node) || mpack_node_type(homeunits_node) != mpack_type_array) {
-        floatair_err("homeunits is invalid");
+        floatair_err("homeUnits is invalid");
         return app_mpack_send_ack(msg, ErrBadParam);
     }
     count = mpack_node_array_length(homeunits_node);
@@ -556,7 +564,7 @@ static bool system_systemconfig_sethomeunits(mpack_node_t node, msg_pack_t* msg)
         mpack_node_t item = mpack_node_array_at(homeunits_node, i);
 
         if (mpack_node_type(item) != mpack_type_str) {
-            floatair_err("homeunits[%u] type err", (unsigned)i);
+            floatair_err("homeUnits[%u] type err", (unsigned)i);
             for (size_t j = 0; j < i; ++j) {
                 free(homeunits[j]);
             }
@@ -565,7 +573,7 @@ static bool system_systemconfig_sethomeunits(mpack_node_t node, msg_pack_t* msg)
         }
         homeunits[i] = mpack_node_utf8_cstr_alloc(item, MSG_STR_MAX_LEN);
         if (homeunits[i] == NULL) {
-            floatair_err("homeunits[%u] alloc failed", (unsigned)i);
+            floatair_err("homeUnits[%u] alloc failed", (unsigned)i);
             for (size_t j = 0; j < i; ++j) {
                 free(homeunits[j]);
             }
@@ -1035,6 +1043,60 @@ static bool system_systemconfig_setautobrightnessenabled(mpack_node_t node, msg_
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
+static bool system_systemconfig_get_imudoubletap_enabled(mpack_node_t node, msg_pack_t* msg) {
+    (void) node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
+    floatair_assert(writer, "writer err");
+    mpack_start_map(&writer->writer, 1);
+    mpack_write_cstr(&writer->writer, "imuDoubleTapEnabled");
+    mpack_write_u8(&writer->writer, system_config_get_imudoubletap_enabled() ? 1 : 0);
+    mpack_finish_map(&writer->writer);
+    return app_mpack_send_writer(writer);
+}
+
+static bool system_systemconfig_set_imudoubletap_enabled(mpack_node_t node, msg_pack_t* msg) {
+    (void) node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    uint8_t tmp  = 0;
+    if (!app_msg_get_u8(node, false, "imuDoubleTapEnabled", &tmp)) {
+        floatair_err("imuDoubleTapEnabled is NULL");
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    if (!system_config_set_imudoubletap_enabled(tmp != 0)) {
+        floatair_err("set imuDoubleTapEnabled failed");
+        return app_mpack_send_ack(msg, ErrDataErr);
+    }
+    return app_mpack_send_ack(msg, Dp_ErrNone);
+}
+
+static bool system_systemconfig_get_imutilt_enabled(mpack_node_t node, msg_pack_t* msg) {
+    (void) node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
+    floatair_assert(writer, "writer err");
+    mpack_start_map(&writer->writer, 1);
+    mpack_write_cstr(&writer->writer, "imutiltEnabled");
+    mpack_write_u8(&writer->writer, system_config_get_imutilt_enabled() ? 1 : 0);
+    mpack_finish_map(&writer->writer);
+    return app_mpack_send_writer(writer);
+}
+
+static bool system_systemconfig_set_imutilt_enabled(mpack_node_t node, msg_pack_t* msg) {
+    (void) node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    uint8_t tmp  = 0;
+    if (!app_msg_get_u8(node, false, "imutiltEnabled", &tmp)) {
+        floatair_err("imutiltEnabled is NULL");
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    if (!system_config_set_imutilt_enabled(tmp != 0)) {
+        floatair_err("set imutiltEnabled failed");
+        return app_mpack_send_ack(msg, ErrDataErr);
+    }
+    return app_mpack_send_ack(msg, Dp_ErrNone);
+}
+
 static bool system_systemconfig_gettouchpadenabled(mpack_node_t node, msg_pack_t* msg) {
     (void) node;
     floatair_assert(msg != NULL, "msg is NULL");
@@ -1189,6 +1251,10 @@ app_cmd_func_t system_systemconfig_cmd_funcs[] = {
     {"setWearDetectionEnabled", system_systemconfig_setwaredetectionenabled},
     {"getAutoBrightnessEnabled", system_systemconfig_getautobrightnessenabled},
     {"setAutoBrightnessEnabled", system_systemconfig_setautobrightnessenabled},
+    {"getImuDoubleTapEnabled", system_systemconfig_get_imudoubletap_enabled},
+    {"setImuDoubleTapEnabled", system_systemconfig_set_imudoubletap_enabled},
+    {"getimutiltEnabled", system_systemconfig_get_imutilt_enabled},
+    {"setimutiltEnabled", system_systemconfig_set_imutilt_enabled},
     {"getTouchpadEnabled", system_systemconfig_gettouchpadenabled},
     {"setTouchpadEnabled", system_systemconfig_settouchpadenabled},
     {"getIdleDetectionEnabled", system_systemconfig_getidledetectionenabled},

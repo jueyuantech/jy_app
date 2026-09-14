@@ -21,6 +21,8 @@
 #include <string.h>
 
 static bool config_wear_detection_enabled = false;
+static bool config_imudoubletap_enabled   = false;
+static bool config_imutilt_enabled        = false;
 static bool config_touchpad_enabled       = false;
 static bool config_notification_enabled   = false;
 static bool config_keyword_spotting_enabled = true;
@@ -48,7 +50,6 @@ system_lcd_t config_lcd                   = {
 
 
 static char* user_guide         = NULL;
-static bool play_audio          = false;
 static uint32_t display_level       = 0;
 static uint32_t display_position    = SYSTEM_DISPLAY_POSITION_BOTTOM;
 static bool system_cfgfile_inited = false;
@@ -282,6 +283,25 @@ bool system_config_set_wear_detection_enabled(bool wear_detection_enabled) {
     return system_cfgfile_update();
 }
 
+bool system_config_get_imudoubletap_enabled(void){
+	return config_imudoubletap_enabled;
+}
+
+bool system_config_set_imudoubletap_enabled(bool imudoubletap_enabled) {
+    config_imudoubletap_enabled = imudoubletap_enabled;
+    return system_cfgfile_update();
+}
+
+
+bool system_config_get_imutilt_enabled(void){
+	return config_imutilt_enabled;
+}
+
+bool system_config_set_imutilt_enabled(bool imutilt_enabled) {
+    config_imutilt_enabled = imutilt_enabled;
+    return system_cfgfile_update();
+}
+
 bool system_config_get_touchpad_enabled(void) {
     return config_touchpad_enabled;
 }
@@ -512,6 +532,8 @@ bool system_cfgfile_load(void) {
     }
 
     parse_bool_key(root, "wearDetectionEnabled", &config_wear_detection_enabled);
+    parse_bool_key(root, "imudoubletapEnabled", &config_imudoubletap_enabled);
+	parse_bool_key(root, "imutiltEnabled", &config_imutilt_enabled);
     parse_bool_key(root, "touchpadEnabled", &config_touchpad_enabled);
     parse_bool_key(root, "notificationEnabled", &config_notification_enabled);
     parse_bool_key(root, "keywordSpottingEnabled", &config_keyword_spotting_enabled);
@@ -585,7 +607,6 @@ bool system_cfgfile_load(void) {
 
    
     system_cfgfile_parse_userguide(root);
-    parse_bool_key(root, "playaudio", &play_audio);
     parse_u32_key(root, "displaylevel", &display_level);
     parse_u32_key(root, "displaydistancelevel", &display_level);
     display_position = SYSTEM_DISPLAY_POSITION_BOTTOM;
@@ -644,6 +665,12 @@ bool system_cfgfile_update(void) {
     cJSON_DeleteItemFromObjectCaseSensitive(root, "wearDetectionEnabled");
     cJSON_AddItemToObject(
         root, "wearDetectionEnabled", cJSON_CreateBool(config_wear_detection_enabled));
+
+    cJSON_DeleteItemFromObjectCaseSensitive(root, "imudoubletapEnabled");
+    cJSON_AddItemToObject(root, "imudoubletapEnabled", cJSON_CreateBool(config_imudoubletap_enabled));
+
+    cJSON_DeleteItemFromObjectCaseSensitive(root, "imutiltEnabled");
+    cJSON_AddItemToObject(root, "imutiltEnabled", cJSON_CreateBool(config_imutilt_enabled));
 
     cJSON_DeleteItemFromObjectCaseSensitive(root, "touchpadEnabled");
     cJSON_AddItemToObject(root, "touchpadEnabled", cJSON_CreateBool(config_touchpad_enabled));
@@ -740,8 +767,6 @@ bool system_cfgfile_update(void) {
     cJSON_DeleteItemFromObjectCaseSensitive(root, "userguide");
     cJSON_AddItemToObject(root, "userguide", cJSON_CreateString(system_config_get_userguide()));
     cJSON_DeleteItemFromObjectCaseSensitive(root, "userguidefinish");
-    cJSON_DeleteItemFromObjectCaseSensitive(root, "playaudio");
-    cJSON_AddItemToObject(root, "playaudio", cJSON_CreateBool(play_audio));
     cJSON_DeleteItemFromObjectCaseSensitive(root, "homestyle");
 
     cJSON_DeleteItemFromObjectCaseSensitive(root, "displaylevel");
@@ -799,7 +824,6 @@ void system_cfgfile_dump(void) {
     floatair_dbg("config_ui_height: %" PRIu32, config_lcd.ui_height);
 
     floatair_dbg("user_guide: %s", user_guide ? user_guide : "");
-    floatair_dbg("play_audio: %d", play_audio);
     floatair_dbg("display_level: %" PRIu32, display_level);
     floatair_dbg("display_position: %" PRIu32, display_position);
     floatair_dbg("End");
@@ -844,14 +868,4 @@ bool system_config_set_langselection_finish(const char* curlang) {
         return false;
     }
     return system_config_set_curlang((char*)curlang);
-}
-
-bool home_get_play_audio(void) {
-    floatair_dbg("play_audio %d", play_audio);
-    return play_audio;
-}
-
-void home_set_play_audio(bool play) {
-    play_audio = play;
-    system_cfgfile_update();
 }

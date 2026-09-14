@@ -1,0 +1,3614 @@
+{
+    "biz": "recorder",
+    "defaults": {
+        "intervalMs": 1000
+    },
+    "description": "模拟两段完整录音：第一段连续录制 03:05，暂停 3 秒后第二段连续录制 01:05；录音期间每秒发送递增的 setTick。",
+    "name": "录音应用双段完整流程",
+    "steps": [
+        {
+            "action": "send",
+            "message": {
+                "biz": "SystemControl",
+                "cmd": "setView",
+                "data": {
+                    "viewName": "home"
+                },
+                "id": 0,
+                "name": "SystemControl.setView.home",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "回到 home，准备测试",
+            "intervalMs": 800
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "SystemControl",
+                "cmd": "setView",
+                "data": {
+                    "viewName": "recorder"
+                },
+                "id": 0,
+                "name": "SystemControl.setView.recorder",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "进入录音页面，应显示 00:00:00 和三角",
+            "intervalMs": 1500
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setState",
+                "data": {
+                    "state": 1
+                },
+                "id": 1002,
+                "name": "recorder.setState.running.first",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "开始第一段录音，应重置为 00:00:00 并显示圆点"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 1
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.1",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 1 秒，显示 00:00:01，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 2
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.2",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 2 秒，显示 00:00:02，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 3
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.3",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 3 秒，显示 00:00:03，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 4
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.4",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 4 秒，显示 00:00:04，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 5
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.5",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 5 秒，显示 00:00:05，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 6
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.6",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 6 秒，显示 00:00:06，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 7
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.7",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 7 秒，显示 00:00:07，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 8
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.8",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 8 秒，显示 00:00:08，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 9
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.9",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 9 秒，显示 00:00:09，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 10
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.10",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 10 秒，显示 00:00:10，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 11
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.11",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 11 秒，显示 00:00:11，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 12
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.12",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 12 秒，显示 00:00:12，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 13
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.13",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 13 秒，显示 00:00:13，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 14
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.14",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 14 秒，显示 00:00:14，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 15
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.15",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 15 秒，显示 00:00:15，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 16
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.16",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 16 秒，显示 00:00:16，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 17
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.17",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 17 秒，显示 00:00:17，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 18
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.18",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 18 秒，显示 00:00:18，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 19
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.19",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 19 秒，显示 00:00:19，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 20
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.20",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 20 秒，显示 00:00:20，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 21
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.21",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 21 秒，显示 00:00:21，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 22
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.22",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 22 秒，显示 00:00:22，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 23
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.23",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 23 秒，显示 00:00:23，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 24
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.24",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 24 秒，显示 00:00:24，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 25
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.25",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 25 秒，显示 00:00:25，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 26
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.26",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 26 秒，显示 00:00:26，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 27
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.27",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 27 秒，显示 00:00:27，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 28
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.28",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 28 秒，显示 00:00:28，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 29
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.29",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 29 秒，显示 00:00:29，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 30
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.30",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 30 秒，显示 00:00:30，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 31
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.31",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 31 秒，显示 00:00:31，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 32
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.32",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 32 秒，显示 00:00:32，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 33
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.33",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 33 秒，显示 00:00:33，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 34
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.34",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 34 秒，显示 00:00:34，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 35
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.35",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 35 秒，显示 00:00:35，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 36
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.36",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 36 秒，显示 00:00:36，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 37
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.37",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 37 秒，显示 00:00:37，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 38
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.38",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 38 秒，显示 00:00:38，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 39
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.39",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 39 秒，显示 00:00:39，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 40
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.40",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 40 秒，显示 00:00:40，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 41
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.41",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 41 秒，显示 00:00:41，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 42
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.42",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 42 秒，显示 00:00:42，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 43
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.43",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 43 秒，显示 00:00:43，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 44
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.44",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 44 秒，显示 00:00:44，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 45
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.45",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 45 秒，显示 00:00:45，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 46
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.46",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 46 秒，显示 00:00:46，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 47
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.47",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 47 秒，显示 00:00:47，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 48
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.48",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 48 秒，显示 00:00:48，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 49
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.49",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 49 秒，显示 00:00:49，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 50
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.50",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 50 秒，显示 00:00:50，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 51
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.51",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 51 秒，显示 00:00:51，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 52
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.52",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 52 秒，显示 00:00:52，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 53
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.53",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 53 秒，显示 00:00:53，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 54
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.54",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 54 秒，显示 00:00:54，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 55
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.55",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 55 秒，显示 00:00:55，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 56
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.56",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 56 秒，显示 00:00:56，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 57
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.57",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 57 秒，显示 00:00:57，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 58
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.58",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 58 秒，显示 00:00:58，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 59
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.59",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 59 秒，显示 00:00:59，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 60
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.60",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 60 秒，显示 00:01:00，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 61
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.61",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 61 秒，显示 00:01:01，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 62
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.62",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 62 秒，显示 00:01:02，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 63
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.63",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 63 秒，显示 00:01:03，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 64
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.64",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 64 秒，显示 00:01:04，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 65
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.65",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 65 秒，显示 00:01:05，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 66
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.66",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 66 秒，显示 00:01:06，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 67
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.67",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 67 秒，显示 00:01:07，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 68
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.68",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 68 秒，显示 00:01:08，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 69
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.69",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 69 秒，显示 00:01:09，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 70
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.70",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 70 秒，显示 00:01:10，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 71
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.71",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 71 秒，显示 00:01:11，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 72
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.72",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 72 秒，显示 00:01:12，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 73
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.73",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 73 秒，显示 00:01:13，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 74
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.74",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 74 秒，显示 00:01:14，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 75
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.75",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 75 秒，显示 00:01:15，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 76
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.76",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 76 秒，显示 00:01:16，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 77
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.77",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 77 秒，显示 00:01:17，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 78
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.78",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 78 秒，显示 00:01:18，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 79
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.79",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 79 秒，显示 00:01:19，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 80
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.80",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 80 秒，显示 00:01:20，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 81
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.81",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 81 秒，显示 00:01:21，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 82
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.82",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 82 秒，显示 00:01:22，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 83
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.83",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 83 秒，显示 00:01:23，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 84
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.84",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 84 秒，显示 00:01:24，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 85
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.85",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 85 秒，显示 00:01:25，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 86
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.86",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 86 秒，显示 00:01:26，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 87
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.87",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 87 秒，显示 00:01:27，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 88
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.88",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 88 秒，显示 00:01:28，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 89
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.89",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 89 秒，显示 00:01:29，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 90
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.90",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 90 秒，显示 00:01:30，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 91
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.91",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 91 秒，显示 00:01:31，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 92
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.92",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 92 秒，显示 00:01:32，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 93
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.93",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 93 秒，显示 00:01:33，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 94
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.94",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 94 秒，显示 00:01:34，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 95
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.95",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 95 秒，显示 00:01:35，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 96
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.96",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 96 秒，显示 00:01:36，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 97
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.97",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 97 秒，显示 00:01:37，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 98
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.98",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 98 秒，显示 00:01:38，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 99
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.99",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 99 秒，显示 00:01:39，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 100
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.100",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 100 秒，显示 00:01:40，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 101
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.101",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 101 秒，显示 00:01:41，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 102
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.102",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 102 秒，显示 00:01:42，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 103
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.103",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 103 秒，显示 00:01:43，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 104
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.104",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 104 秒，显示 00:01:44，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 105
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.105",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 105 秒，显示 00:01:45，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 106
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.106",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 106 秒，显示 00:01:46，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 107
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.107",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 107 秒，显示 00:01:47，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 108
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.108",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 108 秒，显示 00:01:48，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 109
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.109",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 109 秒，显示 00:01:49，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 110
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.110",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 110 秒，显示 00:01:50，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 111
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.111",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 111 秒，显示 00:01:51，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 112
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.112",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 112 秒，显示 00:01:52，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 113
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.113",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 113 秒，显示 00:01:53，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 114
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.114",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 114 秒，显示 00:01:54，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 115
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.115",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 115 秒，显示 00:01:55，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 116
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.116",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 116 秒，显示 00:01:56，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 117
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.117",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 117 秒，显示 00:01:57，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 118
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.118",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 118 秒，显示 00:01:58，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 119
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.119",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 119 秒，显示 00:01:59，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 120
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.120",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 120 秒，显示 00:02:00，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 121
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.121",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 121 秒，显示 00:02:01，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 122
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.122",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 122 秒，显示 00:02:02，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 123
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.123",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 123 秒，显示 00:02:03，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 124
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.124",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 124 秒，显示 00:02:04，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 125
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.125",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 125 秒，显示 00:02:05，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 126
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.126",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 126 秒，显示 00:02:06，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 127
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.127",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 127 秒，显示 00:02:07，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 128
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.128",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 128 秒，显示 00:02:08，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 129
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.129",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 129 秒，显示 00:02:09，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 130
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.130",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 130 秒，显示 00:02:10，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 131
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.131",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 131 秒，显示 00:02:11，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 132
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.132",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 132 秒，显示 00:02:12，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 133
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.133",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 133 秒，显示 00:02:13，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 134
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.134",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 134 秒，显示 00:02:14，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 135
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.135",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 135 秒，显示 00:02:15，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 136
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.136",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 136 秒，显示 00:02:16，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 137
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.137",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 137 秒，显示 00:02:17，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 138
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.138",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 138 秒，显示 00:02:18，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 139
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.139",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 139 秒，显示 00:02:19，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 140
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.140",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 140 秒，显示 00:02:20，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 141
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.141",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 141 秒，显示 00:02:21，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 142
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.142",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 142 秒，显示 00:02:22，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 143
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.143",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 143 秒，显示 00:02:23，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 144
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.144",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 144 秒，显示 00:02:24，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 145
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.145",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 145 秒，显示 00:02:25，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 146
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.146",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 146 秒，显示 00:02:26，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 147
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.147",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 147 秒，显示 00:02:27，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 148
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.148",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 148 秒，显示 00:02:28，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 149
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.149",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 149 秒，显示 00:02:29，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 150
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.150",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 150 秒，显示 00:02:30，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 151
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.151",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 151 秒，显示 00:02:31，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 152
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.152",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 152 秒，显示 00:02:32，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 153
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.153",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 153 秒，显示 00:02:33，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 154
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.154",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 154 秒，显示 00:02:34，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 155
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.155",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 155 秒，显示 00:02:35，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 156
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.156",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 156 秒，显示 00:02:36，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 157
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.157",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 157 秒，显示 00:02:37，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 158
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.158",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 158 秒，显示 00:02:38，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 159
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.159",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 159 秒，显示 00:02:39，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 160
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.160",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 160 秒，显示 00:02:40，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 161
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.161",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 161 秒，显示 00:02:41，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 162
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.162",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 162 秒，显示 00:02:42，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 163
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.163",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 163 秒，显示 00:02:43，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 164
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.164",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 164 秒，显示 00:02:44，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 165
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.165",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 165 秒，显示 00:02:45，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 166
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.166",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 166 秒，显示 00:02:46，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 167
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.167",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 167 秒，显示 00:02:47，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 168
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.168",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 168 秒，显示 00:02:48，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 169
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.169",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 169 秒，显示 00:02:49，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 170
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.170",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 170 秒，显示 00:02:50，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 171
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.171",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 171 秒，显示 00:02:51，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 172
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.172",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 172 秒，显示 00:02:52，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 173
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.173",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 173 秒，显示 00:02:53，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 174
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.174",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 174 秒，显示 00:02:54，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 175
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.175",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 175 秒，显示 00:02:55，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 176
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.176",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 176 秒，显示 00:02:56，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 177
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.177",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 177 秒，显示 00:02:57，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 178
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.178",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 178 秒，显示 00:02:58，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 179
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.179",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 179 秒，显示 00:02:59，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 180
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.180",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 180 秒，显示 00:03:00，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 181
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.181",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 181 秒，显示 00:03:01，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 182
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.182",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 182 秒，显示 00:03:02，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 183
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.183",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 183 秒，显示 00:03:03，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 184
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.184",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 184 秒，显示 00:03:04，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 185
+                },
+                "id": 1002,
+                "name": "recorder.setTick.first.185",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第一段第 185 秒，显示 00:03:05，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setState",
+                "data": {
+                    "state": 0
+                },
+                "id": 1002,
+                "name": "recorder.setState.pause.first",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "暂停第一段录音，应保留 00:03:05 并切换为三角",
+            "intervalMs": 3000
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setState",
+                "data": {
+                    "state": 1
+                },
+                "id": 1002,
+                "name": "recorder.setState.running.second",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "开始第二段录音，应重新从 00:00:00 计时并显示圆点"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 1
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.1",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 1 秒，显示 00:00:01，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 2
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.2",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 2 秒，显示 00:00:02，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 3
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.3",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 3 秒，显示 00:00:03，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 4
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.4",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 4 秒，显示 00:00:04，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 5
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.5",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 5 秒，显示 00:00:05，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 6
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.6",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 6 秒，显示 00:00:06，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 7
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.7",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 7 秒，显示 00:00:07，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 8
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.8",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 8 秒，显示 00:00:08，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 9
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.9",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 9 秒，显示 00:00:09，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 10
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.10",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 10 秒，显示 00:00:10，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 11
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.11",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 11 秒，显示 00:00:11，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 12
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.12",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 12 秒，显示 00:00:12，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 13
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.13",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 13 秒，显示 00:00:13，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 14
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.14",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 14 秒，显示 00:00:14，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 15
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.15",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 15 秒，显示 00:00:15，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 16
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.16",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 16 秒，显示 00:00:16，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 17
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.17",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 17 秒，显示 00:00:17，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 18
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.18",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 18 秒，显示 00:00:18，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 19
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.19",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 19 秒，显示 00:00:19，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 20
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.20",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 20 秒，显示 00:00:20，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 21
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.21",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 21 秒，显示 00:00:21，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 22
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.22",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 22 秒，显示 00:00:22，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 23
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.23",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 23 秒，显示 00:00:23，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 24
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.24",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 24 秒，显示 00:00:24，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 25
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.25",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 25 秒，显示 00:00:25，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 26
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.26",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 26 秒，显示 00:00:26，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 27
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.27",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 27 秒，显示 00:00:27，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 28
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.28",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 28 秒，显示 00:00:28，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 29
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.29",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 29 秒，显示 00:00:29，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 30
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.30",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 30 秒，显示 00:00:30，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 31
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.31",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 31 秒，显示 00:00:31，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 32
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.32",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 32 秒，显示 00:00:32，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 33
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.33",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 33 秒，显示 00:00:33，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 34
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.34",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 34 秒，显示 00:00:34，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 35
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.35",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 35 秒，显示 00:00:35，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 36
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.36",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 36 秒，显示 00:00:36，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 37
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.37",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 37 秒，显示 00:00:37，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 38
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.38",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 38 秒，显示 00:00:38，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 39
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.39",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 39 秒，显示 00:00:39，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 40
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.40",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 40 秒，显示 00:00:40，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 41
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.41",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 41 秒，显示 00:00:41，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 42
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.42",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 42 秒，显示 00:00:42，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 43
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.43",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 43 秒，显示 00:00:43，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 44
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.44",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 44 秒，显示 00:00:44，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 45
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.45",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 45 秒，显示 00:00:45，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 46
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.46",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 46 秒，显示 00:00:46，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 47
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.47",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 47 秒，显示 00:00:47，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 48
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.48",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 48 秒，显示 00:00:48，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 49
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.49",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 49 秒，显示 00:00:49，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 50
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.50",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 50 秒，显示 00:00:50，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 51
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.51",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 51 秒，显示 00:00:51，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 52
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.52",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 52 秒，显示 00:00:52，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 53
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.53",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 53 秒，显示 00:00:53，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 54
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.54",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 54 秒，显示 00:00:54，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 55
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.55",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 55 秒，显示 00:00:55，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 56
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.56",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 56 秒，显示 00:00:56，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 57
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.57",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 57 秒，显示 00:00:57，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 58
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.58",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 58 秒，显示 00:00:58，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 59
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.59",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 59 秒，显示 00:00:59，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 60
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.60",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 60 秒，显示 00:01:00，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 61
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.61",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 61 秒，显示 00:01:01，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 62
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.62",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 62 秒，显示 00:01:02，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 63
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.63",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 63 秒，显示 00:01:03，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 64
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.64",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 64 秒，显示 00:01:04，圆点亮"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setTick",
+                "data": {
+                    "tick": 65
+                },
+                "id": 1002,
+                "name": "recorder.setTick.second.65",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "第二段第 65 秒，显示 00:01:05，圆点灭"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "recorder",
+                "cmd": "setState",
+                "data": {
+                    "state": 0
+                },
+                "id": 1002,
+                "name": "recorder.setState.pause.second",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "结束第二段录音，应保留 00:01:05 并切换为三角"
+        },
+        {
+            "action": "send",
+            "message": {
+                "biz": "SystemControl",
+                "cmd": "setView",
+                "data": {
+                    "viewName": "home"
+                },
+                "id": 0,
+                "name": "SystemControl.setView.home.final",
+                "type": "DATA_RELIABLE"
+            },
+            "name": "退出录音页面并返回 home",
+            "intervalMs": 0
+        }
+    ],
+    "type": "case",
+    "version": 1
+}

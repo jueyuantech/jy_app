@@ -21,6 +21,7 @@
 #include <string.h>
 
 static bool s_wear_removed = false; ///< 当前是否处于摘下状态，摘下期间任何消息都不重置无交互定时器。
+static app_sleep_screen_on_scope_t s_screen_on_scope = APP_SLEEP_SCREEN_ON_SCOPE_OFF; ///< 手机请求的临时常亮范围，仅保存在内存中。
 
 /** jy_app 应用版本号，默认由 CMake 根据 git describe 与产品名注入。 */
 #ifndef JY_APP_VERSION_STRING
@@ -62,6 +63,7 @@ void system_init(void) {
     floatair_assert(ret == 0, "app_msg_register failed");
     system_timer_init();
     s_wear_removed = false;
+    s_screen_on_scope = APP_SLEEP_SCREEN_ON_SCOPE_OFF;
     app_sleep_timer_init();
     system_runtime_input_reset_wearing_state();
     app_router_reset_state();
@@ -125,6 +127,12 @@ void app_sleep_timer_reset(void) {
         floatair_dbg("------- app sleep_timer_reset skipped: lcd off");
         return;
     }
+    if (s_screen_on_scope != APP_SLEEP_SCREEN_ON_SCOPE_OFF) {
+        system_timer_sleep_deinit();
+        floatair_dbg("------- app sleep_timer_reset skipped: screen-on scope=%d",
+                     (int)s_screen_on_scope);
+        return;
+    }
     if (s_wear_removed) {
         floatair_dbg("------- app sleep_timer_reset skipped: wear removed");
         return;
@@ -183,6 +191,12 @@ void app_sleep_timer_init(void) {
         floatair_dbg("------- app sleep disabled while lcd off");
         return;
     }
+    if (s_screen_on_scope != APP_SLEEP_SCREEN_ON_SCOPE_OFF) {
+        system_timer_sleep_deinit();
+        floatair_dbg("------- app sleep disabled by screen-on scope=%d",
+                     (int)s_screen_on_scope);
+        return;
+    }
 /*
     if (!system_config_get_idle_detection_enabled()) {
         system_timer_sleep_deinit();
@@ -201,6 +215,64 @@ void app_sleep_timer_init(void) {
     floatair_dbg("------- app sleep in [%" PRIu32 "]", sleep_ms);
     bool ok = system_timer_sleep_start(sleep_ms);
     floatair_assert(ok, "system_timer_sleep_start failed");
+}
+
+/**
+ * @brief 设置手机请求的临时常亮范围，并同步启停无操作灭屏定时器。
+ * @param[in] scope 临时常亮范围。
+ * @return `true` 表示设置成功，`false` 表示范围无效。
+ */
+bool app_sleep_timer_set_screen_on_scope(app_sleep_screen_on_scope_t scope) {
+    if (scope > APP_SLEEP_SCREEN_ON_SCOPE_CONNECTION) {
+        floatair_err("invalid screen-on scope=%d", (int)scope);
+        return false;
+    }
+
+    s_screen_on_scope = scope;
+    if (scope == APP_SLEEP_SCREEN_ON_SCOPE_OFF) {
+        app_sleep_timer_reset();
+    } else {
+        system_timer_sleep_deinit();
+    }
+    floatair_info("screen-on scope set to %d", (int)scope);
+    return true;
+}
+
+/**
+ * @brief 获取当前手机请求的临时常亮范围。
+ * @return 返回当前仅保存在内存中的临时常亮范围。
+ */
+app_sleep_screen_on_scope_t app_sleep_timer_get_screen_on_scope(void) {
+    return s_screen_on_scope;
+}
+
+/**
+ * @brief 按运行时事件恢复临时常亮策略。
+ * @param[in] reason App 切换或手机断连。
+ * @return 无返回值。
+ */
+void app_sleep_timer_restore_screen_on_scope(app_sleep_screen_on_restore_t reason) {
+    bool should_restore = false;
+
+    switch (reason) {
+        case APP_SLEEP_SCREEN_ON_RESTORE_APP_CHANGED:
+            should_restore = s_screen_on_scope == APP_SLEEP_SCREEN_ON_SCOPE_APP;
+            break;
+        case APP_SLEEP_SCREEN_ON_RESTORE_DISCONNECTED:
+            should_restore = s_screen_on_scope != APP_SLEEP_SCREEN_ON_SCOPE_OFF;
+            break;
+        default:
+            floatair_warn("invalid screen-on restore reason=%d", (int)reason);
+            return;
+    }
+
+    if (!should_restore) {
+        return;
+    }
+    floatair_info("restore screen-on scope=%d for reason=%d",
+                  (int)s_screen_on_scope,
+                  (int)reason);
+    (void)app_sleep_timer_set_screen_on_scope(APP_SLEEP_SCREEN_ON_SCOPE_OFF);
 }
 
 /**

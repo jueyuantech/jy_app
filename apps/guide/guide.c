@@ -358,16 +358,12 @@ static void guide_simple_render(void) {
  */
 static void guide_simple_show_complete_notify(void) {
     notify_cfg_t cfg = notify_default_cfg();
-    notify_t* notify = NULL;
 
     cfg.title = app_get_str("BOOT_GUIDE_SIMPLE_COMPLETE");
-    cfg.image_src = UI_RES_IMAGE_IM_MESSAGE;
-    cfg.image_src_size = 0;
-    cfg.mode = NOTIFY_MODE_MESSAGE;
+    cfg.mode = NOTIFY_MODE_SUCCESS;
     cfg.duration_ms = GUIDE_SIMPLE_NOTIFY_DURATION_MS;
     cfg.passthrough_input = true;
-    notify = notify_show_with_cfg(&cfg);
-    notify_set_body_hint_visible(notify, false);
+    (void)notify_show_with_cfg(&cfg);
 }
 
 /**

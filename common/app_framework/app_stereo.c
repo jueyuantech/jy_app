@@ -664,12 +664,15 @@ static void app_stereo_invalidate_area_event_cb(lv_event_t* e) {
 }
 
 /**
- * @brief 在完整 framebuffer 中将左眼业务区域复制到右眼业务区域。
+ * @brief 将本次 flush 涉及的左眼业务区域复制到右眼业务区域。
  * @param[in] disp LVGL display。
  * @param[in,out] buf 当前活动 draw buffer。
+ * @param[in] flush_area 本次 flush 区域，`NULL` 表示复制完整业务区域。
  * @return 无返回值。
  */
-static void app_stereo_duplicate_full_frame(lv_display_t* disp, lv_draw_buf_t* buf) {
+static void app_stereo_duplicate_flush_area(lv_display_t* disp,
+                                            lv_draw_buf_t* buf,
+                                            const lv_area_t* flush_area) {
     int32_t eye_w = app_stereo_get_eye_frame_width();
     int32_t eye_h = app_stereo_get_eye_frame_height();
     int32_t left_x = 0;
@@ -680,6 +683,11 @@ static void app_stereo_duplicate_full_frame(lv_display_t* disp, lv_draw_buf_t* b
     uint32_t stride = 0;
     size_t left_last = 0;
     size_t right_last = 0;
+    lv_area_t local_area;
+    lv_area_t left_eye_area;
+    lv_area_t right_eye_area;
+    lv_area_t intersection;
+    bool local_area_valid = false;
 
     if (!app_stereo_is_enabled() || disp == NULL || buf == NULL || buf->data == NULL) {
         return;
@@ -702,17 +710,63 @@ static void app_stereo_duplicate_full_frame(lv_display_t* disp, lv_draw_buf_t* b
 
     app_stereo_get_eye_origin(APP_STEREO_EYE_LEFT, &left_x, &left_y);
     app_stereo_get_eye_origin(APP_STEREO_EYE_RIGHT, &right_x, &right_y);
-    left_last = ((size_t)left_y + (size_t)eye_h - 1u) * stride + ((size_t)left_x + (size_t)eye_w) * px_size;
-    right_last = ((size_t)right_y + (size_t)eye_h - 1u) * stride + ((size_t)right_x + (size_t)eye_w) * px_size;
+
+    if (flush_area == NULL) {
+        lv_area_set(&local_area, 0, 0, eye_w - 1, eye_h - 1);
+        local_area_valid = true;
+    }
+    else {
+        app_stereo_get_eye_area(APP_STEREO_EYE_LEFT, &left_eye_area);
+        if (app_stereo_area_intersect(&intersection, flush_area, &left_eye_area)) {
+            local_area = intersection;
+            lv_area_move(&local_area, -left_x, -left_y);
+            local_area_valid = true;
+        }
+
+        app_stereo_get_eye_area(APP_STEREO_EYE_RIGHT, &right_eye_area);
+        if (app_stereo_area_intersect(&intersection, flush_area, &right_eye_area)) {
+            lv_area_move(&intersection, -right_x, -right_y);
+            if (local_area_valid) {
+                local_area.x1 = LV_MIN(local_area.x1, intersection.x1);
+                local_area.y1 = LV_MIN(local_area.y1, intersection.y1);
+                local_area.x2 = LV_MAX(local_area.x2, intersection.x2);
+                local_area.y2 = LV_MAX(local_area.y2, intersection.y2);
+            }
+            else {
+                local_area = intersection;
+                local_area_valid = true;
+            }
+        }
+    }
+
+    if (!local_area_valid) {
+        return;
+    }
+
+    local_area.x1 = LV_MAX(local_area.x1, 0);
+    local_area.y1 = LV_MAX(local_area.y1, 0);
+    local_area.x2 = LV_MIN(local_area.x2, eye_w - 1);
+    local_area.y2 = LV_MIN(local_area.y2, eye_h - 1);
+    if (local_area.x1 > local_area.x2 || local_area.y1 > local_area.y2) {
+        return;
+    }
+
+    left_last = ((size_t)left_y + (size_t)local_area.y2) * stride +
+                ((size_t)left_x + (size_t)local_area.x2 + 1u) * px_size;
+    right_last = ((size_t)right_y + (size_t)local_area.y2) * stride +
+                 ((size_t)right_x + (size_t)local_area.x2 + 1u) * px_size;
     if (buf->data_size < left_last || buf->data_size < right_last) {
         return;
     }
 
-    for (int32_t y = 0; y < eye_h; y++) {
-        uint8_t* src = buf->data + ((size_t)left_y + (size_t)y) * stride + (size_t)left_x * px_size;
-        uint8_t* dst = buf->data + ((size_t)right_y + (size_t)y) * stride + (size_t)right_x * px_size;
+    size_t copy_bytes = (size_t)lv_area_get_width(&local_area) * px_size;
+    for (int32_t y = local_area.y1; y <= local_area.y2; y++) {
+        uint8_t* src = buf->data + ((size_t)left_y + (size_t)y) * stride +
+                       ((size_t)left_x + (size_t)local_area.x1) * px_size;
+        uint8_t* dst = buf->data + ((size_t)right_y + (size_t)y) * stride +
+                       ((size_t)right_x + (size_t)local_area.x1) * px_size;
 
-        memmove(dst, src, (size_t)eye_w * px_size);
+        memmove(dst, src, copy_bytes);
     }
 }
 
@@ -763,7 +817,7 @@ static void app_stereo_flush_start_event_cb(lv_event_t* e) {
         return;
     }
 
-    app_stereo_duplicate_full_frame(disp, buf);
+    app_stereo_duplicate_flush_area(disp, buf, flush_area);
 }
 
 /**
