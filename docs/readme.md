@@ -1,15 +1,11 @@
 <div align="center">
   <a href="https://www.floatairos.com">
-    <img src="images/logo.png" alt="JYtek" width="120">
-  </a>
-  <br>
-  <a href="https://www.floatairos.com">
     <img src="images/floatair.png" alt="Floatair" width="320">
   </a>
 
   <h1>Floatair</h1>
 
-  <p><strong>Firmware Application Layer for JY Smart Glasses</strong></p>
+  <p><strong>Firmware Application Layer for Smart Glasses</strong></p>
   <p>Protocol Runtime · System Services · UI Infrastructure · Simulator · Firmware Delivery</p>
 
   <p>
