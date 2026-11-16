@@ -1,6 +1,6 @@
 /**
  * @file system_msg_sysstatus.c
- * @brief System status message handling
+ * @brief 系统状态查询与控制，同时返回聚合充电状态和主从双侧位图。
  * @author jytek
  * @version 1.0.0
  * @date 2026-01-31
@@ -23,13 +23,20 @@
 static bool system_systemstatus_getall(mpack_node_t node, msg_pack_t* msg) {
     (void) node;
     floatair_assert(msg != NULL, "msg is NULL");
+    uint8_t charge_state = 0;
+    uint8_t charge_state_by_side = 0;
+    if (!system_get_charge_states(&charge_state, &charge_state_by_side)) {
+        return app_mpack_send_ack(msg, ErrNotReady);
+    }
     msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
     floatair_assert(writer, "writer err");
-    mpack_start_map(&writer->writer, 3);
+    mpack_start_map(&writer->writer, 4);
     mpack_write_cstr(&writer->writer, "sysState");
     mpack_write_u8(&writer->writer, system_get_sys_state());
     mpack_write_cstr(&writer->writer, "chargeState");
-    mpack_write_u8(&writer->writer, system_get_charge_state());
+    mpack_write_u8(&writer->writer, charge_state);
+    mpack_write_cstr(&writer->writer, "chargeStateBySide");
+    mpack_write_u8(&writer->writer, charge_state_by_side);
     mpack_write_cstr(&writer->writer, "battery");
     mpack_write_u8(&writer->writer, system_get_battery());
     mpack_finish_map(&writer->writer);
@@ -71,11 +78,18 @@ static bool system_systemstatus_setsysstate(mpack_node_t node, msg_pack_t* msg) 
 static bool system_systemstatus_getchargestate(mpack_node_t node, msg_pack_t* msg) {
     (void) node;
     floatair_assert(msg != NULL, "msg is NULL");
+    uint8_t charge_state = 0;
+    uint8_t charge_state_by_side = 0;
+    if (!system_get_charge_states(&charge_state, &charge_state_by_side)) {
+        return app_mpack_send_ack(msg, ErrNotReady);
+    }
     msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
     floatair_assert(writer, "writer err");
-    mpack_start_map(&writer->writer, 1);
+    mpack_start_map(&writer->writer, 2);
     mpack_write_cstr(&writer->writer, "chargeState");
-    mpack_write_u8(&writer->writer, system_get_charge_state());
+    mpack_write_u8(&writer->writer, charge_state);
+    mpack_write_cstr(&writer->writer, "chargeStateBySide");
+    mpack_write_u8(&writer->writer, charge_state_by_side);
     mpack_finish_map(&writer->writer);
     return app_mpack_send_writer(writer);
 }
@@ -83,6 +97,9 @@ static bool system_systemstatus_getchargestate(mpack_node_t node, msg_pack_t* ms
 static bool system_systemstatus_getbattery(mpack_node_t node, msg_pack_t* msg) {
     (void) node;
     floatair_assert(msg != NULL, "msg is NULL");
+    if (!system_is_battery_ready()) {
+        return app_mpack_send_ack(msg, ErrNotReady);
+    }
     msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
     floatair_assert(writer, "writer err");
     mpack_start_map(&writer->writer, 1);

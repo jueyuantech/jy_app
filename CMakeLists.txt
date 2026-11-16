@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 
 set(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CMAKE_MODULE_PATH "${PROJECT_ROOT}/cmake")
@@ -7,11 +7,28 @@ include(TargetPlatform)
 include(OsSdk)
 include(ProductOverlay)
 include(TargetConfig)
+include(ConfigOptions)
 
 jy_app_detect_target_platform(JY_APP_TARGET_PLATFORM)
 message(STATUS "Selected target platform: ${JY_APP_TARGET_PLATFORM}")
 
+# Linux x86 的编译器 ABI 必须在 project() 探测前确定，避免 SDL 查找到 64 位系统库。
+if(JY_APP_TARGET_PLATFORM STREQUAL "linux")
+    if(DEFINED ARCH)
+        string(TOLOWER "${ARCH}" _linux_target_arch)
+    else()
+        set(_linux_target_arch "x86")
+    endif()
+    if(_linux_target_arch MATCHES "^(x86|i386|i686|x86_32|32)$")
+        string(APPEND CMAKE_C_FLAGS " -m32")
+        string(APPEND CMAKE_CXX_FLAGS " -m32")
+        string(APPEND CMAKE_EXE_LINKER_FLAGS " -m32")
+    endif()
+    unset(_linux_target_arch)
+endif()
+
 jy_app_prepare_os_sdk()
+jy_app_load_dot_config(CONFIG_COMPILE_DEFS)
 
 if(JY_APP_TARGET_PLATFORM STREQUAL "arm")
     include(PlatformArm)
@@ -25,9 +42,46 @@ if(JY_APP_TARGET_PLATFORM STREQUAL "msvc")
     jy_app_prepare_windows_msvc_platform()
 endif()
 
-project(jy_app C)
+project(jy_app C CXX)
 
 jy_app_validate_target_toolchain("${JY_APP_TARGET_PLATFORM}")
+
+if(JY_APP_TARGET_PLATFORM STREQUAL "msvc" AND
+   CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    # 部分 MSVC 安装仅有中文语言包，VSLANG 无法强制英文；按实际输出字节探测依赖前缀。
+    set(_jy_app_showincludes_dir "${CMAKE_BINARY_DIR}/CMakeFiles/JyShowIncludes")
+    file(MAKE_DIRECTORY "${_jy_app_showincludes_dir}")
+    file(WRITE "${_jy_app_showincludes_dir}/prefix.h" "\n")
+    file(WRITE "${_jy_app_showincludes_dir}/prefix.c" "#include \"${_jy_app_showincludes_dir}/prefix.h\"\n")
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E env VSLANG=1033 --
+                "${CMAKE_C_COMPILER}" /nologo /showIncludes /c prefix.c
+        WORKING_DIRECTORY "${_jy_app_showincludes_dir}"
+        OUTPUT_VARIABLE _jy_app_showincludes_output
+        ERROR_VARIABLE _jy_app_showincludes_error
+        RESULT_VARIABLE _jy_app_showincludes_result
+        ENCODING NONE
+    )
+    if(NOT _jy_app_showincludes_result EQUAL 0 OR
+       NOT _jy_app_showincludes_output MATCHES "(^|\n)([^:\r\n]+:[^:\r\n]*:[ \t]+)([A-Za-z]:[/\\\\]|/)")
+        message(FATAL_ERROR "Cannot detect MSVC /showIncludes prefix: ${_jy_app_showincludes_error}")
+    endif()
+    # 中文 cl 输出可能是本地编码；Ninja 规则必须使用稳定的 ASCII 前缀。
+    string(HEX "${CMAKE_MATCH_2}" _jy_app_showincludes_prefix_hex)
+    set(CMAKE_CL_SHOWINCLUDES_PREFIX "Note: including file: ")
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    # 前缀变化必须触发重编译，否则旧的零依赖记录会继续遗漏头文件更新。
+    string(MD5 _jy_app_showincludes_tag "${_jy_app_showincludes_prefix_hex}")
+    set(CMAKE_C_COMPILER_LAUNCHER
+        "${CMAKE_COMMAND};-E;env;VSLANG=1033;JY_APP_MSVC_DEPENDENCY_TAG=${_jy_app_showincludes_tag};--;${Python3_EXECUTABLE};${PROJECT_ROOT}/scripts/msvc_showincludes.py;${_jy_app_showincludes_prefix_hex}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CMAKE_C_COMPILER_LAUNCHER}")
+    unset(_jy_app_showincludes_prefix_hex)
+    unset(_jy_app_showincludes_tag)
+    unset(_jy_app_showincludes_dir)
+    unset(_jy_app_showincludes_output)
+    unset(_jy_app_showincludes_error)
+    unset(_jy_app_showincludes_result)
+endif()
 
 execute_process(
     COMMAND git describe --tags --long --always --abbrev=8
@@ -68,25 +122,32 @@ elseif(JY_APP_TARGET_PLATFORM STREQUAL "msvc")
     include(PlatformMsvc)
 endif()
 
-if(JY_APP_TARGET_PLATFORM STREQUAL "msvc")
-    if(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-        set(_lvgl_warning_suppression_flags "/wd4018 /wd4244 /wd4267")
-    else()
-        set(_lvgl_warning_suppression_flags "-Wno-sign-compare -Wno-conversion")
-    endif()
-    set_source_files_properties(${LVGL_SOURCES} PROPERTIES
-        COMPILE_FLAGS "${_lvgl_warning_suppression_flags}")
-    unset(_lvgl_warning_suppression_flags)
-endif()
 
 if(NOT JY_APP_TARGET_PLATFORM STREQUAL "arm")
     set_source_files_properties("${PROJECT_ROOT}/common/floatair_run.c" PROPERTIES
         COMPILE_DEFINITIONS "lv_timer_handler=simulator_lv_timer_handler")
 endif()
 
+set(TARGET_CONFIG_COMPILE_DEFS ${CONFIG_COMPILE_DEFS})
+if(PLATFORM_CONFIG_OVERRIDES)
+    jy_app_override_compile_defs(TARGET_CONFIG_COMPILE_DEFS
+                                 TARGET_CONFIG_COMPILE_DEFS
+                                 ${PLATFORM_CONFIG_OVERRIDES})
+endif()
+
 list(PREPEND TARGET_SOURCES ${PLATFORM_SOURCES})
 
 add_executable(${TARGET_NAME} ${TARGET_SOURCES})
+# 仅L8填充源文件接入自定义Helium；其他像素格式及Windows标量路径保持原实现。
+set_property(SOURCE "${PROJECT_ROOT}/lvgl/src/draw/sw/blend/lv_draw_sw_blend_to_l8.c" APPEND PROPERTY
+    COMPILE_DEFINITIONS
+        LV_USE_DRAW_SW_ASM=LV_DRAW_SW_ASM_CUSTOM
+        LV_DRAW_SW_ASM_CUSTOM_INCLUDE="common/lvgl_l8_mve.h"
+)
+
+# LVGL 独立编译为静态库，应用只链接库并继承同一份配置宏。
+add_subdirectory("${LVGL_DIR}" "lvgl")
+target_link_libraries(${TARGET_NAME} PRIVATE jy_lvgl)
 
 set_target_properties(${TARGET_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
@@ -94,19 +155,11 @@ set_target_properties(${TARGET_NAME} PROPERTIES
 
 jy_app_configure_product_sync(${TARGET_NAME})
 
-if(JY_APP_TARGET_PLATFORM STREQUAL "msvc")
-    # Keep the actual target build in the same English Visual Studio locale used
-    # during CMake compiler checks.
-    set_property(TARGET ${TARGET_NAME} PROPERTY
-        C_COMPILER_LAUNCHER "${CMAKE_COMMAND};-E;env;VSLANG=1033")
-endif()
-
 target_include_directories(${TARGET_NAME} PRIVATE
     ${PLATFORM_INCLUDE_DIRS}
     ${COMMON_INCLUDE_DIRS}
 )
 
-target_compile_definitions(${TARGET_NAME} PRIVATE ${PLATFORM_COMPILE_DEFS})
 target_compile_definitions(${TARGET_NAME} PRIVATE
     JY_APP_VERSION_STRING=\"${JY_APP_VERSION_STRING}\"
 )

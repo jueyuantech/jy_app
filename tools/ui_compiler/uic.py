@@ -922,6 +922,14 @@ class UiCompiler:
         elif "clip_corner" in node and node.get("clip_corner") is not False:
             raise ValueError(f"{path}.clip_corner must be true or false")
 
+        if "border_post" in node:
+            border_post = node["border_post"]
+            if not isinstance(border_post, bool):
+                raise ValueError(f"{path}.border_post must be true or false")
+            self.source_lines.append(
+                f"    lv_obj_set_style_border_post({obj_var}, {str(border_post).lower()}, LV_PART_MAIN);"
+            )
+
         floating = node.get("floating")
         if floating is True:
             self.source_lines.append(f"    lv_obj_add_flag({obj_var}, LV_OBJ_FLAG_FLOATING);")

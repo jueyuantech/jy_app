@@ -10,6 +10,7 @@
 #include "product_app.h"
 #include "system/stt_common.h"
 #include "system/system.h"
+#include "system/system_runtime_ui.h"
 
 #include <string.h>
 
@@ -109,6 +110,9 @@ bool assistant_open(bool report_open) {
     if (report_open && !was_open) {
         (void)system_report_assistant_open();
     }
+    if (PRODUCT_BT_DISCONNECT_POLICY_APP) {
+        system_ui_sync_shell_state();
+    }
     return true;
 }
 
@@ -133,4 +137,7 @@ void assistant_on_popup_deleted(bool report_close) {
         (void)system_report_assistant_close();
     }
     assistant_release_service();
+    if (PRODUCT_BT_DISCONNECT_POLICY_APP) {
+        system_ui_sync_shell_state();
+    }
 }

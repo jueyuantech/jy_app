@@ -25,7 +25,7 @@ static bool system_deviceinfo_getall(mpack_node_t node, msg_pack_t* msg) {
     msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
     floatair_assert(writer, "writer err");
 
-    mpack_start_map(&writer->writer, 12);
+    mpack_start_map(&writer->writer, 13);
 
     mpack_write_cstr(&writer->writer, "manufacturer");
     mpack_write_cstr(&writer->writer, system_get_manufacture());
@@ -56,6 +56,9 @@ static bool system_deviceinfo_getall(mpack_node_t node, msg_pack_t* msg) {
 
     mpack_write_cstr(&writer->writer, "fwVer");
     mpack_write_cstr(&writer->writer, system_get_fwver());
+
+    mpack_write_cstr(&writer->writer, "fontMd5");
+    mpack_write_cstr(&writer->writer, system_get_font_md5());
 
     mpack_write_cstr(&writer->writer, "bthVer");
     mpack_write_cstr(&writer->writer, system_get_bthver());
@@ -175,6 +178,24 @@ static bool system_deviceinfo_getfwver(mpack_node_t node, msg_pack_t* msg) {
     return app_mpack_send_writer(writer);
 }
 
+/**
+ * @brief 返回当前 ROMFS 系统字库的 MD5 摘要。
+ * @param[in] node 请求数据节点，本命令不读取其内容。
+ * @param[in,out] msg 消息上下文。
+ * @return `true` 表示 ACK 发送成功，`false` 表示发送失败。
+ */
+static bool system_deviceinfo_getfontmd5(mpack_node_t node, msg_pack_t* msg) {
+    (void) node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
+    floatair_assert(writer, "writer err");
+    mpack_start_map(&writer->writer, 1);
+    mpack_write_cstr(&writer->writer, "fontMd5");
+    mpack_write_cstr(&writer->writer, system_get_font_md5());
+    mpack_finish_map(&writer->writer);
+    return app_mpack_send_writer(writer);
+}
+
 static bool system_deviceinfo_getbthver(mpack_node_t node, msg_pack_t* msg) {
     (void) node;
     floatair_assert(msg != NULL, "msg is NULL");
@@ -210,6 +231,7 @@ app_cmd_func_t system_deviceinfo_cmd_funcs[] = {
     {"getBleMac", system_deviceinfo_getblemac},
     {"getBleName", system_deviceinfo_getblename},
     {"getFwVer", system_deviceinfo_getfwver},
+    {"getFontMd5", system_deviceinfo_getfontmd5},
     {"getBthVer", system_deviceinfo_getbthver},
     {"getProtocolVer", system_deviceinfo_getprotocolver}};
 const size_t system_deviceinfo_cmd_funcs_count =

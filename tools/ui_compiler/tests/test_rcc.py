@@ -55,7 +55,7 @@ class RccTests(unittest.TestCase):
                     "name": "ui",
                     "images": {
                         "airpods": {
-                            "path": "/romfs/system/images/airpods.jpg",
+                            "path": "/jyt_c/system/images/airpods.jpg",
                         }
                     },
                 }
@@ -67,7 +67,7 @@ class RccTests(unittest.TestCase):
 
         text = header_path.read_text(encoding="utf-8")
         self.assertNotIn("extern", text)
-        self.assertIn('#define UI_RES_IMAGE_AIRPODS "/romfs/system/images/airpods.jpg"', text)
+        self.assertIn('#define UI_RES_IMAGE_AIRPODS "/jyt_c/system/images/airpods.jpg"', text)
 
     def test_generates_audio_resource_header(self):
         tmp_path = self.temp_dir()
@@ -79,7 +79,7 @@ class RccTests(unittest.TestCase):
                     "name": "ui",
                     "audio": {
                         "click_single": {
-                            "path": "/romfs/system/audio/click_single.wav",
+                            "path": "/jyt_c/system/audio/click_single.wav",
                         }
                     },
                 }
@@ -91,7 +91,7 @@ class RccTests(unittest.TestCase):
 
         text = header_path.read_text(encoding="utf-8")
         self.assertIn(
-            '#define UI_RES_AUDIO_CLICK_SINGLE "/romfs/system/audio/click_single.wav"',
+            '#define UI_RES_AUDIO_CLICK_SINGLE "/jyt_c/system/audio/click_single.wav"',
             text,
         )
 

@@ -22,6 +22,7 @@
         "padding": [2, 2, 2, 2],
         "radius": 10,
         "border_width": 2,
+        "border_post": true,
         "opa": 255,
         "clip_corner": true,
         "layout": {

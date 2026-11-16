@@ -46,6 +46,7 @@ extern "C" {
 #define OMNIDIRECTIONAL                            0  ///< omnidirectional
 #define DIRECTIONAL                                1  ///< directional
 
+#define TEXT_DIRECTION_AUTO                         0xFF ///< 内部默认状态，未收到方向设置时根据文本自动判断。
 #define TEXT_DIRECTION_LTR                            0  ///< left to right direction
 #define TEXT_DIRECTION_RTL                            1  ///< right to left direction
 
@@ -286,6 +287,12 @@ void stt_buffer_dump(void);
  * @return true on success
  */
 bool stt_buffer_push(stt_info_t* info);
+
+/**
+ * @brief 删除缓冲中指定区域的所有文本记录。
+ * @param[in] area 文本区域。
+ */
+void stt_buffer_remove_area(uint32_t area);
 
 /**
  * @brief 按下标获取说话人名称。

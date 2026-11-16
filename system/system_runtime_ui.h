@@ -72,8 +72,8 @@ void system_ui_update_charge_state(uint8_t charge_state);
 void system_ui_update_headset_state(bool left_connected, bool right_connected);
 
 /**
- * @brief 获取当前设备时间及手机对时可靠性。
- * @param[out] reliable 时间是否已通过手机对时确认可靠；允许传入 `NULL`。
+ * @brief 获取当前设备时间及手机校时或 RTC 恢复的可靠性。
+ * @param[out] reliable 时间是否已由手机校时或 RTC 恢复确认可靠；允许传入 `NULL`。
  * @return 当前设备时间戳。
  */
 time_t system_ui_time_now(bool* reliable);
@@ -86,17 +86,18 @@ time_t system_ui_time_now(bool* reliable);
 bool system_ui_update_time_from_epoch(time_t time_now);
 
 /**
- * @brief 设置状态栏时间是否已通过手机对表确认可靠。
+ * @brief 设置状态栏时间是否已由手机校时或 RTC 恢复确认可靠。
  * @param[in] reliable `true` 表示时间可靠并允许显示，`false` 表示隐藏时间。
  * @return 无返回值。
  */
 void system_ui_set_time_reliable(bool reliable);
 
 /**
- * @brief 在蓝牙断连遮罩显示时拦截页面输入事件。
+ * @brief 在蓝牙断连遮罩显示时拦截页面输入事件，按 App 模式支持双击返回。
+ * @param[in] code 归一化后的 LVGL 输入事件码。
  * @return `true` 表示事件已被拦截，`false` 表示应继续分发。
  */
-bool system_ui_try_intercept_bt_disconnect_overlay_input(void);
+bool system_ui_try_intercept_bt_disconnect_overlay_input(lv_event_code_t code);
 
 /**
  * @brief 控制蓝牙断连遮罩显隐。

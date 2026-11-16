@@ -28,6 +28,9 @@ static app_sleep_screen_on_scope_t s_screen_on_scope = APP_SLEEP_SCREEN_ON_SCOPE
 #define JY_APP_VERSION_STRING "unknown"
 #endif
 
+/** @brief MD5 十六进制摘要的字符数。 */
+#define SYSTEM_FONT_MD5_HEX_LENGTH 32U
+
 /**
  * @brief 关闭屏幕并请求 OS 执行恢复出厂流程。
  * @return 请求成功发出返回 `true`，否则返回 `false`。
@@ -420,16 +423,57 @@ const char* system_get_ssn(void) {
     return system_get_section_string("system_get_ssn", g_section_data.jyt_ssn, sizeof(g_section_data.jyt_ssn), ssn, sizeof(ssn));
 }
 /**
+ * @brief 优先从 config.json 读取字符串字段，若不存在或为空则回退到工厂区 section 字节数组。
+ * @param[in] key         config.json 中的键名。
+ * @param[in] section_src 工厂区原始字节数组（原逻辑）。
+ * @param[in] src_len     工厂区字节数组长度。
+ * @param[out] static_buf 调用方提供的静态 buffer，长度必须为 buf_len，用于存放最终字符串结果。
+ * @param[in] buf_len     静态 buffer 长度（含末尾 '\0'）。
+ * @param[in] label       调试日志标签。
+ * @return 返回 static_buf 中的 C 字符串，不会为 NULL。
+ */
+static const char* system_get_manufacture_or_cfg(const char* key,
+                                                 const uint8_t* section_src,
+                                                 size_t src_len,
+                                                 char* static_buf,
+                                                 size_t buf_len,
+                                                 const char* label) {
+    if (!static_buf || buf_len == 0) return "";
+    static_buf[0] = '\0';
+
+    const char* cfg_path = system_config_path();
+    if (cfg_path != NULL && cfg_path[0] != '\0') {
+        char* cfg_val = system_config_get_str(cfg_path, key);
+        if (cfg_val != NULL) {
+            size_t vlen = strlen(cfg_val);
+            if (vlen > 0 && vlen < buf_len) {
+                memcpy(static_buf, cfg_val, vlen);
+                static_buf[vlen] = '\0';
+                free(cfg_val);
+                floatair_dbg("%s: use config '%s' = '%s'", label, key, static_buf);
+                return static_buf;
+            }
+            free(cfg_val);
+        }
+    }
+
+    const char* sec_val = section_bytes_to_cstr(section_src, src_len, static_buf, buf_len);
+    floatair_dbg("%s: use section fallback '%s' = '%s'", label, key, sec_val);
+    return sec_val;
+}
+
+/**
  * @brief 获取制造商字符串。
  * @return 返回制造商字符串。
  */
 const char* system_get_manufacture(void) {
     static char manufacture[sizeof(g_section_data.jyt_manufacture) + 1];
-    return system_get_section_string("system_get_manufacture",
-                                     g_section_data.jyt_manufacture,
-                                     sizeof(g_section_data.jyt_manufacture),
-                                     manufacture,
-                                     sizeof(manufacture));
+    return system_get_manufacture_or_cfg("manufacture",
+                                         g_section_data.jyt_manufacture,
+                                         sizeof(g_section_data.jyt_manufacture),
+                                         manufacture,
+                                         sizeof(manufacture),
+                                         "system_get_manufacture");
 }
 /**
  * @brief 获取产品型号字符串。
@@ -437,7 +481,12 @@ const char* system_get_manufacture(void) {
  */
 const char* system_get_model(void) {
     static char model[sizeof(g_section_data.jyt_model) + 1];
-    return system_get_section_string("system_get_model", g_section_data.jyt_model, sizeof(g_section_data.jyt_model), model, sizeof(model));
+    return system_get_manufacture_or_cfg("model",
+                                         g_section_data.jyt_model,
+                                         sizeof(g_section_data.jyt_model),
+                                         model,
+                                         sizeof(model),
+                                         "system_get_model");
 }
 /**
  * @brief 获取版本说明字符串。
@@ -445,7 +494,12 @@ const char* system_get_model(void) {
  */
 const char* system_get_edition(void) {
     static char edition[sizeof(g_section_data.jyt_edition) + 1];
-    return system_get_section_string("system_get_edition", g_section_data.jyt_edition, sizeof(g_section_data.jyt_edition), edition, sizeof(edition));
+    return system_get_manufacture_or_cfg("edition",
+                                         g_section_data.jyt_edition,
+                                         sizeof(g_section_data.jyt_edition),
+                                         edition,
+                                         sizeof(edition),
+                                         "system_get_edition");
 }
 /**
  * @brief 获取蓝牙名称。
@@ -474,6 +528,59 @@ const char* system_get_bleaddr(void) { return g_bt_info.ble_addr; }
  */
 const char* system_get_fwver(void) {
     return JY_APP_VERSION_STRING;
+}
+
+/**
+ * @brief 判断字符是否为小写十六进制数字。
+ * @param[in] value 待检查字符。
+ * @return `true` 表示字符有效，`false` 表示字符无效。
+ */
+static bool system_font_md5_char_valid(char value) {
+    return (value >= '0' && value <= '9') || (value >= 'a' && value <= 'f');
+}
+
+/**
+ * @brief 获取当前 ROMFS 系统字库的 MD5 摘要。
+ * @return 成功时返回 32 位小写十六进制摘要，读取或校验失败时返回空字符串。
+ */
+const char* system_get_font_md5(void) {
+    static char font_md5[SYSTEM_FONT_MD5_HEX_LENGTH + 1U] = {0};
+    const char* md5_path = floatair_fs_get_system_font_md5_file();
+    void* file = NULL;
+    uint32_t read_size = 0;
+    size_t i = 0;
+
+    font_md5[0] = '\0';
+    if (md5_path == NULL || md5_path[0] == '\0') {
+        floatair_err("font md5 path is empty");
+        return font_md5;
+    }
+
+    file = floatair_fs_open(md5_path, FLOATAIR_FS_MODE_RD);
+    if (file == NULL) {
+        floatair_err("font md5 file open failed: %s", md5_path);
+        return font_md5;
+    }
+
+    if (floatair_fs_read(file, font_md5, sizeof(font_md5), &read_size) != FLOATAIR_FS_OK ||
+        read_size != SYSTEM_FONT_MD5_HEX_LENGTH) {
+        floatair_err("font md5 file read failed: %s size=%" PRIu32, md5_path, read_size);
+        floatair_fs_close(file);
+        font_md5[0] = '\0';
+        return font_md5;
+    }
+    floatair_fs_close(file);
+
+    for (i = 0; i < SYSTEM_FONT_MD5_HEX_LENGTH; ++i) {
+        if (!system_font_md5_char_valid(font_md5[i])) {
+            floatair_err("font md5 file is invalid: %s", md5_path);
+            font_md5[0] = '\0';
+            return font_md5;
+        }
+    }
+
+    font_md5[SYSTEM_FONT_MD5_HEX_LENGTH] = '\0';
+    return font_md5;
 }
 
 /**

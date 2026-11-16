@@ -1,3 +1,4 @@
+/** @brief 跨平台文件访问及只读文件映射接口。 */
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
@@ -22,6 +23,26 @@
 const char *floatair_fs_get_root_path(void);
 const char *floatair_fs_get_system_images_path(void);
 const char *floatair_fs_get_system_font_file(void);
+/**
+ * @brief 获取系统点阵字库文件路径 (font_type=bitmap 时使用)。
+ * @return 返回当前平台的只读 ROMFS 点阵字库路径。
+ */
+const char *floatair_fs_get_system_font_bitmap_file(void);
+/**
+ * @brief 获取指定字号的点阵字库文件路径。
+ *
+ * 多字号点阵字库方案下，每个字号对应独立的 font_{size}.bin。
+ * @param[in] size 字号 (像素)。
+ * @param[out] buf 输出路径缓冲区。
+ * @param[in] bufsz 缓冲区大小。
+ * @return true 表示成功写入路径，false 表示参数错误或缓冲区不足。
+ */
+bool floatair_fs_get_system_font_bitmap_file_for_size(int32_t size, char *buf, size_t bufsz);
+/**
+ * @brief 获取系统字库 MD5 摘要文件路径。
+ * @return 返回当前平台的只读 ROMFS 字库摘要路径。
+ */
+const char *floatair_fs_get_system_font_md5_file(void);
 const char *floatair_fs_get_system_i18n_path(void);
 const char *floatair_fs_get_system_config_file(void);
 
@@ -45,6 +66,14 @@ typedef struct {
 
 /* File operations */
 void *floatair_fs_open(const char *path, uint32_t mode);
+/**
+ * @brief 获取文件的只读映射，映射由文件句柄持有并在关闭时释放。
+ * @param[in] handle 只读打开的文件句柄，使用映射期间必须保持打开。
+ * @param[out] data 文件起始地址；失败时为 NULL。
+ * @param[out] size 文件字节数；失败时为 0。
+ * @return 成功返回 FLOATAIR_FS_OK，不支持映射或文件无效时返回错误码。
+ */
+int floatair_fs_map_readonly(void *handle, const void **data, uint32_t *size);
 int floatair_fs_read(void *handle, void *buf, uint32_t btr, uint32_t *br);
 int floatair_fs_write(void *handle, const void *buf, uint32_t btw, uint32_t *bw);
 int floatair_fs_seek(void *handle, int32_t offset, int whence);

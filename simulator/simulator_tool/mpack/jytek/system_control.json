@@ -178,7 +178,7 @@
             "isFinal": 1,
             "msgId": "assistant_1",
             "msgType": 0,
-            "transcribe": "帮我打开高尔夫。",
+            "transcribe": "帮我打开翻译。",
             "translate": "",
             "user": "User A"
         },
@@ -197,7 +197,7 @@
             "isFinal": 1,
             "msgId": "assistant_2",
             "msgType": 0,
-            "transcribe": "好的，正在打开高尔夫。",
+            "transcribe": "好的，正在打开翻译。",
             "translate": "",
             "user": "Assistant"
         },

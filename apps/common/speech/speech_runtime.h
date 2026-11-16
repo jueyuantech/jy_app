@@ -20,7 +20,6 @@ typedef struct {
     const char* config_name;       ///< 该逻辑 App 独立配置所在的 LFSD App 目录名。
     uint32_t msg_id;               ///< 消息 ID。
     const char* exit_message_key;  ///< 退出确认文案键。
-    bool bordered_stt;             ///< STT 正文是否使用带边框样式。
     bool stt_icons;                ///< 是否显示固定的左右角色图标。
 } speech_app_profile_t;
 
@@ -64,6 +63,19 @@ bool speech_exit_double_click_confirm_enabled(void);
  * @return `true` 表示只上报触摸事件，不在眼镜端执行退出逻辑。
  */
 bool speech_report_double_click_enabled(void);
+
+/**
+ * @brief 获取当前 Speech 应用配置的左右带框气泡开关。
+ * @return `true` 表示按消息区域左右显示带框气泡。
+ */
+bool speech_bordered_stt_enabled(void);
+
+/**
+ * @brief 修改当前 Speech 会话的左右带框气泡开关，并刷新页面。
+ * @param[in] enabled `true` 启用左右气泡，`false` 使用无框正文。
+ * @return 无返回值。
+ */
+void speech_set_bordered_stt_enabled(bool enabled);
 
 #ifdef __cplusplus
 }

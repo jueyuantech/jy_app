@@ -61,6 +61,15 @@ lv_obj_t* app_layers_get_app(void);
 lv_obj_t* app_layers_get_app_float(void);
 
 /**
+ * @brief 设置应用浮层直接子节点的独立视差，供选中态平滑过渡使用。
+ * @param[in] node 应用浮层的直接子节点；节点销毁时自动释放登记信息。
+ * @param[in] distance 浮动距离，范围为 0 到 FLOATAIR_APP_FLOAT_DISTANCE。
+ * @return 成功返回 true；父层、距离或内存分配无效时返回 false。
+ */
+bool app_layers_set_float_depth(lv_obj_t* node, int32_t distance);
+
+
+/**
  * @brief 获取系统遮罩层。
  * @return 返回系统遮罩层对象；未初始化时返回 `NULL`。
  */

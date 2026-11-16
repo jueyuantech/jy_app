@@ -16,8 +16,12 @@
 #include "home/home.h"
 #endif
 #include "product_app.h"
+#if defined(APP_NAME_FACTORY)
+#include "factory/factory.h"
+#endif
 #include "common/widgets/status_bar.h"
 #include "system/popups/notify/notify.h"
+#include "system/popups/assistant/assistant.h"
 #include "system/system.h"
 #include "system/system_runtime_ui.h"
 
@@ -112,7 +116,12 @@ static bool app_router_should_block_by_bt_disconnect(const char* targetapp) {
     app_t* current_app = app_manager_current();
     const char* home_app = product_app_role_name(PRODUCT_APP_ROLE_HOME);
 
-    if (system_get_btconn_state()) {
+#if defined(APP_NAME_FACTORY)
+    if (factory_aging_is_enabled()) {
+        return false;
+    }
+#endif
+    if (PRODUCT_BT_DISCONNECT_POLICY_APP || system_get_btconn_state()) {
         return false;
     }
     if (home_app != NULL && targetapp != NULL && strcmp(targetapp, home_app) == 0) {
@@ -136,6 +145,11 @@ static bool app_router_should_block_by_bt_disconnect(const char* targetapp) {
  * @return 返回首页应用名称；配置异常时返回 `NULL`。
  */
 static const char* app_router_resolve_home(void) {
+#if defined(APP_NAME_FACTORY)
+    if (factory_aging_is_enabled()) {
+        return APP_NAME_FACTORY;
+    }
+#endif
     const char* home = product_app_role_name(PRODUCT_APP_ROLE_HOME);
 
     if (!system_config_get_langselection_finish()) {
@@ -287,6 +301,17 @@ bool app_router_apply_app_config(uint32_t app_platform) {
     }
 
     floatair_info("router apply app config platform=%" PRIu32, app_platform);
+    /* 按 App 拦截时保留等待连接的页面；前置引导仍按首页规则处理。 */
+    if (PRODUCT_BT_DISCONNECT_POLICY_APP && system_config_get_langselection_finish() &&
+        !app_router_is_userguide_pending() && g_router_curapp[0] != '\0' &&
+        g_router_app_platform != APP_ROUTER_APP_PLATFORM_WATCH &&
+        prev_app_platform != APP_ROUTER_APP_PLATFORM_WATCH) {
+        system_ui_sync_shell_state();
+        if (prev_app_platform == APP_ROUTER_APP_PLATFORM_NONE) {
+            app_router_restore_phone_view();
+        }
+        return true;
+    }
     if (!app_router_call_home()) {
         g_router_app_platform = prev_app_platform;
         system_ui_sync_shell_state();
@@ -309,6 +334,30 @@ bool app_router_set_default_app_platform(const char* platform) {
 
 bool app_router_has_app_config(void) {
     return g_router_app_platform != APP_ROUTER_APP_PLATFORM_NONE;
+}
+
+bool app_router_is_userguide_pending(void) {
+    return g_router_app_platform != APP_ROUTER_APP_PLATFORM_WATCH &&
+           !system_config_is_userguide_finished();
+}
+
+/**
+ * @brief 在手机连接和平台就绪后补报保留的页面及 Assistant 状态。
+ * @return 无返回值；全局模式、前置流程或手机尚未就绪时不补报。
+ */
+void app_router_restore_phone_view(void) {
+    if (!PRODUCT_BT_DISCONNECT_POLICY_APP || !system_get_btconn_state() ||
+        !app_router_has_app_config() || !system_config_get_langselection_finish() ||
+        app_router_is_userguide_pending() ||
+        g_router_app_platform == APP_ROUTER_APP_PLATFORM_WATCH ||
+        g_router_curapp[0] == '\0') {
+        return;
+    }
+
+    (void)system_report_view_change(g_router_curapp);
+    if (assistant_is_open()) {
+        (void)system_report_assistant_open();
+    }
 }
 
 void app_router_clear_app_config(void) {
@@ -366,6 +415,12 @@ bool app_router_set_app(const char* targetapp, app_router_entry_t mode) {
         floatair_err("router app %s not found", targetapp);
         return false;
     }
+#if defined(APP_NAME_FACTORY)
+    if (factory_aging_is_enabled() && strcmp(targetapp, APP_NAME_FACTORY) != 0) {
+        floatair_warn("router blocked by factory aging: target=%s", targetapp);
+        return false;
+    }
+#endif
     if (strcmp(g_router_curapp, targetapp) == 0) {
         g_router_entry_mode = mode;
         system_status_bar_set_position(
@@ -424,7 +479,7 @@ bool app_router_set_app(const char* targetapp, app_router_entry_t mode) {
     if (ret) {
         snprintf(g_router_curapp, sizeof(g_router_curapp), "%s", targetapp);
         app_router_sync_keyword_spotting_policy(targetapp);
-        suppress_view_change_report = !system_config_is_userguide_finished();
+        suppress_view_change_report = app_router_is_userguide_pending();
         if (g_router_entry_mode == APP_ROUTER_ENTRY_LOCAL &&
             !suppress_view_change_report) {
             system_report_view_change(targetapp);

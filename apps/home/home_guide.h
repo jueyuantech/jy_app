@@ -17,6 +17,13 @@ extern "C" {
 #endif
 
 /**
+ * @brief 展示 Home 教学通知，统一使用圆环对钩、三秒展示和输入透传。
+ * @param[in] title 已本地化的通知文案，支持换行。
+ * @return 无返回值。
+ */
+void home_guide_show_message_notify(const char* title);
+
+/**
  * @brief Home 教学需要调用的 Home 页面动作。
  */
 typedef struct {

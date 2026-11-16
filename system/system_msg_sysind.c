@@ -11,7 +11,6 @@
 #include "elf_common.h"
 #include "floatair_dbg.h"
 #include "message.h"
-#include "common/widgets/toast.h"
 #include "system/system.h"
 
 #include <assert.h>
@@ -32,61 +31,9 @@ static bool system_systemind_keepalive(mpack_node_t node, msg_pack_t* msg) {
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
-/**
- * @brief 处理关键词唤醒上报的 ACK/NCK 回包。
- *
- * @param[in] node 回包 data 节点，NCK 时包含错误码与错误文案。
- * @param[in] msg 消息上下文。
- * @return `true` 表示回包已处理。
- */
-static bool system_systemind_onkeywordspotting(mpack_node_t node, msg_pack_t* msg) {
-    (void) node;
-    floatair_assert(msg != NULL, "msg is NULL");
-
-    if (msg->type == MSG_TYPE_ACK) {
-        system_report_kws_hit_response_finish();
-        return true;
-    }
-
-    if (msg->type != MSG_TYPE_NAK) {
-        return app_mpack_send_ack(msg, ErrCmdErr);
-    }
-
-    system_report_kws_hit_response_finish();
-    toast_show(app_get_str("TOAST_KWS_PHONE_NO_RESPONSE"));
-    return true;
-}
-
-/**
- * @brief 处理新手引导打开上报的 ACK/NCK 回包。
- * @param[in] node 回包 data 节点，当前未使用。
- * @param[in] msg 消息上下文。
- * @return `true` 表示回包已处理。
- */
-static bool system_systemind_onguideopen(mpack_node_t node, msg_pack_t* msg) {
-    (void) node;
-    floatair_assert(msg != NULL, "msg is NULL");
-    return app_mpack_send_ack(msg, Dp_ErrNone);
-}
-
-/**
- * @brief 处理新手引导关闭上报的 ACK/NCK 回包。
- * @param[in] node 回包 data 节点，当前未使用。
- * @param[in] msg 消息上下文。
- * @return `true` 表示回包已处理。
- */
-static bool system_systemind_onguideclose(mpack_node_t node, msg_pack_t* msg) {
-    (void) node;
-    floatair_assert(msg != NULL, "msg is NULL");
-    return app_mpack_send_ack(msg, Dp_ErrNone);
-}
-
 app_cmd_func_t system_systemind_cmd_funcs[] = {
     {"heartBeat", system_systemind_heartbeat},
     {"keepAlive", system_systemind_keepalive},
-    {"onKeywordSpotting", system_systemind_onkeywordspotting},
-    {"onGuideOpen", system_systemind_onguideopen},
-    {"onGuideClose", system_systemind_onguideclose},
 };
 const size_t system_systemind_cmd_funcs_count =
     sizeof(system_systemind_cmd_funcs) / sizeof(system_systemind_cmd_funcs[0]);

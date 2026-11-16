@@ -11,7 +11,10 @@
 #include "system/system.h"
 
 #include "common/app_framework/app_manager.h"
+#include "common/app_framework/app_router.h"
+#include "common/guide_runtime.h"
 #include "system/popups/assistant/assistant.h"
+#include "app_def.h"
 #include "app_lcd.h"
 #include "system/popups/notify_list/notify_list.h"
 #include "system/system_runtime_ui.h"
@@ -299,7 +302,7 @@ bool system_touch_event(uint8_t event) {
         return true;
     }
 
-    if (system_ui_try_intercept_bt_disconnect_overlay_input()) {
+    if (system_ui_try_intercept_bt_disconnect_overlay_input(code)) {
         return true;
     }
 
@@ -352,7 +355,7 @@ bool system_touch_event_convert(uint8_t event) {
         return true;
     }
 
-    if (system_ui_try_intercept_bt_disconnect_overlay_input()) {
+    if (system_ui_try_intercept_bt_disconnect_overlay_input(code)) {
         return true;
     }
 
@@ -397,6 +400,50 @@ bool system_imu_event_convert_to_touch(uint8_t event) {
 }
 
 /**
+ * @brief 按静态检测配置处理 IMU 运动/静止事件并控制亮灭屏。
+ * @param[in] event `SET_IMU_ANY_MOTION` 或 `SET_IMU_NO_MOTION`。
+ * @return `true` 表示事件已处理，`false` 表示事件类型无效。
+ */
+bool system_update_imu_motion(uint16_t event) {
+    lcd_state_t next_state = LCD_OFF;
+    const char* trigger = NULL;
+
+    switch (event) {
+        case SET_IMU_ANY_MOTION:
+            next_state = LCD_ON;
+            trigger = SYSTEM_SYS_STATE_TRIGGER_IMU_ANY_MOTION;
+            break;
+        case SET_IMU_NO_MOTION:
+            next_state = LCD_OFF;
+            trigger = SYSTEM_SYS_STATE_TRIGGER_IMU_NO_MOTION;
+            break;
+        default:
+            floatair_err("imu motion event %u not support", (unsigned)event);
+            return false;
+    }
+
+    if (!system_config_get_idle_detection_enabled()) {
+        floatair_info("idle detection disabled, ignore imu motion event %u", (unsigned)event);
+        return true;
+    }
+
+    if (system_get_sys_state() == next_state) {
+        floatair_info("imu motion keep lcd state: event=%u state=%u(%s)",
+                      (unsigned)event,
+                      (unsigned)next_state,
+                      floatair_lcd_state_name(next_state));
+        if (next_state == LCD_ON) {
+            app_sleep_timer_reset();
+        }
+        return true;
+    }
+
+    system_set_sys_state(next_state);
+    (void)system_report_sys_state(next_state, trigger);
+    return true;
+}
+
+/**
  * @brief 将 IMU 抬头/低头事件直接映射为系统亮灭屏。
  * @param[in] msg IMU 方向消息。
  * @return `true` 表示事件已处理，`false` 表示处理失败。
@@ -411,8 +458,11 @@ bool system_update_imu_tilt(JYT_ELF_MQ_MSG* msg) {
         return false;
     }
 
-    if (!system_config_is_userguide_finished()) {
-        floatair_info("userguide unfinished, ignore imu_tilt %d", msg->Header.simple_data);
+    /* Step4 允许体验头部亮灭屏手势，仍受下方用户配置开关约束。 */
+    if (app_router_is_userguide_pending() &&
+        !guide_runtime_is_home_step4_wait_sleep() &&
+        !guide_runtime_is_home_step4_sleeping()) {
+        floatair_info("userguide unfinished outside step4, ignore imu_tilt %d", msg->Header.simple_data);
         return true;
     }
 

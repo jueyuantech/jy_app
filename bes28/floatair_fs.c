@@ -1,10 +1,13 @@
+/** @brief 真机文件系统适配，提供资源路径及文件访问。 */
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <sys/statfs.h>
 #include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -22,9 +25,12 @@ struct floatair_dir {
 };
 
 #define SYSTEM_ROOT_PATH "/jyt_d"
-#define SYSTEM_IMAGES_PATH "/romfs/system/images/"
+#define SYSTEM_IMAGES_PATH "/jyt_c/system/images/" ///< JYTC 内置图片目录。
 #define SYSTEM_FONT_FILE "/romfs/system/font/font.ttf" ///< 系统常规文字字体文件。
-#define SYSTEM_I18N_PATH "/romfs/system/i18n"
+#define SYSTEM_FONT_BITMAP_FILE "/romfs/system/font/font.bin" ///< 系统点阵字库文件 (font_type=bitmap)。
+#define SYSTEM_FONT_BITMAP_DIR "/romfs/system/font/" ///< 点阵字库目录，多字号字库存放于此。
+#define SYSTEM_FONT_MD5_FILE "/romfs/system/font/font.md5" ///< 系统常规文字字体的 MD5 摘要文件。
+#define SYSTEM_I18N_PATH "/jyt_c/system/i18n" ///< JYTC 多语言资源目录。
 #define SYSTEM_CONFIG_FILE "/jyt_d/system/config.json"
 
 #define APPS_BASE_PATH "/jyt_d/apps/"
@@ -41,7 +47,34 @@ const char *floatair_fs_get_system_images_path(void)
 
 const char *floatair_fs_get_system_font_file(void)
 {
+#if PRODUCT_FONT_TYPE_BITMAP
+    return SYSTEM_FONT_BITMAP_FILE;
+#else
     return SYSTEM_FONT_FILE;
+#endif
+}
+
+const char *floatair_fs_get_system_font_bitmap_file(void)
+{
+    return SYSTEM_FONT_BITMAP_FILE;
+}
+
+bool floatair_fs_get_system_font_bitmap_file_for_size(int32_t size, char *buf, size_t bufsz)
+{
+    if (buf == NULL || bufsz == 0 || size <= 0) {
+        return false;
+    }
+    int n = snprintf(buf, bufsz, "%sfont_%" PRId32 ".bin", SYSTEM_FONT_BITMAP_DIR, size);
+    return n > 0 && (size_t)n < bufsz;
+}
+
+/**
+ * @brief 获取系统字库 MD5 摘要文件路径。
+ * @return 返回设备 ROMFS 中的字库摘要路径。
+ */
+const char *floatair_fs_get_system_font_md5_file(void)
+{
+    return SYSTEM_FONT_MD5_FILE;
 }
 
 const char *floatair_fs_get_system_i18n_path(void)
@@ -103,6 +136,31 @@ void* floatair_fs_open(const char* path_in, uint32_t mode) {
     }
     h->fd = fd;
     return h;
+}
+
+/**
+ * @brief 通过 ROMFS 文件接口取得 Flash 只读映射，不复制文件内容。
+ * @param[in] handle 保持映射有效的只读文件句柄。
+ * @param[out] data 文件映射地址。
+ * @param[out] size 文件长度。
+ * @return 成功返回 FLOATAIR_FS_OK，查询失败返回错误码。
+ */
+int floatair_fs_map_readonly(void *handle, const void **data, uint32_t *size) {
+    if (!data || !size) return FLOATAIR_FS_ERR_PARAM;
+    *data = NULL;
+    *size = 0;
+    if (!handle) return FLOATAIR_FS_ERR_PARAM;
+    fa_file_t *h = (fa_file_t *)handle;
+    struct stat st;
+    uintptr_t base = 0;
+    if (fstat(h->fd, &st) < 0 || !S_ISREG(st.st_mode) ||
+        st.st_size <= 0 || (uint64_t)st.st_size > UINT32_MAX ||
+        ioctl(h->fd, FIOC_XIPBASE, (unsigned long)&base) < 0 || base == 0) {
+        return FLOATAIR_FS_ERR_IO;
+    }
+    *data = (const void *)base;
+    *size = (uint32_t)st.st_size;
+    return FLOATAIR_FS_OK;
 }
 
 int floatair_fs_read(void* handle, void* buf, uint32_t btr, uint32_t* br) {

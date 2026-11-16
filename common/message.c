@@ -1,3 +1,4 @@
+/** @brief 应用消息解析、系统事件分发及调试崩溃触发。 */
 #include <time.h>
 #include <stdio.h>
 #include "message.h"
@@ -16,6 +17,9 @@
 #include "common/app_framework/app_manager.h"
 #include "common/app_framework/app_router.h"
 #include "product_app.h"
+#if defined(APP_NAME_FACTORY)
+#include "factory/factory.h"
+#endif
 #include "common/widgets/toast.h"
 #include "common/widgets/status_bar.h"
 #include "system/system.h"
@@ -46,6 +50,10 @@ typedef struct list_node {
 } list_node;
 
 #define LIST_INITIAL_CLEARED_VALUE { NULL, NULL }
+/* OS SET_JYT_ASSERT_TRIG 的固定协议号；payload[0]：0=断言，1=malloc 失败。 */
+#define APP_SYSTEM_EVENT_JDB_ASSERT 1010U
+/* OOM 调试每次申请 256 KiB，保留所有块直到分配失败。 */
+#define APP_JDB_OOM_BLOCK_SIZE (256U * 1024U)
 #define APP_TOAST_ID_LOW_BATTERY 1U ///< 低电量报警 Toast 业务标识。
 
 /**
@@ -60,6 +68,20 @@ typedef enum {
 static app_low_battery_toast_pending_action_t s_low_battery_toast_pending =
     APP_LOW_BATTERY_TOAST_PENDING_NONE; ///< 灭屏期间最后一次低电量 Toast 动作。
 static char s_pending_emerg_toast[MSG_STR_MAX_LEN] = {0}; ///< 灭屏期间等待亮屏显示的紧急消息。
+
+/**
+ * @brief 取消低电量提示及待显示请求，灭屏时延后清理 UI。
+ * @return 无返回值。
+ */
+void app_message_dismiss_low_battery_warning(void) {
+    if (floatair_lcd_is_off()) {
+        s_low_battery_toast_pending = APP_LOW_BATTERY_TOAST_PENDING_DISMISS;
+        floatair_info("low battery toast dismiss deferred: lcd off");
+        return;
+    }
+    s_low_battery_toast_pending = APP_LOW_BATTERY_TOAST_PENDING_NONE;
+    toast_dismiss(APP_TOAST_ID_LOW_BATTERY);
+}
 
 static inline int list_is_clear(const list_node* list) {
     return list->next == NULL && list->prev == NULL;
@@ -111,14 +133,6 @@ static bool app_msg_string_in_list(const char* value, const char* const* list_it
         }
     }
     return false;
-}
-
-/**
- * @brief 判断新手引导是否尚未完成。
- * @return `true` 表示欢迎页或教学步骤尚未完成，`false` 表示已完成。
- */
-static bool app_msg_guide_is_active(void) {
-    return !system_config_is_userguide_finished();
 }
 
 /**
@@ -217,7 +231,7 @@ static bool app_msg_guide_is_non_guide_home_view(void) {
  * @return `true` 表示允许继续处理，`false` 表示应返回新手引导步骤不匹配错误。
  */
 static bool app_msg_guide_host_message_allowed(const msg_pack_t* msg) {
-    if (!app_msg_guide_is_active()) {
+    if (!app_router_is_userguide_pending()) {
         return true;
     }
     if (app_msg_guide_is_non_guide_home_view()) {
@@ -469,6 +483,15 @@ bool app_mpack_msg_handle(char* msg, size_t msg_size) {
     }
     header = mpackmsg;
     header_valid = true;
+    if (mpackmsg.type == MSG_TYPE_ACK || mpackmsg.type == MSG_TYPE_NAK) {
+        /* 回包独立查表处理，不进入普通命令分发或刷新休眠计时。 */
+        data_node = mpack_node_map_cstr_optional(payload_node, "data");
+        if (mpack_node_is_missing(data_node) || mpack_node_is_nil(data_node)) {
+            data_node = mpack_tree_missing_node(&tree);
+        }
+        ret = system_handle_ack(data_node, &mpackmsg);
+        goto out;
+    }
     if (floatair_lcd_get_state() == LCD_OFF &&
         !system_host_message_allowed_when_lcd_off(&mpackmsg)) {
         floatair_warn("block host mpack while lcd off, id=%" PRIu32 " biz=%s cmd=%s",
@@ -575,6 +598,8 @@ static const char* system_event_type_to_str(uint16_t event_type) {
         EVT_CASE(SET_IMU_SINGLE_TAP)
         EVT_CASE(SET_IMU_DOUBLE_TAP)
         EVT_CASE(SET_IMU_TILT)
+        EVT_CASE(SET_IMU_ANY_MOTION)
+        EVT_CASE(SET_IMU_NO_MOTION)
         EVT_CASE(SET_IMU_WOM)
         EVT_CASE(SET_IMU_R2W)
         EVT_CASE(SET_IMU_SMD)
@@ -596,6 +621,7 @@ static const char* system_event_type_to_str(uint16_t event_type) {
         EVT_CASE(SET_JYT_SIBLING_SYNC)
         EVT_CASE(SET_BT_CALL_SETUP_EVENT)
         EVT_CASE(SET_BT_AVRCP_POSITION_CHANGED)
+        EVT_CASE(SET_CASE_SOC_REPORT)
         EVT_CASE(SET_TWS_LINK_BROKEN)
         EVT_CASE(SET_JYP_HOST_DISCONNECTED)
         EVT_CASE(SET_JYP_HOST_CONNECTED)
@@ -605,6 +631,10 @@ static const char* system_event_type_to_str(uint16_t event_type) {
         EVT_CASE(SET_ANCS_EVENT)
         EVT_CASE(SET_JYT_REFRESH_UI_REQ)
         EVT_CASE(SET_JYT_ACC_TYPE_CHANGED)
+        EVT_CASE(APP_SYSTEM_EVENT_JDB_ASSERT)
+#if defined(APP_NAME_FACTORY)
+        EVT_CASE(SET_FLA_AGING_TEST_CTRL)
+#endif
         default: return "UNKNOWN_SYSTEM_EVENT";
     }
 #undef EVT_CASE
@@ -706,6 +736,12 @@ static bool system_handle_attachment_changed_event(const JYT_ELF_MQ_MSG* msg) {
             s_attachment_state.glasses_case_count++;
         }
         s_attachment_state.type_by_side[attachment_side] = attachment_type;
+        if (previous_type == JYT_ACC_GLASSES_CASE || attachment_type == JYT_ACC_GLASSES_CASE) {
+            jyt_battery_side_t battery_side = attachment_side == SYSTEM_ATTACHMENT_SIDE_MASTER
+                                                  ? JYT_BATTERY_SIDE_MASTER
+                                                  : JYT_BATTERY_SIDE_SLAVE;
+            system_update_battery_case_state(battery_side, attachment_type == JYT_ACC_GLASSES_CASE);
+        }
     }
 
     floatair_info("attachment changed: side=%u type=%u headset_count=%u case_count=%u",
@@ -718,6 +754,12 @@ static bool system_handle_attachment_changed_event(const JYT_ELF_MQ_MSG* msg) {
         s_attachment_state.type_by_side[SYSTEM_ATTACHMENT_SIDE_SLAVE] == JYT_ACC_SPEAKER,
         s_attachment_state.type_by_side[SYSTEM_ATTACHMENT_SIDE_MASTER] == JYT_ACC_SPEAKER);
     ret = system_report_attachment_type(attachment_type, attachment_side);
+#if defined(APP_NAME_FACTORY)
+    /* 老化时继续更新附件快照，但不允许眼镜盒事件打断扫描的亮灭屏节奏。 */
+    if (factory_aging_is_enabled()) {
+        return ret;
+    }
+#endif
     if (previous_glasses_case_count == 0u && s_attachment_state.glasses_case_count > 0u &&
         !floatair_lcd_is_off()) {
         system_set_sys_state(LCD_OFF);
@@ -769,6 +811,7 @@ typedef enum {
 #define ANCS_UNSUPPORTED_DATA_LEN 0u ///< ANCS 熔断记录不携带 data。
 #endif
 #define ANCS_UNSUPPORTED_NOTIFICATION_ID 0x414E4353u ///< “ANCS”系统提示通知 ID。
+#define ANCS_UNSUPPORTED_SOURCE_ID "system.ancs.unsupported" ///< 系统提示的稳定来源 ID。
 #define ANCS_UNSUPPORTED_MESSAGE_KEY "NOTIFY_ANCS_UNSUPPORTED" ///< ANCS 熔断后的国际化用户指引键。
 
 /**
@@ -856,6 +899,28 @@ static void ancs_copy_str(char* out, size_t out_cap, const uint8_t* s, size_t le
     size_t copy_len = len < (out_cap - 1) ? len : (out_cap - 1);
     memcpy(out, s, copy_len);
     out[copy_len] = '\0';
+}
+
+/**
+ * @brief 按目标容量合并两段 ANCS 文本，保留首段并用换行分隔次段。
+ * @param[out] out 目标缓冲区，不得与输入文本重叠。
+ * @param[in] out_cap 目标缓冲区容量，包含结尾空字符。
+ * @param[in] first 首段文本。
+ * @param[in] second 次段文本。
+ * @return 无返回值；空间不足时截断，始终保留结尾空字符。
+ */
+static void ancs_join_text(char* out, size_t out_cap,
+                           const char* first, const char* second) {
+    if (out == NULL || out_cap == 0) {
+        return;
+    }
+    ancs_copy_str(out, out_cap, (const uint8_t*)first, strlen(first));
+    size_t used = strlen(out);
+    if (used < out_cap - 1u) {
+        out[used++] = '\n';
+        ancs_copy_str(out + used, out_cap - used,
+                      (const uint8_t*)second, strlen(second));
+    }
 }
 
 /**
@@ -1022,6 +1087,7 @@ static bool ancs_parse_full_record(const uint8_t* rec,
     uint8_t category = 0u;
     bool is_pre_existing = false;
     uint32_t uid = 0u;
+    char name[ANCS_APP_ID_MAX] = {0};
     char app_id[ANCS_APP_ID_MAX] = {0};
     ancs_notification_detail_t parsed = {0};
 
@@ -1090,6 +1156,10 @@ static bool ancs_parse_full_record(const uint8_t* rec,
         return false;
     }
 
+    ancs_copy_str(name,
+                  sizeof(name),
+                  &rec[ANCS_REC_NAME_OFF],
+                  name_len);
     ancs_copy_str(app_id,
                   sizeof(app_id),
                   &rec[ANCS_REC_APP_ID_OFF(name_len)],
@@ -1130,7 +1200,7 @@ static bool ancs_parse_full_record(const uint8_t* rec,
     memset(entry, 0, sizeof(*entry));
     entry->id = ancs_internal_notification_id(uid);
     entry->mode = NOTIFY_MODE_MESSAGE;
-    entry->duration_ms = 3000u;
+    entry->duration_ms = (uint32_t)system_config_get_notification_duration() * 1000u;
     entry->level = 1u;
     entry->action = 1u;
     entry->silent = is_pre_existing;
@@ -1141,11 +1211,7 @@ static bool ancs_parse_full_record(const uint8_t* rec,
     if (parsed.subtitle[0] != '\0' && parsed.message[0] != '\0') {
         char merged[MSG_STR_MAX_LEN] = {0};
 
-        snprintf(merged,
-                 sizeof(merged),
-                 "%s\n%s",
-                 parsed.subtitle,
-                 parsed.message);
+        ancs_join_text(merged, sizeof(merged), parsed.subtitle, parsed.message);
         memcpy(parsed.message, merged, sizeof(parsed.message));
         parsed.message[sizeof(parsed.message) - 1u] = '\0';
     } else if (parsed.message[0] == '\0' && parsed.subtitle[0] != '\0') {
@@ -1159,11 +1225,8 @@ static bool ancs_parse_full_record(const uint8_t* rec,
         time(&entry->notify_time);
     }
     if (parsed.title[0] != '\0' && parsed.message[0] != '\0') {
-        snprintf(entry->title,
-                 sizeof(entry->title),
-                 "%s\n%s",
-                 parsed.title,
-                 parsed.message);
+        ancs_join_text(entry->title, sizeof(entry->title),
+                       parsed.title, parsed.message);
     } else if (parsed.title[0] != '\0') {
         ancs_copy_str(entry->title,
                       sizeof(entry->title),
@@ -1228,7 +1291,7 @@ static void ancs_pending_upsert(const system_notification_entry_t* entry,
 }
 
 /**
- * @brief 在通知列表和弹窗追加 ANCS 熔断指引，不影响已有通知。
+ * @brief 在 summary、列表和弹窗追加 ANCS 熔断指引，不影响已有通知。
  * @return 指引通知成功入队并展示返回 `true`。
  */
 static bool ancs_show_unsupported_notification(void) {
@@ -1237,7 +1300,7 @@ static bool ancs_show_unsupported_notification(void) {
 
     entry.id = ANCS_UNSUPPORTED_NOTIFICATION_ID;
     entry.mode = NOTIFY_MODE_MESSAGE;
-    entry.duration_ms = 3000u;
+    entry.duration_ms = (uint32_t)system_config_get_notification_duration() * 1000u;
     entry.level = 1u;
     entry.action = 1u;
     time(&entry.notify_time);
@@ -1266,7 +1329,7 @@ static bool system_handle_ancs_event(const JYT_ELF_MQ_MSG* msg) {
                      msg != NULL ? (unsigned)msg->payload_len : 0u);
         return false;
     }
-    if (!system_config_is_userguide_finished()) {
+    if (app_router_is_userguide_pending()) {
         floatair_info("userguide unfinished, ignore ANCS batch");
         return true;
     }
@@ -1329,7 +1392,8 @@ static bool system_handle_ancs_event(const JYT_ELF_MQ_MSG* msg) {
                     ancs_pending_upsert(&entry, &pending_count);
                 }
             }
-        } else if (type == ANCS_BATCH_TYPE_REMOVED) {
+        }
+		else if (type == ANCS_BATCH_TYPE_REMOVED) {
             const uint8_t* skeleton = &rec[ANCS_REC_SKELETON_OFF];
             uint8_t event_id = UINT8_MAX;
             uint32_t uid = 0u;
@@ -1396,6 +1460,11 @@ static bool system_handle_ancs_event(const JYT_ELF_MQ_MSG* msg) {
     return true;
 }
 
+/**
+ * @brief 处理带载荷的 OS 系统事件，包括 JDB 断言和 OOM 调试请求。
+ * @param msg 完整系统事件消息，载荷长度由 payload_len 指定。
+ * @return 消息被处理时返回 true，无效或未处理时返回 false；崩溃请求不返回。
+ */
 bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
     uint32_t start_us = (uint32_t)GetTimeUs();
     bool ret = true;
@@ -1412,6 +1481,48 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
         goto out;
     }
     floatair_dbg("handle type (%d)(%s)", event_type, system_event_type_to_str(event_type));
+#if defined(APP_NAME_FACTORY)
+    /* 模式开关必须先于 top App 拦截，保证灭屏期间也能退出老化。 */
+    if (event_type == SET_FLA_AGING_TEST_CTRL) {
+        ret = factory_aging_control(msg);
+        goto out;
+    }
+#endif
+    /* 调试事件由系统层消费，避免被当前页面拦截。 */
+    if (event_type == APP_SYSTEM_EVENT_JDB_ASSERT) {
+        if (msg->payload_len != 1 || msg->payload[0] > 1) {
+            floatair_err("invalid JDB assert payload, len=%u", (unsigned)msg->payload_len);
+            ret = false;
+            goto out;
+        }
+        if (msg->payload[0] == 0) {
+            floatair_assert(false, "jdb --assert=elf triggered in uimain");
+        } else {
+            void* blocks = NULL;
+            size_t count = 0;
+            floatair_info("jdb --assert=elf,oom: exhausting uimain heap");
+            for (;;) {
+                void* block = malloc(APP_JDB_OOM_BLOCK_SIZE);
+                if (block == NULL) {
+                    /* OS 若未在 malloc 失败时 panic，则由应用断言保证调试复位。 */
+                    floatair_assert(false, "jdb ELF malloc failed after %zu blocks", count);
+                    break;
+                }
+                *(void**)block = blocks;
+                blocks = block;
+                count++;
+            }
+            /* 断言被构建配置关闭时，归还调试占用的内存。 */
+            while (blocks != NULL) {
+                void* next = *(void**)blocks;
+                free(blocks);
+                blocks = next;
+            }
+        }
+        ret = true;
+        goto out;
+    }
+
     {
         app_t* current_app = app_manager_current();
         if (current_app != NULL &&
@@ -1426,21 +1537,27 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
         case SET_IMU_SINGLE_TAP:
         case SET_IMU_DOUBLE_TAP:
         {
-            if (!system_config_get_imudoubletap_enabled()) {
-                floatair_info("imu_double_tap_enabled is false, imu double tap disabled");
-                break;
-            }
+            if(!system_config_get_imudoubletap_enabled()){
+				floatair_info("imu_double_tap_enabled is false, imu double tap disabled");
+				break;
+			}
             ret = system_imu_event_convert_to_touch((uint8_t)event_type);
             break;
         }
         case SET_IMU_TILT:
         {
-            if (!system_config_get_imutilt_enabled()) {
-                floatair_info("imu_tilt_enabled is false, imu tilt disabled");
-                break;
-            }
+            if(!system_config_get_imutilt_enabled()){
+				floatair_info("imu_tilt_enabled is false, imu tilt disabled");
+				break;
+			}
             ret = system_update_imu_tilt(msg);
             //floatair_info("IMU_TILT ignore");
+            break;
+        }
+        case SET_IMU_ANY_MOTION:
+        case SET_IMU_NO_MOTION:
+        {
+            ret = system_update_imu_motion(event_type);
             break;
         }
         case SET_IMU_WOM:
@@ -1457,14 +1574,6 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
         case SET_BAT_VOLT_CHANGED:
         {
             ret = system_update_bat_status(msg);
-            if (ret && system_get_charge_state() == 1) {
-                if (floatair_lcd_is_off()) {
-                    s_low_battery_toast_pending = APP_LOW_BATTERY_TOAST_PENDING_DISMISS;
-                    floatair_info("low battery toast dismiss deferred: lcd off");
-                } else {
-                    toast_dismiss(APP_TOAST_ID_LOW_BATTERY);
-                }
-            }
             break;
         }
         case SET_CHARGER_STATE_CHANGED:
@@ -1494,6 +1603,13 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
             }
             if (system_config_get_wear_detection_enabled()) {
                 app_sleep_timer_set_wear_removed(!is_wear_on);
+#if defined(APP_NAME_FACTORY)
+                /* 保留最新佩戴状态供退出后使用，老化期间由扫描定时器独占亮灭屏。 */
+                if (factory_aging_is_enabled()) {
+                    system_timer_sleep_deinit();
+                    break;
+                }
+#endif
                 if (is_wear_on) {
                     if (system_get_sys_state() == LCD_OFF) {
                         system_set_sys_state(LCD_ON);
@@ -1534,6 +1650,11 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
             ret = system_avrcp_handle_event(msg);
             break;
         }
+        case SET_CASE_SOC_REPORT:
+        {
+            ret = system_update_case_battery(msg->Header.simple_data);
+            break;
+        }
         case SET_TWS_LINK_BROKEN:
         {
             break;
@@ -1552,6 +1673,11 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg) {
         }
         case SET_JYT_LOW_BATTERY_WARNING:
         {
+            if (system_get_charge_state() == 1) {
+                app_message_dismiss_low_battery_warning();
+                floatair_info("ignore low battery warning while charging");
+                break;
+            }
             toast_cfg_t toast_cfg = toast_default_cfg();
 
             floatair_info("low battery warning: battery=%u", (unsigned)system_get_battery());
@@ -1671,7 +1797,8 @@ void app_message_flush_pending_after_screen_on(void) {
 
     system_avrcp_flush_pending_after_screen_on();
 
-    if (s_low_battery_toast_pending == APP_LOW_BATTERY_TOAST_PENDING_DISMISS) {
+    if (system_get_charge_state() == 1 ||
+        s_low_battery_toast_pending == APP_LOW_BATTERY_TOAST_PENDING_DISMISS) {
         toast_dismiss(APP_TOAST_ID_LOW_BATTERY);
     } else if (s_low_battery_toast_pending == APP_LOW_BATTERY_TOAST_PENDING_SHOW) {
         toast_cfg_t toast_cfg = toast_default_cfg();

@@ -22,6 +22,8 @@
 #include "system/system_timer.h"
 #include "system/popups/notify/notify.h"
 #include "common/widgets/msgbox.h"
+#include "common/widgets/img.h"
+#include "common/widgets/label.h"
 #include "common/widgets/status_bar.h"
 #include "ui_res.h"
 
@@ -29,11 +31,12 @@
 
 #define GUIDE_WELCOME_SECONDS 3u
 #define GUIDE_WELCOME_TICK_MS 1000u
-#define GUIDE_FONT_TITLE 28u
-#define GUIDE_FONT_BODY 24u
-#define GUIDE_SIMPLE_FONT_BODY 20u
 #define GUIDE_SIMPLE_STEP_COUNT 4u
-#define GUIDE_SIMPLE_IMAGE_TOP 176
+#define GUIDE_SIMPLE_HINT_TOP 89 ///< 右镜腿操作提示相对内容区顶部的位置。
+#define GUIDE_SIMPLE_IMAGE_TOP 176 ///< 常规轻量引导示意图的顶部位置。
+#define GUIDE_SIMPLE_TEMPLE_IMAGE_TOP 172 ///< 右镜腿引导示意图的顶部位置。
+#define GUIDE_SIMPLE_IMAGE_WIDTH 305 ///< 操作示意图的显示宽度。
+#define GUIDE_SIMPLE_IMAGE_HEIGHT 80 ///< 操作示意图的显示高度。
 #define GUIDE_SIMPLE_LABEL_TOP 264
 #define GUIDE_SIMPLE_NOTIFY_DURATION_MS 3000u
 
@@ -79,7 +82,7 @@ static lv_obj_t* s_welcome_title = NULL;                                 ///< �
 static lv_obj_t* s_welcome_body = NULL;                                  ///< 欢迎页说明标签。
 static lv_obj_t* s_welcome_countdown = NULL;                             ///< 欢迎页倒计时标签。
 static lv_obj_t* s_welcome_progress = NULL;                              ///< 欢迎页倒计时进度条。
-static lv_obj_t* s_simple_image = NULL;                                  ///< 轻量引导操作示意图。
+static img_t* s_simple_image = NULL;                                     ///< 轻量引导操作示意图。
 static lv_obj_t* s_simple_label = NULL;                                  ///< 轻量引导操作文案。
 static uint8_t s_simple_step = 0;                                        ///< 当前轻量引导步骤下标。
 static bool s_simple_screen_went_off = false;                            ///< 最后一步是否已完成灭屏动作。
@@ -99,11 +102,10 @@ static bool guide_simple_is_enabled(void) {
 /**
  * @brief 统一设置 Guide 文本标签样式。
  * @param[in] label 目标标签对象。
- * @param[in] font_size 期望字体大小。
  * @return 无返回值。
  */
-static void guide_label_apply(lv_obj_t* label, uint32_t font_size) {
-    const lv_font_t* font = get_font_by_size_near(font_size);
+static void guide_label_apply(lv_obj_t* label) {
+    const lv_font_t* font = get_system_font();
 
     floatair_assert(label != NULL, "guide label NULL");
     floatair_assert(font != NULL, "guide font NULL");
@@ -116,16 +118,15 @@ static void guide_label_apply(lv_obj_t* label, uint32_t font_size) {
 /**
  * @brief 创建 Guide 欢迎页文本标签。
  * @param[in] parent 父对象。
- * @param[in] font_size 期望字体大小。
  * @param[in] height 标签高度。
  * @return 返回创建后的标签对象。
  */
-static lv_obj_t* guide_create_label(lv_obj_t* parent, uint32_t font_size, lv_coord_t height) {
+static lv_obj_t* guide_create_label(lv_obj_t* parent, lv_coord_t height) {
     lv_obj_t* label = lv_label_create(parent);
 
     floatair_assert(label != NULL, "guide label create failed");
     lv_obj_set_size(label, LV_PCT(90), height);
-    guide_label_apply(label, font_size);
+    guide_label_apply(label);
     return label;
 }
 
@@ -337,19 +338,24 @@ static void guide_simple_render(void) {
 
     if (s_guide_page_state != GUIDE_PAGE_STATE_SIMPLE ||
         s_simple_step >= GUIDE_SIMPLE_STEP_COUNT ||
-        s_simple_image == NULL || !lv_obj_is_valid(s_simple_image) ||
+        !ui_widget_is_valid(UI_WIDGET(s_simple_image)) ||
         s_simple_label == NULL || !lv_obj_is_valid(s_simple_label)) {
         return;
     }
 
     step = &s_simple_steps[s_simple_step];
-    lv_image_set_src(s_simple_image, NULL);
-    lv_image_set_src(s_simple_image, step->image_src);
+    img_set_src(s_simple_image, step->image_src);
     lv_label_set_text(s_simple_label, app_get_str(step->text_key));
-    lv_obj_remove_flag(s_simple_image, LV_OBJ_FLAG_HIDDEN);
+    ui_widget_set_visible(UI_WIDGET(s_simple_image), true);
     lv_obj_remove_flag(s_simple_label, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_invalidate(s_simple_image);
-    lv_obj_invalidate(s_simple_label);
+    if (product_app_name_has_capability(APP_NAME_GUIDE,
+                                         PRODUCT_APP_CAP_GUIDE_RIGHT_TEMPLE)) {
+        /* 右镜腿引导切页时一并重绘固定提示。 */
+        lv_obj_invalidate(app_manager_current_content_root());
+    } else {
+        lv_obj_invalidate(ui_widget_get_obj(UI_WIDGET(s_simple_image)));
+        lv_obj_invalidate(s_simple_label);
+    }
 }
 
 /**
@@ -400,6 +406,8 @@ static void guide_simple_finish(void) {
  * @return 无返回值。
  */
 static void guide_start_simple(lv_obj_t* root) {
+    bool right_temple = product_app_name_has_capability(
+        APP_NAME_GUIDE, PRODUCT_APP_CAP_GUIDE_RIGHT_TEMPLE);
     if (root == NULL || !lv_obj_is_valid(root) ||
         s_guide_page_state == GUIDE_PAGE_STATE_TRANSITIONING) {
         return;
@@ -416,13 +424,33 @@ static void guide_start_simple(lv_obj_t* root) {
     s_simple_swipe_expect = GUIDE_SIMPLE_SWIPE_EXPECT_ANY;
     guide_set_welcome_visible(false);
 
-    s_simple_image = lv_image_create(root);
-    floatair_assert(s_simple_image != NULL, "guide simple image create failed");
-    lv_obj_remove_style_all(s_simple_image);
-    lv_obj_set_size(s_simple_image, 244, 64);
-    lv_obj_align(s_simple_image, LV_ALIGN_TOP_MID, 0, GUIDE_SIMPLE_IMAGE_TOP);
+    if (right_temple) {
+        label_cfg_t hint_cfg = label_default_cfg();
+        hint_cfg.w = LV_PCT(90);
+        hint_cfg.align = LABEL_ALIGN_CENTER;
+        hint_cfg.overflow = LABEL_OVERFLOW_WRAP;
+        hint_cfg.auto_fit_width = true;
+        hint_cfg.font.weight = 26;
+        hint_cfg.text = app_get_str("BOOT_GUIDE_SIMPLE_RIGHT_TEMPLE_HINT");
+        label_t* hint = label_create(root, &hint_cfg);
+        floatair_assert(hint != NULL, "guide simple hint create failed");
+        lv_obj_align(label_get_obj(hint), LV_ALIGN_TOP_MID, 0, GUIDE_SIMPLE_HINT_TOP);
+    }
 
-    s_simple_label = guide_create_label(root, GUIDE_SIMPLE_FONT_BODY, LV_SIZE_CONTENT);
+    img_cfg_t image_cfg = img_default_cfg();
+    image_cfg.w = right_temple ? GUIDE_SIMPLE_IMAGE_WIDTH : 244;
+    image_cfg.h = right_temple ? GUIDE_SIMPLE_IMAGE_HEIGHT : 64;
+    image_cfg.align = right_temple ? LV_IMAGE_ALIGN_CENTER : LV_IMAGE_ALIGN_DEFAULT;
+    s_simple_image = img_create(root, &image_cfg);
+    floatair_assert(s_simple_image != NULL, "guide simple image create failed");
+    if (!right_temple) {
+        lv_obj_remove_style_all(ui_widget_get_obj(UI_WIDGET(s_simple_image)));
+    }
+    lv_obj_align(ui_widget_get_obj(UI_WIDGET(s_simple_image)),
+                 LV_ALIGN_TOP_MID, 0,
+                 right_temple ? GUIDE_SIMPLE_TEMPLE_IMAGE_TOP : GUIDE_SIMPLE_IMAGE_TOP);
+
+    s_simple_label = guide_create_label(root, LV_SIZE_CONTENT);
     lv_obj_set_style_text_color(s_simple_label, lv_color_white(), 0);
     lv_obj_align(s_simple_label, LV_ALIGN_TOP_MID, 0, GUIDE_SIMPLE_LABEL_TOP);
 
@@ -661,15 +689,15 @@ static void guide_page_create(lv_obj_t* root, const app_page_data_t* data) {
     lv_obj_set_style_border_width(root, 0, LV_PART_MAIN);
     lv_obj_remove_flag(root, LV_OBJ_FLAG_SCROLLABLE);
 
-    s_welcome_title = guide_create_label(root, GUIDE_FONT_TITLE, LV_SIZE_CONTENT);
+    s_welcome_title = guide_create_label(root, LV_SIZE_CONTENT);
     lv_label_set_text(s_welcome_title, app_get_str("BOOT_GUIDE_WELCOME_TITLE"));
     lv_obj_align(s_welcome_title, LV_ALIGN_CENTER, 0, -70);
 
-    s_welcome_body = guide_create_label(root, GUIDE_FONT_BODY, LV_SIZE_CONTENT);
+    s_welcome_body = guide_create_label(root, LV_SIZE_CONTENT);
     lv_label_set_text(s_welcome_body, app_get_str("BOOT_GUIDE_WELCOME_BODY"));
     lv_obj_align(s_welcome_body, LV_ALIGN_CENTER, 0, -10);
 
-    s_welcome_countdown = guide_create_label(root, GUIDE_FONT_BODY, LV_SIZE_CONTENT);
+    s_welcome_countdown = guide_create_label(root, LV_SIZE_CONTENT);
     lv_obj_align(s_welcome_countdown, LV_ALIGN_CENTER, 0, 60);
 
     s_welcome_progress = lv_bar_create(root);

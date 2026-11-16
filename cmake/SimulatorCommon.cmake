@@ -29,7 +29,6 @@ function(jy_app_prepare_simulator_common)
     set(JY_APP_SIMULATOR_COMMON_COMPILE_DEFS
         _DEBUG
         _CONSOLE
-        LV_CONF_SKIP
         BUILD_NATIVE=1
         LV_USE_WINDOWS=0
         LV_COLOR_DEPTH=16
@@ -69,6 +68,22 @@ function(jy_app_prepare_simulator_common)
         LV_USE_STDLIB_SPRINTF=1
         LV_USE_SDL=1
         LV_ASSERT_HANDLER_INCLUDE="floatair_dbg.h"
+    )
+
+    if(CONFIG_LV_USE_HARFBUZZ_SHAPER)
+        list(APPEND JY_APP_SIMULATOR_COMMON_COMPILE_DEFS LV_USE_HARFBUZZ_SHAPER=1)
+    endif()
+
+    set(JY_APP_SIMULATOR_COMMON_COMPILE_DEFS
+        ${JY_APP_SIMULATOR_COMMON_COMPILE_DEFS}
+        PARENT_SCOPE
+    )
+
+    set(PLATFORM_CONFIG_OVERRIDES
+        CONFIG_LV_USE_FS_POSIX=0
+        CONFIG_LV_USE_NUTTX=0
+        CONFIG_LV_USE_NUTTX_LCD=0
+        CONFIG_RPMSG_TTF_CLIENT=0
         PARENT_SCOPE
     )
 

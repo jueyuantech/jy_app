@@ -50,6 +50,12 @@ static const system_als_brightness_level_t s_als_brightness_levels[] = {
 };
 
 static uint8_t s_battery_percent = 0;   ///< 当前缓存电量百分比
+static bool s_battery_received = false; ///< 是否已收到 OS 电量上报，用于识别首次 0% 上报。
+static union bat_state_t s_battery_by_side[JYT_BATTERY_SIDE_COUNT]; ///< 主从各侧电池快照，充电模式按该侧 case 状态修正。
+static bool s_battery_side_received[JYT_BATTERY_SIDE_COUNT]; ///< 各侧快照是否有效，避免未上报侧参与显示选择。
+static bool s_battery_case_by_side[JYT_BATTERY_SIDE_COUNT]; ///< 各侧是否处于 case，期间忽略该侧上报的充电模式。
+static uint8_t s_case_battery_percent = 0;   ///< 当前缓存眼镜盒电量百分比。
+static bool s_case_battery_received = false; ///< 是否已收到 OS 眼镜盒电量上报。
 static uint8_t s_charge_state_sys = 0;  ///< 当前缓存充电状态
 static uint16_t s_voltage_mv_sys = 0;   ///< 当前缓存电池电压
 static bool g_bt_connected = false;     ///< 当前缓存蓝牙连接状态
@@ -178,8 +184,9 @@ static bool system_runtime_state_has_userguide_progress(void) {
 static bool system_runtime_state_is_userguide_active(const char* current_app) {
     const char* guide_app = product_app_role_name(PRODUCT_APP_ROLE_GUIDE);
 
-    return guide_runtime_get_state() != GUIDE_RUNTIME_STATE_IDLE ||
-           system_runtime_state_has_userguide_progress() ||
+    return (app_router_is_userguide_pending() &&
+            (guide_runtime_get_state() != GUIDE_RUNTIME_STATE_IDLE ||
+             system_runtime_state_has_userguide_progress())) ||
            (guide_app != NULL && current_app != NULL && strcmp(current_app, guide_app) == 0);
 }
 
@@ -351,6 +358,22 @@ static uint8_t system_runtime_state_get_battery(void) {
 }
 
 /**
+ * @brief 判断当前主从任意一侧是否连接眼镜盒附件。
+ * @return `true` 表示当前存在眼镜盒附件，`false` 表示不存在。
+ */
+static bool system_runtime_state_has_glasses_case(void) {
+    system_attachment_snapshot_t attachment_state = {0};
+
+    system_get_attachment_state(&attachment_state);
+    for (size_t side = 0; side < SYSTEM_ATTACHMENT_SIDE_COUNT; ++side) {
+        if (attachment_state.type_by_side[side] == JYT_ACC_GLASSES_CASE) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * @brief 设置当前缓存电量并同步到底部状态栏。
  * @param[in] battery 当前电量百分比。
  * @return 无返回值。
@@ -369,13 +392,16 @@ static uint8_t system_runtime_state_get_charge_state(void) {
 }
 
 /**
- * @brief 设置当前缓存充电状态并同步到底部状态栏。
+ * @brief 设置当前缓存充电状态、同步状态栏，并在进入充电时取消低电量提示。
  * @param[in] charge_state 当前充电状态值。
  * @return 无返回值。
  */
 static void system_runtime_state_set_charge_state(uint8_t charge_state) {
     s_charge_state_sys = charge_state;
     system_ui_update_charge_state(charge_state);
+    if (charge_state == 1) {
+        app_message_dismiss_low_battery_warning();
+    }
 }
 
 /**
@@ -420,21 +446,23 @@ static uint8_t system_runtime_state_als_raw_to_brightness(uint32_t raw_value) {
 /**
  * @brief 应用一次电池状态快照到运行时缓存，并按需同步 UI/上报。
  * @param[in] bat_status 电池状态快照。
- * @param[in] report_changed `true` 表示状态变化时同步上报，`false` 表示仅刷新本地缓存。
  * @return 无返回值。
  */
-static void system_runtime_state_apply_bat_status(union bat_state_t bat_status, bool report_changed) {
+static void system_runtime_state_apply_bat_status(union bat_state_t bat_status) {
     uint8_t soc = bat_status.bat_chg_combo.soc;
     uint16_t voltage_mv = bat_status.bat_chg_combo.voltage_mv;
     uint8_t charge_state = bat_status.bat_chg_combo.charger_mode;
 
     floatair_info("soc %d, voltage_mv %d, charge_state %d", soc, voltage_mv, charge_state);
 
-    if (soc != system_runtime_state_get_battery()) {
+    if (!s_battery_received || soc != system_runtime_state_get_battery()) {
+        s_battery_received = true;
         floatair_dbg("battery changed %d to %d", (int)system_runtime_state_get_battery(), (int)soc);
         system_runtime_state_set_battery(soc);
-        if (report_changed) {
-            system_report_battery(soc);
+        if (g_bt_connected) {
+            (void)system_report_battery(soc);
+        } else {
+            floatair_info("phone disconnected, cache battery %u", (unsigned)soc);
         }
     }
     if (voltage_mv != system_runtime_state_get_voltage()) {
@@ -446,10 +474,88 @@ static void system_runtime_state_apply_bat_status(union bat_state_t bat_status, 
                      (int)system_runtime_state_get_charge_state(),
                      (int)charge_state);
         system_runtime_state_set_charge_state(charge_state);
-        if (report_changed) {
-            system_report_charge_state(charge_state);
-        }
     }
+}
+
+/**
+ * @brief 判断主从两侧是否都已收到有效电池快照，统一显示和协议查询的就绪条件。
+ * @return 双侧均已收到有效快照时返回 true，否则返回 false。
+ */
+bool system_is_battery_ready(void) {
+    return s_battery_side_received[JYT_BATTERY_SIDE_MASTER] &&
+           s_battery_side_received[JYT_BATTERY_SIDE_SLAVE];
+}
+
+/**
+ * @brief 获取手机协议的聚合和双侧充电状态，未就绪时不输出默认值。
+ * @param[out] state 最低电量侧是否充电，取值 0/1；失败时不修改。
+ * @param[out] state_by_side bit0 表示主侧充电，bit1 表示从侧充电；失败时不修改。
+ * @return 双侧数据就绪且参数有效返回 true，否则返回 false。
+ */
+bool system_get_charge_states(uint8_t* state, uint8_t* state_by_side) {
+    if (state == NULL || state_by_side == NULL || !system_is_battery_ready()) {
+        return false;
+    }
+    *state = s_charge_state_sys == 1 ? 1u : 0u;
+    *state_by_side = (s_battery_by_side[JYT_BATTERY_SIDE_MASTER].bat_chg_combo.charger_mode == 1 ? 1u : 0u) |
+             (s_battery_by_side[JYT_BATTERY_SIDE_SLAVE].bat_chg_combo.charger_mode == 1 ? 2u : 0u);
+    return true;
+}
+
+/**
+ * @brief 手机连接且双侧就绪时上报聚合与双侧充电状态，仅对成功发送的值去重。
+ * @param[in] force 连接建立时强制补报，其他更新在任一字段变化或上次失败时发送。
+ * @return 无返回值。
+ */
+static void system_runtime_state_report_charge_state(bool force) {
+    static bool reported = false; ///< 是否已有成功发送的完整充电状态。
+    static uint8_t last_reported = 0; ///< 最近成功发送的聚合充电状态。
+    static uint8_t last_reported_by_side = 0; ///< 最近成功发送的双侧充电位图。
+    uint8_t state = 0;
+    uint8_t state_by_side = 0;
+
+    if (!g_bt_connected || !system_get_charge_states(&state, &state_by_side)) {
+        return;
+    }
+    if (!force && reported && state == last_reported && state_by_side == last_reported_by_side) {
+        return;
+    }
+    if (system_report_charge_state(state, state_by_side)) {
+        reported = true;
+        last_reported = state;
+        last_reported_by_side = state_by_side;
+    } else {
+        reported = false;
+        floatair_warn("report charge states failed: aggregate=%u by_side=%u",
+                      (unsigned)state, (unsigned)state_by_side);
+    }
+}
+
+/**
+ * @brief 手机连接、眼镜盒在位且缓存有效时上报盒子电量，统一各触发入口的门控。
+ * @return 无需发送或发送成功返回 true，发送失败返回 false。
+ */
+static bool system_runtime_state_report_case_battery(void) {
+    if (!g_bt_connected || !s_case_battery_received || !system_runtime_state_has_glasses_case()) {
+        return true;
+    }
+    if (!system_report_case_battery(s_case_battery_percent)) {
+        floatair_warn("report cached case battery failed: %u", (unsigned)s_case_battery_percent);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief 手机连接后补报已收到的最新眼镜、眼镜盒电量和双侧充电状态。
+ * @return 无返回值。
+ */
+static void system_runtime_state_report_cached_batteries(void) {
+    if (s_battery_received && !system_report_battery(s_battery_percent)) {
+        floatair_warn("report cached battery failed: %u", (unsigned)s_battery_percent);
+    }
+    (void)system_runtime_state_report_case_battery();
+    system_runtime_state_report_charge_state(true);
 }
 
 /**
@@ -486,7 +592,9 @@ static void system_runtime_state_apply_btconn_ui(bool connected,
     if (cleanup_disconnected) {
         toast_dismiss_active();
         (void)notify_list_close();
-        (void)assistant_close(false);
+        if (!PRODUCT_BT_DISCONNECT_POLICY_APP) {
+            (void)assistant_close(false);
+        }
 #if defined(APP_NAME_HOME)
         home_view_reset_selection();
 #endif
@@ -501,7 +609,8 @@ static void system_runtime_state_apply_btconn_ui(bool connected,
             }
         } else if (system_runtime_state_is_userguide_active(current_app)) {
             floatair_info("bt disconnect cleanup: keep current app during userguide, current=%s", current_app);
-        } else if (home_app != NULL && current_app[0] != '\0' &&
+        } else if (!PRODUCT_BT_DISCONNECT_POLICY_APP &&
+                   home_app != NULL && current_app[0] != '\0' &&
                    strcmp(current_app, home_app) != 0) {
             floatair_info("bt disconnect cleanup: try switch app to home, current=%s", current_app);
             if (!app_router_set_app(home_app, APP_ROUTER_ENTRY_LOCAL)) {
@@ -539,6 +648,10 @@ static void system_runtime_state_apply_btconn_ui(bool connected,
         return;
     }
 
+    if (connected) {
+        app_router_restore_phone_view();
+    }
+
     if (home_app != NULL && strcmp(current_app, home_app) == 0) {
 #if defined(APP_NAME_HOME)
         floatair_info("bt connection state changed: reload home view");
@@ -557,6 +670,9 @@ static void system_runtime_state_refresh_btconn_state(bool connected) {
     bool changed = prev_connected != connected;
 
     g_bt_connected = connected;
+    if (changed && connected) {
+        system_runtime_state_report_cached_batteries();
+    }
     if (changed && !connected) {
         app_sleep_timer_restore_screen_on_scope(
             APP_SLEEP_SCREEN_ON_RESTORE_DISCONNECTED);
@@ -579,14 +695,19 @@ static void system_runtime_state_refresh_btconn_state(bool connected) {
 }
 
 /**
- * @brief 亮屏后补做灭屏期间延迟的蓝牙状态 UI 同步。
+ * @brief 亮屏后清理已结束的电话弹窗，并补做灭屏期间延迟的蓝牙状态 UI 同步。
  * @return 无返回值。
  */
 void system_runtime_state_flush_pending_after_screen_on(void) {
     bool changed = s_btconn_changed_pending;
     bool cleanup_disconnected = s_btconn_disconnect_cleanup_pending;
 
-    if (floatair_lcd_is_off() || !s_btconn_ui_refresh_pending) {
+    if (floatair_lcd_is_off()) {
+        return;
+    }
+
+    system_notification_flush_pending_after_screen_on();
+    if (!s_btconn_ui_refresh_pending) {
         return;
     }
 
@@ -731,7 +852,7 @@ bool system_update_kws_state(JYT_ELF_MQ_MSG* msg) {
                       current_app != NULL ? current_app : "N/A");
         return true;
     }
-    if (!system_config_is_userguide_finished() &&
+    if (app_router_is_userguide_pending() &&
         !guide_runtime_is_home_step5_wait_assistant()) {
         floatair_info("userguide unfinished before step5, ignore kws hit=%" PRIu32, kws_hit);
         return true;
@@ -874,8 +995,50 @@ bool system_handle_call_setup_event(JYT_ELF_MQ_MSG* msg) {
 }
 
 /**
- * @brief 处理电池状态消息并同步缓存、状态栏与上报。
- * @param[in] msg 电池状态消息。
+ * @brief 等待双侧电量就绪后，选择较低侧的有效电池状态同步 UI 及上报。
+ * @return 无返回值。
+ */
+static void system_runtime_state_refresh_battery(void) {
+    if (!system_is_battery_ready()) {
+        floatair_info("battery display waiting for both sides: master=%d slave=%d",
+                      (int)s_battery_side_received[JYT_BATTERY_SIDE_MASTER],
+                      (int)s_battery_side_received[JYT_BATTERY_SIDE_SLAVE]);
+        return;
+    }
+
+    uint32_t selected_side = JYT_BATTERY_SIDE_MASTER;
+    if (s_battery_by_side[JYT_BATTERY_SIDE_SLAVE].bat_chg_combo.soc <=
+        s_battery_by_side[JYT_BATTERY_SIDE_MASTER].bat_chg_combo.soc) {
+        selected_side = JYT_BATTERY_SIDE_SLAVE;
+    }
+    system_runtime_state_apply_bat_status(s_battery_by_side[selected_side]);
+    system_runtime_state_report_charge_state(false);
+}
+
+/**
+ * @brief 更新指定侧的 case 充电覆盖状态，进入时补报盒子电量，退出时清零充电并等待该侧新上报。
+ * @param[in] side 主侧或从侧。
+ * @param[in] in_case 该侧配件是否为 case。
+ * @return 无返回值。
+ */
+void system_update_battery_case_state(jyt_battery_side_t side, bool in_case) {
+    if ((unsigned)side >= JYT_BATTERY_SIDE_COUNT) {
+        floatair_err("invalid battery case side: %u", (unsigned)side);
+        return;
+    }
+    bool entering_case = in_case && !s_battery_case_by_side[side];
+    s_battery_case_by_side[side] = in_case;
+    s_battery_by_side[side].bat_chg_combo.charger_mode = in_case ? 1u : 0u;
+    floatair_info("battery case changed: side=%u in_case=%d", (unsigned)side, (int)in_case);
+    system_runtime_state_refresh_battery();
+    if (entering_case) {
+        (void)system_runtime_state_report_case_battery();
+    }
+}
+
+/**
+ * @brief 缓存主从分侧电池快照，两侧均已上报后选择较低电量侧同步状态栏及上报。
+ * @param[in] msg payload 为 SDK 定义的 jyt_battery_report_t。
  * @return `true` 表示处理成功，`false` 表示处理失败。
  */
 bool system_update_bat_status(JYT_ELF_MQ_MSG* msg) {
@@ -883,15 +1046,62 @@ bool system_update_bat_status(JYT_ELF_MQ_MSG* msg) {
         floatair_err("msg is NULL");
         return false;
     }
-    if (msg->payload_len == 0 || msg->payload_len < sizeof(union bat_state_t)) {
-        floatair_err("msg payload is NULL or empty[%d][%d]", msg->payload_len, sizeof(union bat_state_t));
+    if (msg->payload_len != sizeof(jyt_battery_report_t)) {
+        floatair_err("invalid battery report size: %u", (unsigned)msg->payload_len);
         return false;
     }
 
-    union bat_state_t bat_status;
-    memcpy(&bat_status, msg->payload, sizeof(bat_status));
-    system_runtime_state_apply_bat_status(bat_status, true);
+    jyt_battery_report_t report;
+    memcpy(&report, msg->payload, sizeof(report));
+    if (report.side >= JYT_BATTERY_SIDE_COUNT ||
+        report.state.bat_chg_combo.soc > 100 ||
+        report.state.bat_chg_combo.voltage_mv == 0) {
+        floatair_err("invalid battery report: side=%lu soc=%u voltage=%u",
+                     (unsigned long)report.side,
+                     (unsigned)report.state.bat_chg_combo.soc,
+                     (unsigned)report.state.bat_chg_combo.voltage_mv);
+        return false;
+    }
+
+    s_battery_by_side[report.side] = report.state;
+    if (s_battery_case_by_side[report.side]) {
+        s_battery_by_side[report.side].bat_chg_combo.charger_mode = 1u;
+    }
+    s_battery_side_received[report.side] = true;
+    floatair_info("battery side=%lu soc=%u charge=%u voltage=%u",
+                  (unsigned long)report.side,
+                  (unsigned)report.state.bat_chg_combo.soc,
+                  (unsigned)report.state.bat_chg_combo.charger_mode,
+                  (unsigned)report.state.bat_chg_combo.voltage_mv);
+
+    system_runtime_state_refresh_battery();
     return true;
+}
+
+/**
+ * @brief 读取指定侧的电池快照，充电模式已按该侧 case 状态修正。
+ * @param[in] side 主侧或从侧。
+ * @param[out] state 返回该侧电量、充电模式及电压，失败时不修改。
+ * @return `true` 表示已取得快照，`false` 表示参数无效或该侧尚未上报。
+ */
+bool system_get_battery_state_by_side(jyt_battery_side_t side, union bat_state_t* state) {
+    if ((unsigned)side >= JYT_BATTERY_SIDE_COUNT || state == NULL ||
+        !s_battery_side_received[side]) {
+        return false;
+    }
+    *state = s_battery_by_side[side];
+    return true;
+}
+
+/**
+ * @brief 缓存眼镜盒电量，仅在手机已连接且当前有眼镜盒附件时上报。
+ * @param[in] battery 眼镜盒电量百分比。
+ * @return `true` 表示已缓存且无需发送或发送成功，`false` 表示发送失败。
+ */
+bool system_update_case_battery(uint8_t battery) {
+    s_case_battery_percent = battery;
+    s_case_battery_received = true;
+    return system_runtime_state_report_case_battery();
 }
 
 /**

@@ -246,9 +246,10 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     const char* lang = system_config_get_curlang();
     uint16_t inactivity = system_config_get_inactivity_timeout();
     uint16_t poweroff   = system_config_get_deep_sleep_timeout();
+    uint16_t notification_duration = system_config_get_notification_duration();
     uint8_t wear_en     = system_config_get_wear_detection_enabled() ? 1 : 0;
     uint8_t imudoubletap_en = system_config_get_imudoubletap_enabled() ? 1 : 0;
-    uint8_t imutilt_en  = system_config_get_imutilt_enabled() ? 1 : 0;
+	uint8_t imutilt_en  = system_config_get_imutilt_enabled() ? 1 : 0;
     uint8_t touch_en    = system_config_get_touchpad_enabled() ? 1 : 0;
     uint8_t idle_en     = system_config_get_idle_detection_enabled() ? 1 : 0;
     uint8_t notif_en    = system_config_get_notification_enabled() ? 1 : 0;
@@ -261,7 +262,7 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     system_head_gesture_config_t head_gesture = {0};
     (void)system_config_get_head_gesture_config(&head_gesture);
 
-    mpack_start_map(&writer->writer, 20);
+    mpack_start_map(&writer->writer, 21);
     mpack_write_cstr(&writer->writer, "time");
     mpack_write_u64(&writer->writer, ts);
 
@@ -326,10 +327,10 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
     mpack_write_i32(&writer->writer, head_gesture.base_deg);
     mpack_finish_map(&writer->writer);
 
-    mpack_write_cstr(&writer->writer, "imuDoubleTapEnabled");
+	mpack_write_cstr(&writer->writer, "imuDoubleTapEnabled");
     mpack_write_u8(&writer->writer, imudoubletap_en);
 
-    mpack_write_cstr(&writer->writer, "imutiltEnabled");
+	mpack_write_cstr(&writer->writer, "imutiltEnabled");
     mpack_write_u8(&writer->writer, imutilt_en);
 
     mpack_write_cstr(&writer->writer, "touchpadEnabled");
@@ -349,6 +350,9 @@ static bool system_systemconfig_getall(mpack_node_t node, msg_pack_t* msg) {
 
     mpack_write_cstr(&writer->writer, "notificationEnabled");
     mpack_write_u8(&writer->writer, notif_en);
+
+    mpack_write_cstr(&writer->writer, "notificationDuration");
+    mpack_write_u16(&writer->writer, notification_duration);
     mpack_finish_map(&writer->writer);
 
     return app_mpack_send_writer(writer);
@@ -809,6 +813,34 @@ static bool system_systemconfig_setinactivitytimeout(mpack_node_t node, msg_pack
     return app_mpack_send_ack(msg, Dp_ErrNone);
 }
 
+static bool system_systemconfig_getnotificationduration(mpack_node_t node, msg_pack_t* msg) {
+    (void)node;
+    floatair_assert(msg != NULL, "msg is NULL");
+    msg_pack_writer_t* writer = app_mpack_create_writer(msg, MSG_TYPE_ACK);
+    floatair_assert(writer != NULL, "writer err");
+    mpack_start_map(&writer->writer, 1);
+    mpack_write_cstr(&writer->writer, "notificationDuration");
+    mpack_write_u16(&writer->writer, system_config_get_notification_duration());
+    mpack_finish_map(&writer->writer);
+    return app_mpack_send_writer(writer);
+}
+
+static bool system_systemconfig_setnotificationduration(mpack_node_t node, msg_pack_t* msg) {
+    uint32_t duration = 0;
+
+    floatair_assert(msg != NULL, "msg is NULL");
+    if (!app_msg_get_u32(node, false, "notificationDuration", &duration) ||
+        duration > UINT16_MAX) {
+        floatair_err("notificationDuration is invalid");
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    if (!system_config_set_notification_duration((uint16_t)duration)) {
+        floatair_err("set notificationDuration failed");
+        return app_mpack_send_ack(msg, ErrDataErr);
+    }
+    return app_mpack_send_ack(msg, Dp_ErrNone);
+}
+
 static bool system_systemconfig_getpowerofftimeout(mpack_node_t node, msg_pack_t* msg) {
     (void) node;
     floatair_assert(msg != NULL, "msg is NULL");
@@ -1243,6 +1275,8 @@ app_cmd_func_t system_systemconfig_cmd_funcs[] = {
     {"setDisplayPopupDepth", system_systemconfig_setdisplaypopupdepth},
     {"getInactivityTimeout", system_systemconfig_getinactivitytimeout},
     {"setInactivityTimeout", system_systemconfig_setinactivitytimeout},
+    {"getNotificationDuration", system_systemconfig_getnotificationduration},
+    {"setNotificationDuration", system_systemconfig_setnotificationduration},
     {"getPoweroffTimeout", system_systemconfig_getpowerofftimeout},
     {"setPoweroffTimeout", system_systemconfig_setpowerofftimeout},
     {"getHeadGestureConfig", system_systemconfig_getheadgestureconfig},
@@ -1253,7 +1287,7 @@ app_cmd_func_t system_systemconfig_cmd_funcs[] = {
     {"setAutoBrightnessEnabled", system_systemconfig_setautobrightnessenabled},
     {"getImuDoubleTapEnabled", system_systemconfig_get_imudoubletap_enabled},
     {"setImuDoubleTapEnabled", system_systemconfig_set_imudoubletap_enabled},
-    {"getimutiltEnabled", system_systemconfig_get_imutilt_enabled},
+	{"getimutiltEnabled", system_systemconfig_get_imutilt_enabled},
     {"setimutiltEnabled", system_systemconfig_set_imutilt_enabled},
     {"getTouchpadEnabled", system_systemconfig_gettouchpadenabled},
     {"setTouchpadEnabled", system_systemconfig_settouchpadenabled},

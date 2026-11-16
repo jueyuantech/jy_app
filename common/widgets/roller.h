@@ -128,6 +128,26 @@ void roller_set_callbacks(roller_t* roller,
                           roller_activate_cb_t on_activate,
                           void* user_data);
 
+
+/**
+ * @brief 设置滚筒每一行的固定高度。
+ *
+ * @param roller 滚筒对象。
+ * @param height 每一行的高度。
+ * @return 无返回值。
+ */
+void roller_widget_set_row_height(lv_obj_t* roller, int32_t height);
+
+/**
+ * @brief 设置滚筒每一行之间的垂直间距。
+ *
+ * @param roller 滚筒对象。
+ * @param gap 相邻行之间的间距。
+ * @return 无返回值。
+ */
+void roller_widget_set_row_gap(lv_obj_t* roller, int32_t gap);
+
+
 /**
  * @brief 处理滚轮的按键或手势事件。
  *

@@ -1,3 +1,4 @@
+/** @brief 初始化模拟器显示、窗口控制与业务运行环境，驱动主事件循环。 */
 #define SDL_MAIN_HANDLED
 
 #include <pthread.h>
@@ -18,6 +19,8 @@
 #include "../../system/system_config_json.h"
 #include "../../system/system_timer.h"
 #include "../../common/app_framework/app_stereo.h"
+
+#define SIMULATOR_MIN_VISIBLE_BRIGHTNESS 64U ///< 模拟器非零亮度的可视下限，补偿显示器与眼镜 LCD 的观感差异。
 
 // Forward declarations for application entry points
 void floatair_init(void);
@@ -62,8 +65,18 @@ static app_stereo_output_mode_t simulator_to_stereo_output_mode(sim_socket_displ
     }
 }
 
+/**
+ * @brief 将设备亮度换算为模拟器黑色遮罩透明度。
+ * @param[in] brightness 设备亮度值，范围 0-255。
+ * @return 模拟器黑色遮罩透明度；0 亮度保持全黑，非零低亮度提升到可视下限。
+ */
 static lv_opa_t simulator_brightness_to_mask_opa(uint8_t brightness) {
-    return (lv_opa_t)(UINT8_MAX - brightness);
+    uint8_t visual_brightness = brightness;
+
+    if (visual_brightness > 0U && visual_brightness < SIMULATOR_MIN_VISIBLE_BRIGHTNESS) {
+        visual_brightness = SIMULATOR_MIN_VISIBLE_BRIGHTNESS;
+    }
+    return (lv_opa_t)(UINT8_MAX - visual_brightness);
 }
 
 void simulator_update_lcd_visual(uint8_t brightness, lcd_state_t state) {
@@ -243,6 +256,7 @@ static void status_timer_cb(lv_timer_t* timer) {
     lv_label_set_text(g_status_label, buf);
 }
 
+#if !defined(APP_NAME_FACTORY)
 /**
  * @brief 创建单眼业务可见区域调试红框。
  * @param[in] eye_index 眼区索引。
@@ -291,6 +305,8 @@ static void simulator_create_business_area_frames(void) {
         simulator_create_business_area_frame(1, APP_STEREO_EYE_RIGHT);
     }
 }
+
+#endif
 
 static void display_delete_cb(lv_event_t* e) {
     lv_display_t* disp = lv_event_get_current_target(e);
@@ -369,6 +385,10 @@ int main(int argc, char** argv) {
 
     // 4. Create SDL window
     floatair_info("4. Creating SDL window (%dx%d)...", output_width, output_height);
+#ifdef __APPLE__
+    /* macOS 使用 OpenGL 提交软件帧缓冲，支持没有 Metal 的虚拟机。 */
+    SDL_SetHint(SDL_HINT_FRAMEBUFFER_ACCELERATION, "opengl");
+#endif
     g_disp = lv_sdl_window_create(output_width, output_height);
     if (g_disp) {
         floatair_info("SDL window created successfully: %p", g_disp);
@@ -376,6 +396,12 @@ int main(int argc, char** argv) {
             floatair_warn("app stereo display mirror install failed");
         }
         lv_sdl_window_set_title(g_disp, "FloatairSimulator");
+#if defined(_WIN32)
+        SDL_Renderer* renderer = (SDL_Renderer*)lv_sdl_window_get_renderer(g_disp);
+        if (!simulator_platform_install_topmost_menu(SDL_RenderGetWindow(renderer))) {
+            floatair_warn("Failed to install simulator topmost menu");
+        }
+#endif
         lv_display_add_event_cb(g_disp, display_delete_cb, LV_EVENT_DELETE, NULL);
         floatair_info("Window title set to 'FloatairSimulator'");
     } else {
@@ -400,7 +426,9 @@ int main(int argc, char** argv) {
     lv_obj_align(g_status_label, LV_ALIGN_TOP_RIGHT, -8, 8);
     floatair_info("Status label created");
 
+#if !defined(APP_NAME_FACTORY)
     simulator_create_business_area_frames();
+#endif
     floatair_info("Business area frames created");
 
     g_lcd_mask = lv_obj_create(lv_layer_top());

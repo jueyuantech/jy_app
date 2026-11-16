@@ -756,9 +756,9 @@ static void lv_label_event(const lv_obj_class_t * class_p, lv_event_t * e)
             else w = lv_obj_get_content_width(obj);
 
             if(max_w != LV_COORD_MAX) {
-                const int32_t pad_hor = lv_obj_get_style_pad_left(obj, LV_PART_MAIN) +
-                                        lv_obj_get_style_pad_right(obj, LV_PART_MAIN);
-                max_w = LV_MAX(max_w - pad_hor, 0);
+                const int32_t space_hor = lv_obj_get_style_space_left(obj, LV_PART_MAIN) +
+                                          lv_obj_get_style_space_right(obj, LV_PART_MAIN);
+                max_w = LV_MAX(max_w - space_hor, 0);
             }
             w = LV_MIN(w, max_w);
 

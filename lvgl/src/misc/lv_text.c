@@ -11,9 +11,12 @@
 #include "lv_math.h"
 #include "lv_log.h"
 #include "lv_assert.h"
+#include "lv_text_shape.h"
 #include "../stdlib/lv_mem.h"
 #include "../stdlib/lv_string.h"
 #include "../misc/lv_types.h"
+
+#include <limits.h>
 
 /*********************
  *      DEFINES
@@ -47,6 +50,8 @@
     static uint32_t lv_text_iso8859_1_get_char_id(const char * txt, uint32_t byte_id);
     static uint32_t lv_text_iso8859_1_get_length(const char * txt);
 #endif
+static bool lv_text_shape_measure_width(const lv_font_t * font, const char * txt, uint32_t length,
+                                        int32_t letter_space, int32_t * width_out);
 /**********************
  *  STATIC VARIABLES
  **********************/
@@ -88,6 +93,46 @@
 /**********************
  *   GLOBAL FUNCTIONS
  **********************/
+
+static bool lv_text_shape_measure_width(const lv_font_t * font, const char * txt, uint32_t length,
+                                        int32_t letter_space, int32_t * width_out)
+{
+    if(width_out != NULL) *width_out = 0;
+
+    if(font == NULL) return false;
+    if(txt == NULL) return false;
+    if(txt[0] == '\0') return false;
+    if(length == 0) return false;
+
+    while(length > 0) {
+        char c = txt[length - 1];
+        if(c != '\n' && c != '\r') break;
+        length--;
+    }
+    if(length == 0) return false;
+
+    if(!lv_text_shape_available_range(font, txt, length)) return false;
+
+    lv_text_shape_run_t shape_run;
+    if(!lv_text_shape_run(font, txt, length, LV_BASE_DIR_AUTO, &shape_run)) {
+        return false;
+    }
+
+    int64_t shaped_width = shape_run.width;
+    for(uint32_t i = 0; i + 1 < shape_run.glyph_count; i++) {
+        if(shape_run.glyphs[i].cluster != shape_run.glyphs[i + 1].cluster) {
+            shaped_width += letter_space;
+        }
+    }
+    lv_text_shape_run_destroy(&shape_run);
+
+    if(shaped_width < (int64_t)INT_MIN || shaped_width > (int64_t)INT_MAX) {
+        return false;
+    }
+
+    if(width_out != NULL) *width_out = (int32_t)shaped_width;
+    return true;
+}
 
 void lv_text_get_size(lv_point_t * size_res, const char * text, const lv_font_t * font, int32_t letter_space,
                       int32_t line_space, int32_t max_width, lv_text_flag_t flag)
@@ -298,6 +343,7 @@ uint32_t lv_text_get_next_line(const char * txt, const lv_font_t * font,
 
     if(flag & LV_TEXT_FLAG_EXPAND) max_width = LV_COORD_MAX;
     uint32_t i = 0;                                        /*Iterating index into txt*/
+    const int32_t line_max_width = max_width;
 
     while(txt[i] != '\0' && max_width > 0) {
         lv_text_flag_t word_flag = flag;
@@ -305,11 +351,24 @@ uint32_t lv_text_get_next_line(const char * txt, const lv_font_t * font,
 
         uint32_t word_w = 0;
         uint32_t advance = lv_text_get_next_word(&txt[i], font, letter_space, max_width, word_flag, &word_w);
-        max_width -= word_w;
-        line_w += word_w;
 
         if(advance == 0) {
             break;
+        }
+
+        int32_t shaped_line_w = 0;
+        bool shaped_line_fit = lv_text_shape_measure_width(font, txt, i + advance, letter_space, &shaped_line_w);
+        if(shaped_line_fit && shaped_line_w > line_max_width) {
+            break;
+        }
+
+        if(shaped_line_fit) {
+            line_w = shaped_line_w;
+            max_width = line_max_width - shaped_line_w;
+        }
+        else {
+            max_width -= word_w;
+            line_w += word_w;
         }
 
         i += advance;
@@ -327,7 +386,9 @@ uint32_t lv_text_get_next_line(const char * txt, const lv_font_t * font,
     if(i == 0) {
         uint32_t letter = lv_text_encoded_next(txt, &i);
         if(used_width != NULL) {
-            line_w = lv_font_get_glyph_width(font, letter, '\0');
+            if(!lv_text_shape_measure_width(font, txt, i, letter_space, &line_w)) {
+                line_w = lv_font_get_glyph_width(font, letter, '\0');
+            }
         }
     }
 
@@ -348,6 +409,11 @@ int32_t lv_text_get_width(const char * txt, uint32_t length, const lv_font_t * f
     int32_t width             = 0;
 
     if(length != 0) {
+        int32_t shaped_width = 0;
+        if(lv_text_shape_measure_width(font, txt, length, letter_space, &shaped_width)) {
+            return shaped_width;
+        }
+
         while(i < length) {
             uint32_t letter;
             uint32_t letter_next;

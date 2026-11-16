@@ -80,7 +80,16 @@ bool system_notification_update_call_state(notify_call_state_t state);
  * @return 当前存在可更新的电话通知时返回 `true`。
  */
 bool system_notification_update_call_caller(const char* caller);
+/**
+ * @brief 关闭电话通知；息屏时清理缓存并延迟到亮屏后销毁弹窗。
+ * @return 无返回值。
+ */
 void system_notification_dismiss_call(void);
+/**
+ * @brief 亮屏后销毁已结束的电话弹窗，并取消其计时器；须在恢复延迟定时器前调用。
+ * @return 无返回值。
+ */
+void system_notification_flush_pending_after_screen_on(void);
 bool system_notification_add_entry(const system_notification_entry_t* entry);
 /**
  * @brief 批量入队通知，并在整批完成后统一执行一次列表刷新与弹窗决策。

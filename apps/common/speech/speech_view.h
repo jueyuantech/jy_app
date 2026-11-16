@@ -113,6 +113,12 @@ bool speech_function_menu_is_visible(void);
  */
 void speech_on_fontconfig_changed(void);
 
+/**
+ * @brief 气泡开关变化后刷新正文行间距和现有 STT 内容。
+ * @return 无返回值。
+ */
+void speech_on_bordered_stt_changed(void);
+
 #ifdef __cplusplus
 }
 #endif

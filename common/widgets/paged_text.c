@@ -34,6 +34,10 @@ struct paged_text_t {
     int32_t view_width;                 ///< 最近一次已完成布局的视口宽度。
     int32_t view_height;                ///< 最近一次已完成布局的视口高度。
     int32_t text_content_width;         ///< 最近一次已完成布局的文本内容宽度。
+    int32_t scroll_y;                  ///< 当前文本窗口内已经滚动的像素数。
+    int32_t scroll_span;               ///< 到下一页起点或文末的滚动距离。
+    bool scroll_window_ready;          ///< 是否已准备连续滚动使用的相邻页文本窗口。
+    bool scroll_window_final;          ///< 当前窗口是否会先到正文末尾而非下一页起点。
 };
 
 /**
@@ -118,6 +122,10 @@ static void paged_text_refresh_geometry(paged_text_t* paged_text) {
     lv_obj_update_layout(paged_text->base.obj);
     paged_text->view_width = (int32_t)lv_obj_get_width(paged_text->base.obj);
     paged_text->view_height = (int32_t)lv_obj_get_height(paged_text->base.obj);
+    /* 百分比尺寸须先由布局解析为像素，再扣除左右内缩。 */
+    lv_obj_set_width(label_obj,
+                     (lv_coord_t)LV_MAX(paged_text->view_width - paged_text->text_inset * 2, 1));
+    lv_obj_update_layout(label_obj);
     paged_text->text_content_width = (int32_t)lv_obj_get_content_width(label_obj);
 }
 
@@ -302,6 +310,10 @@ static void paged_text_clear_offsets(paged_text_t* paged_text) {
         return;
     }
 
+    paged_text->scroll_window_ready = false;
+    paged_text->scroll_window_final = false;
+    paged_text->scroll_y = 0;
+
     if (paged_text->page_start_offsets != NULL) {
         lv_free(paged_text->page_start_offsets);
         paged_text->page_start_offsets = NULL;
@@ -442,7 +454,7 @@ static bool paged_text_paginate(paged_text_t* paged_text) {
     }
 
     line_height = paged_text_get_line_height(paged_text);
-    view_height = paged_text_get_view_height(paged_text);
+    view_height = LV_MAX(paged_text_get_view_height(paged_text) - 2 * paged_text->text_inset, 1);
     paged_text->lines_per_page = (uint32_t)(view_height / line_height);
     if (paged_text->lines_per_page == 0) {
         paged_text->lines_per_page = 1;
@@ -515,6 +527,10 @@ static void paged_text_render_current_page(paged_text_t* paged_text) {
         return;
     }
 
+    paged_text->scroll_window_ready = false;
+    paged_text->scroll_window_final = false;
+    paged_text->scroll_y = 0;
+
     paged_text_stop_visible_text_animation(paged_text);
     paged_text_restore_label_view_height(paged_text);
     total_pages = paged_text_total_pages_cached(paged_text);
@@ -574,18 +590,12 @@ static void paged_text_on_delete(lv_event_t* e) {
 static void paged_text_on_size_changed(lv_event_t* e) {
     lv_obj_t* obj = lv_event_get_target(e);
     paged_text_t* paged_text = (paged_text_t*)lv_obj_get_user_data(obj);
-    lv_obj_t* label_obj = NULL;
 
     if (paged_text == NULL) {
         return;
     }
 
-    label_obj = label_get_obj(paged_text->label);
-    paged_text->view_width = (int32_t)lv_obj_get_width(obj);
-    paged_text->view_height = (int32_t)lv_obj_get_height(obj);
-    if (label_obj != NULL && lv_obj_is_valid(label_obj)) {
-        paged_text->text_content_width = (int32_t)lv_obj_get_content_width(label_obj);
-    }
+    paged_text_refresh_geometry(paged_text);
     paged_text_refresh(paged_text);
 }
 
@@ -678,14 +688,8 @@ paged_text_t* paged_text_create(lv_obj_t* parent, const paged_text_cfg_t* cfg) {
     label_cfg.pad_ver = cfg->label.pad_ver;
     if (cfg->highlight.enabled && cfg->highlight.outset > 0) {
         label_inset = cfg->highlight.outset;
-        if (cfg->label.w > label_inset * 2) {
-            label_cfg.x = label_inset;
-            label_cfg.w = cfg->label.w - label_inset * 2;
-        }
-        if (cfg->label.h > label_inset * 2) {
-            label_cfg.y = label_inset;
-            label_cfg.h = cfg->label.h - label_inset * 2;
-        }
+        label_cfg.x = label_inset;
+        label_cfg.y = label_inset;
     }
 
     memset(paged_text, 0, sizeof(*paged_text));
@@ -722,8 +726,8 @@ paged_text_t* paged_text_create(lv_obj_t* parent, const paged_text_cfg_t* cfg) {
         lv_obj_delete(root);
         return NULL;
     }
-    paged_text_refresh(paged_text);
     paged_text_refresh_geometry(paged_text);
+    paged_text_refresh(paged_text);
     lv_obj_add_event_cb(root, paged_text_on_style_changed, LV_EVENT_STYLE_CHANGED, NULL);
 
     return paged_text;
@@ -850,6 +854,94 @@ static void paged_text_get_offset_pair_y(lv_obj_t* label_obj,
         }
         line_start = next_line;
         line_y += line_step;
+    }
+}
+
+/**
+ * @brief 为连续滚动准备相邻页文本，保持完整源文本及分页索引不变。
+ * @param paged_text 目标分页组件。
+ * @return 文本窗口准备成功返回 true，分配失败返回 false。
+ */
+static bool paged_text_prepare_scroll_window(paged_text_t* paged_text) {
+    uint32_t page = paged_text->current_page_idx;
+    uint32_t next_page = LV_MIN(page + 1, paged_text->page_count - 1);
+    uint32_t last_page = LV_MIN(next_page + 1, paged_text->page_count - 1);
+    uint32_t start = paged_text->page_start_offsets[page];
+    /* 分页按完整行取整，额外保留一页，覆盖跨页滚动时视口底部露出的正文。 */
+    uint32_t end = paged_text->page_end_offsets[last_page];
+    bool reaches_end = end == paged_text->source_text_len;
+    if (reaches_end) {
+        while (end > start && (paged_text->source_text[end - 1] == '\n' ||
+                               paged_text->source_text[end - 1] == '\r')) {
+            --end;
+        }
+    }
+    char* window = lv_malloc((size_t)(end - start) + 1);
+    lv_obj_t* label_obj = label_get_obj(paged_text->label);
+    int32_t first_y = 0;
+    int32_t next_y = 0;
+
+    if (window == NULL) {
+        return false;
+    }
+    memcpy(window, paged_text->source_text + start, end - start);
+    window[end - start] = '\0';
+    paged_text_stop_visible_text_animation(paged_text);
+    paged_text_refresh_geometry(paged_text);
+    lv_obj_set_height(label_obj, LV_SIZE_CONTENT);
+    label_set_text(paged_text->label, window);
+    lv_obj_update_layout(label_obj);
+    int32_t visible_height = LV_MAX(paged_text->view_height - 2 * paged_text->text_inset, 1);
+    int32_t end_span = LV_MAX((int32_t)lv_obj_get_height(label_obj) - visible_height, 0);
+    paged_text->scroll_window_final = false;
+    if (next_page > page) {
+        paged_text_get_offset_pair_y(label_obj, window, end - start, 0,
+                                     paged_text->page_start_offsets[next_page] - start,
+                                     paged_text->text_content_width, &first_y, &next_y);
+        paged_text->scroll_span = LV_MAX(next_y - first_y, 0);
+        if (reaches_end && end_span <= paged_text->scroll_span) {
+            paged_text->scroll_span = end_span;
+            paged_text->scroll_window_final = true;
+        }
+    } else {
+        paged_text->scroll_span = end_span;
+        paged_text->scroll_window_final = true;
+    }
+    lv_free(window);
+    paged_text->scroll_y = 0;
+    paged_text->scroll_window_ready = true;
+    lv_obj_set_y(label_obj, paged_text->text_inset);
+    return true;
+}
+
+/**
+ * @brief 累计像素位移并在页边界无缝切换相邻文本窗口。
+ * @param paged_text 目标分页组件。
+ * @param pixels 向前滚动的像素数。
+ * @return 返回仍可滚动、文末或窗口准备失败的状态。
+ */
+paged_text_scroll_result_t paged_text_scroll_forward(paged_text_t* paged_text, uint32_t pixels) {
+    if (!paged_text_handle_is_valid(paged_text) || paged_text->page_count == 0) {
+        return PAGED_TEXT_SCROLL_ERROR;
+    }
+    for (;;) {
+        if (!paged_text->scroll_window_ready && !paged_text_prepare_scroll_window(paged_text)) {
+            return PAGED_TEXT_SCROLL_ERROR;
+        }
+        uint32_t available = (uint32_t)LV_MAX(paged_text->scroll_span - paged_text->scroll_y, 0);
+        uint32_t step = LV_MIN(pixels, available);
+        paged_text->scroll_y += (int32_t)step;
+        pixels -= step;
+        lv_obj_set_y(label_get_obj(paged_text->label), paged_text->text_inset - paged_text->scroll_y);
+        if (paged_text->scroll_y < paged_text->scroll_span) {
+            return PAGED_TEXT_SCROLL_ACTIVE;
+        }
+        if (paged_text->scroll_window_final) {
+            paged_text->current_page_idx = paged_text->page_count - 1;
+            return PAGED_TEXT_SCROLL_END;
+        }
+        paged_text->current_page_idx++;
+        paged_text->scroll_window_ready = false;
     }
 }
 

@@ -39,6 +39,7 @@ enum {
     SIM_FIFO_PARAM_PAYLOAD_U32,
     SIM_FIFO_PARAM_BAT_STATUS,
     SIM_FIFO_PARAM_BAT_SOC_ONLY,
+    SIM_FIFO_PARAM_CASE_SOC,
     SIM_FIFO_PARAM_CHARGER_FIXED,
     SIM_FIFO_PARAM_DEVICE_STATE_NOW,
     SIM_FIFO_PARAM_DEVICE_STATE_EPOCH,
@@ -64,12 +65,16 @@ static const simulator_fifo_event_map_t g_simulator_fifo_events[] = {
     {"SET_SLIDE_BACKWORD", SET_SLIDE_BACKWORD, SIM_FIFO_PARAM_NONE, 0},
     {"SET_IMU_SINGLE_TAP", SET_IMU_SINGLE_TAP, SIM_FIFO_PARAM_NONE, 0},
     {"SET_IMU_DOUBLE_TAP", SET_IMU_DOUBLE_TAP, SIM_FIFO_PARAM_NONE, 0},
+    {"SET_IMU_ANY_MOTION", SET_IMU_ANY_MOTION, SIM_FIFO_PARAM_NONE, 0},
+    {"SET_IMU_NO_MOTION", SET_IMU_NO_MOTION, SIM_FIFO_PARAM_NONE, 0},
     {"SET_IMU_TILT_UP", SET_IMU_TILT, SIM_FIFO_PARAM_SIMPLE_FIXED_U8, TILT_DIRECTION_UP},
     {"SET_IMU_TILT_DOWN", SET_IMU_TILT, SIM_FIFO_PARAM_SIMPLE_FIXED_U8, TILT_DIRECTION_DOWN},
     {"SET_TWS_LINK_BROKEN", SET_TWS_LINK_BROKEN, SIM_FIFO_PARAM_NONE, 0},
     {"SET_JYT_LOW_BATTERY_WARNING", SET_JYT_LOW_BATTERY_WARNING, SIM_FIFO_PARAM_NONE, 0},
-    {"SET_BAT_STATUS", SET_BAT_VOLT_CHANGED, SIM_FIFO_PARAM_BAT_STATUS, 0},
+    {"SET_BAT_STATUS", SET_BAT_VOLT_CHANGED, SIM_FIFO_PARAM_BAT_STATUS, JYT_BATTERY_SIDE_MASTER},
+    {"SET_BAT_STATUS_SLAVE", SET_BAT_VOLT_CHANGED, SIM_FIFO_PARAM_BAT_STATUS, JYT_BATTERY_SIDE_SLAVE},
     {"SET_BAT_SOC", SET_BAT_VOLT_CHANGED, SIM_FIFO_PARAM_BAT_SOC_ONLY, 0},
+    {"SET_CASE_SOC_REPORT", SET_CASE_SOC_REPORT, SIM_FIFO_PARAM_CASE_SOC, 0},
     {"SET_CHARGER_ON", SET_BAT_VOLT_CHANGED, SIM_FIFO_PARAM_CHARGER_FIXED, 1},
     {"SET_CHARGER_OFF", SET_BAT_VOLT_CHANGED, SIM_FIFO_PARAM_CHARGER_FIXED, 0},
     {"SET_KWS_HIT", SET_KWS_HIT, SIM_FIFO_PARAM_KWS_CONFIGURED, 0},
@@ -88,23 +93,25 @@ static pthread_t g_simulator_event_fifo_thread;
 static int g_simulator_event_fifo_started = 0;
 static int g_simulator_event_fifo_running = 0;
 static int g_simulator_event_fifo_fd = -1;
-static uint8_t g_simulator_battery_soc = 80;
-static uint8_t g_simulator_charge_state = 0;
+static uint8_t g_simulator_battery_soc[JYT_BATTERY_SIDE_COUNT] = {80, 80}; ///< 各侧模拟电量。
+static uint8_t g_simulator_charge_state[JYT_BATTERY_SIDE_COUNT] = {0}; ///< 各侧模拟充电模式。
 
 /**
- * @brief 按当前缓存电池状态向系统上报一次电池消息。
+ * @brief 按指定侧缓存状态构造 SDK 分侧电池消息。
+ * @param[in] side 需要上报的主侧或从侧。
  * @return 无返回值。
  */
-static void simulator_event_fifo_post_battery_status(void) {
-    union bat_state_t bat_status = {0};
+static void simulator_event_fifo_post_battery_status(uint32_t side) {
+    jyt_battery_report_t report = {0};
 
-    bat_status.bat_chg_combo.soc = g_simulator_battery_soc;
-    bat_status.bat_chg_combo.charger_mode = g_simulator_charge_state;
-    bat_status.bat_chg_combo.voltage_mv = 4200;
+    report.side = side;
+    report.state.bat_chg_combo.soc = g_simulator_battery_soc[side];
+    report.state.bat_chg_combo.charger_mode = g_simulator_charge_state[side];
+    report.state.bat_chg_combo.voltage_mv = 4200;
     simulator_post_system_event_ex(SET_BAT_VOLT_CHANGED,
                                    0,
-                                   &bat_status,
-                                   (uint16_t)sizeof(bat_status));
+                                   &report,
+                                   (uint16_t)sizeof(report));
 }
 
 /**
@@ -217,9 +224,10 @@ static void simulator_event_fifo_handle_line(char* line) {
                     return;
                 }
 
-                g_simulator_battery_soc = (uint8_t)soc;
-                g_simulator_charge_state = (uint8_t)charger_mode;
-                simulator_event_fifo_post_battery_status();
+                uint32_t side = g_simulator_fifo_events[i].fixed_value;
+                g_simulator_battery_soc[side] = (uint8_t)soc;
+                g_simulator_charge_state[side] = (uint8_t)charger_mode;
+                simulator_event_fifo_post_battery_status(side);
                 return;
             }
 
@@ -233,14 +241,31 @@ static void simulator_event_fifo_handle_line(char* line) {
                     floatair_warn("fifo battery soc bad arg: %s", arg);
                     return;
                 }
-                g_simulator_battery_soc = (uint8_t)parsed_value;
-                simulator_event_fifo_post_battery_status();
+                g_simulator_battery_soc[JYT_BATTERY_SIDE_MASTER] = (uint8_t)parsed_value;
+                simulator_event_fifo_post_battery_status(JYT_BATTERY_SIDE_MASTER);
+                return;
+            }
+
+            if (g_simulator_fifo_events[i].param_mode == SIM_FIFO_PARAM_CASE_SOC) {
+                if (!arg) {
+                    floatair_warn("fifo case soc missing arg");
+                    return;
+                }
+                parsed_value = strtoul(arg, &end, 0);
+                if (end == arg || *end != '\0' || parsed_value > 100) {
+                    floatair_warn("fifo case soc bad arg: %s", arg);
+                    return;
+                }
+                simulator_post_system_event_ex(g_simulator_fifo_events[i].event_type,
+                                               (uint8_t)parsed_value,
+                                               NULL,
+                                               0);
                 return;
             }
 
             if (g_simulator_fifo_events[i].param_mode == SIM_FIFO_PARAM_CHARGER_FIXED) {
-                g_simulator_charge_state = (uint8_t)g_simulator_fifo_events[i].fixed_value;
-                simulator_event_fifo_post_battery_status();
+                g_simulator_charge_state[JYT_BATTERY_SIDE_MASTER] = (uint8_t)g_simulator_fifo_events[i].fixed_value;
+                simulator_event_fifo_post_battery_status(JYT_BATTERY_SIDE_MASTER);
                 return;
             }
 

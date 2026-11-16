@@ -186,7 +186,7 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 
 | cmd | 请求 `data` | 成功 ACK `data` |
 | --- | --- | --- |
-| `getAll` | `{}` | `{ "manufacturer": string, "model": string, "edition": string, "sn": string, "ssn": string, "btMac": string, "btName": string, "bleMac": string, "bleName": string, "fwVer": string, "bthVer": string, "protocolVer": string }` |
+| `getAll` | `{}` | `{ "manufacturer": string, "model": string, "edition": string, "sn": string, "ssn": string, "btMac": string, "btName": string, "bleMac": string, "bleName": string, "fwVer": string, "fontMd5": string, "bthVer": string, "protocolVer": string }` |
 | `getManufacturer` | `{}` | `{ "manufacturer": string }` |
 | `getModel` | `{}` | `{ "model": string }` |
 | `getEdition` | `{}` | `{ "edition": string }` |
@@ -196,6 +196,7 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 | `getBleMac` | `{}` | `{ "bleMac": string }` |
 | `getBleName` | `{}` | `{ "bleName": string }` |
 | `getFwVer` | `{}` | `{ "fwVer": string }` |
+| `getFontMd5` | `{}` | `{ "fontMd5": string }`；32 位小写十六进制字符串，对应当前 ROMFS 中的 `font.ttf` |
 | `getBthVer` | `{}` | `{ "bthVer": string }` |
 | `getProtocolVer` | `{}` | `{ "protocolVer": string }` |
 
@@ -203,7 +204,7 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 
 | cmd | 请求 `data` | ACK / NACK `data` |
 | --- | --- | --- |
-| `getAll` | `{}` | `{ "time": uint64, "timeConfig": { "time": string, "timestamp": uint64, "timezone": string, "userFormat": string }, "displayConfig": { "mode": uint8 }, "brightness": uint8, "autoBrightnessEnabled": uint8, "fontSize": uint8, "language": string, "homeUnits": string[], "inactivityTimeout": uint16, "poweroffTimeout": uint16, "wearDetectionEnabled": uint8, "headGestureConfig": { "upEnabled": uint8, "downEnabled": uint8, "upDeg": int32, "downDeg": int32, "baseDeg": int32 }, "imuDoubleTapEnabled": uint8, "touchpadEnabled": uint8, "idleDetectionEnabled": uint8, "displayDistanceLevel": uint32, "keywordSpottingEnabled": uint8, "notificationEnabled": uint8 }` |
+| `getAll` | `{}` | `{ "time": uint64, "timeConfig": { "time": string, "timestamp": uint64, "timezone": string, "userFormat": string }, "displayConfig": { "mode": uint8 }, "brightness": uint8, "autoBrightnessEnabled": uint8, "fontSize": uint8, "language": string, "homeUnits": string[], "inactivityTimeout": uint16, "poweroffTimeout": uint16, "wearDetectionEnabled": uint8, "headGestureConfig": { "upEnabled": uint8, "downEnabled": uint8, "upDeg": int32, "downDeg": int32, "baseDeg": int32 }, "imuDoubleTapEnabled": uint8, "touchpadEnabled": uint8, "idleDetectionEnabled": uint8, "displayDistanceLevel": uint32, "keywordSpottingEnabled": uint8, "notificationEnabled": uint8, "notificationDuration": uint16 }` |
 | `setTime` | `{ "time": uint32 }` | NACK `{ "code": 12, "msg": string }` |
 | `getTimeConfig` | `{}` | NACK `{ "code": 12, "msg": string }` |
 | `setTimeConfig` | `{ "time": string, "timestamp": uint64, "timezone": string, "userFormat": string }`；`timezone` 可缺省 | `{}` |
@@ -229,6 +230,8 @@ System 使用 `id=0`，并按 `payload.biz` 二级路由。
 | `setDisplayPopupDepth` | `{ "depth": uint32 }` | `{}` |
 | `getInactivityTimeout` | `{}` | `{ "inactivityTimeout": uint16 }` |
 | `setInactivityTimeout` | `{ "inactivityTimeout": uint32 }` | `{}` |
+| `getNotificationDuration` | `{}` | `{ "notificationDuration": uint16 }`，单位为秒 |
+| `setNotificationDuration` | `{ "notificationDuration": uint32 }`，单位为秒 | `{}` |
 | `getPoweroffTimeout` | `{}` | `{ "poweroffTimeout": uint16 }` |
 | `setPoweroffTimeout` | `{ "poweroffTimeout": uint32 }` | `{}` |
 | `getHeadGestureConfig` | `{}` | `{ "upEnabled": uint8, "downEnabled": uint8, "upDeg": int32, "downDeg": int32, "baseDeg": int32 }` |
@@ -254,12 +257,20 @@ Jytek 首页协议单元为 `prompter(5)`、`translate(3)`、`transcribe(2)`、`
 
 ### 5.3 SystemStatus
 
+`chargeState` 保留聚合状态：按最低电量侧（同电量取从侧）判断，0=未充电，1=充电。
+新增 `chargeStateBySide` 双侧充电位图：0=均未充电，1=仅主侧充电（bit0），2=仅从侧充电（bit1），3=双侧充电。
+`getAll`、`getChargeState` 和 `SystemInd.onChargeStateChanged` 同时返回两个字段；每侧只认修正后的 OS `charger_mode == 1` 为充电。
+某侧配件为 case 时该侧视为充电；退出 case 时先视为非充电，后续该侧电池上报再更新。
+双侧电池数据未就绪时，`getAll`、`getChargeState` 和 `getBattery` 返回 `ErrNotReady`，不返回默认充电状态或默认 0% 电量。
+手机未连接时只缓存，连接后补报最新两个字段；连接期间任一字段变化都上报完整状态，包括仅电量交叉导致聚合状态变化的情况。
+眼镜盒电量仅在手机已连接且有 case 配件时上报。若先缓存盒子电量、后检测到 case，则进入 case 时立即补报缓存；没有有效缓存时不补报默认值。
+
 | cmd | 请求 `data` | 成功 ACK `data` |
 | --- | --- | --- |
-| `getAll` | `{}` | `{ "sysState": uint8, "chargeState": uint8, "battery": uint8 }` |
+| `getAll` | `{}` | `{ "sysState": uint8, "chargeState": uint8, "chargeStateBySide": uint8, "battery": uint8 }` |
 | `getSysState` | `{}` | `{ "sysState": uint8 }` |
 | `setSysState` | `{ "sysState": uint8 }` | `{}` |
-| `getChargeState` | `{}` | `{ "chargeState": uint8 }` |
+| `getChargeState` | `{}` | `{ "chargeState": uint8, "chargeStateBySide": uint8 }` |
 | `getBattery` | `{}` | `{ "battery": uint8 }` |
 | `getAttachmentState` | `{}` | `{ "attachments": [{ "attachmentSide": uint8, "attachmentType": uint8 }] }` |
 | `getRomUsage` | `{}` | `{ "total": uint32, "used": uint32, "remaining": uint32 }` |
@@ -306,6 +317,8 @@ Jytek 首页协议单元为 `prompter(5)`、`translate(3)`、`transcribe(2)`、`
 | `0x06` | 左滑 |
 | `0x07` | 右滑 |
 
+Home 页面（包含 Home 内的新手引导）收到左滑、右滑时，也通过 `SystemInd.onTouchEvent` 分别上报 `event=6`、`event=7`；手势仍按原有逻辑切换或推进引导步骤。
+
 `getScreenOnScope` 返回当前内存中的临时常亮范围。`setScreenOnScope.scope` 仅修改该内存状态，不修改持久化的无操作灭屏配置：
 
 | 值 | 说明 |
@@ -317,6 +330,8 @@ Jytek 首页协议单元为 `prompter(5)`、`translate(3)`、`transcribe(2)`、`
 Assistant 的文本字段见 [6.6 Assistant Popup](#66-assistant-popup)。
 
 `openGuide` 会将 `SystemConfig.userguide` 写回 `"false"` 并切到 Guide 应用；`closeGuide` 会重置新手引导运行态，将 `SystemConfig.userguide` 写回 `"true"`，返回 Home，并上报 `viewName="home"` 的 `onViewChangedByName`。手机端触发的 `openGuide` 和 `closeGuide` 不会上报 `onGuideOpen` 或 `onGuideClose`。眼镜端自己进入新手引导时上报 `onGuideOpen`；眼镜端完成或跳过新手引导时先上报 `onGuideClose`，再上报 `viewName="home"` 的 `onViewChangedByName`。Guide 内部流转不会上报 `onViewChangedByName`。
+
+手机端 `closeGuide` 返回 Home 后显示“新手教学已跳过”；Home 教学 step5 的触控板双击仅跳过 AI 助手体验，显示“AI助手已跳过\n新手教学已完成”。两条路径均将 `userguide` 置为 `"true"`，事件上报规则仍按触发来源区分。
 
 ### 5.5 SystemInd
 
@@ -334,18 +349,19 @@ Assistant 的文本字段见 [6.6 Assistant Popup](#66-assistant-popup)。
 
 | cmd | type | data |
 | --- | --- | --- |
-| `onTouchEvent` | `DATA_UNRELIABLE` | `{ "event": uint8 }` |
-| `onViewChangedByName` | `DATA_UNRELIABLE` | `{ "viewName": string }` |
+| `onTouchEvent` | `DATA_RELIABLE` | `{ "event": uint8 }` |
+| `onViewChangedByName` | `DATA_RELIABLE` | `{ "viewName": string }` |
 | `onKeywordSpotting` | `DATA_RELIABLE` | `{}` |
-| `onAssistantOpen` | `DATA_UNRELIABLE` | `{}` |
-| `onAssistantClose` | `DATA_UNRELIABLE` | `{}` |
-| `onGuideOpen` | `DATA_UNRELIABLE` | `{}` |
-| `onGuideClose` | `DATA_UNRELIABLE` | `{}` |
-| `onSysStateChanged` | `DATA_UNRELIABLE` | `{ "sysState": uint8, "trigger": string }` |
-| `onChargeStateChanged` | `DATA_UNRELIABLE` | `{ "chargeState": uint8 }` |
-| `onBatteryChanged` | `DATA_UNRELIABLE` | `{ "battery": uint32 }` |
-| `onBrightnessChanged` | `DATA_UNRELIABLE` | `{ "brightness": uint8 }` |
-| `onAttachmentTypeChanged` | `DATA_UNRELIABLE` | `{ "attachmentType": uint8, "attachmentSide": uint8 }` |
+| `onAssistantOpen` | `DATA_RELIABLE` | `{}` |
+| `onAssistantClose` | `DATA_RELIABLE` | `{}` |
+| `onGuideOpen` | `DATA_RELIABLE` | `{}` |
+| `onGuideClose` | `DATA_RELIABLE` | `{}` |
+| `onSysStateChanged` | `DATA_RELIABLE` | `{ "sysState": uint8, "trigger": string }` |
+| `onChargeStateChanged` | `DATA_RELIABLE` | `{ "chargeState": uint8, "chargeStateBySide": uint8 }` |
+| `onBatteryChanged` | `DATA_RELIABLE` | `{ "battery": uint32 }` |
+| `onCaseBatteryChanged` | `DATA_RELIABLE` | `{ "battery": uint8 }` |
+| `onBrightnessChanged` | `DATA_RELIABLE` | `{ "brightness": uint8 }` |
+| `onAttachmentTypeChanged` | `DATA_RELIABLE` | `{ "attachmentType": uint8, "attachmentSide": uint8 }` |
 
 `onAttachmentTypeChanged.attachmentType`：
 
@@ -669,6 +685,16 @@ map(1) {
 | `1` | 原文 + 译文 |
 | `2` | 仅显示原文 |
 
+#### `setBorderedStt`
+
+```msgpack
+map(1) {
+  "borderedStt": uint8(1)
+}
+```
+
+`0` 使用无框正文布局；`1` 按每条 STT 消息的 `area` 左右排列带框气泡。只接受 `0`/`1`，其他值或缺少字段返回 `ErrBadParam`。命令立即刷新当前 Speech 页面已有正文，只修改本次会话的内存状态，不写入应用的 `config.json`；下次进入应用时重新读取 `borderedstt` 配置。
+
 #### `setMaxLine`
 
 ```msgpack
@@ -789,6 +815,7 @@ map(1) {
 | `setTextMode` | `{ "textMode": uint8 }` | `{}` |
 | `setAudioTrackState` | `{ "audioTrack": uint8 }` 或 `{ "data": { "audioTrack": uint8 } }` | `{}` |
 | `setTransMode` | `{ "transMode": uint8 }` | `{}` |
+| `setBorderedStt` | `{ "borderedStt": uint8(0/1) }` | `{}` |
 | `setMaxLine` | `{ "maxLine": uint32 }` | `{}` |
 | `setAudioSourceIndicator` | `{ "audioSourceIndicator": uint8 }` | `{}` |
 | `setMicDirectional` | `{ "micDirectional": uint8 }` | `{}` |
@@ -810,6 +837,7 @@ map(1) {
 | `setTextMode` | `{ "textMode": uint8 }` | `{}` |
 | `setAudioTrackState` | `{ "audioTrack": uint8 }` 或 `{ "data": { "audioTrack": uint8 } }` | `{}` |
 | `setTransMode` | `{ "transMode": uint8 }` | `{}` |
+| `setBorderedStt` | `{ "borderedStt": uint8(0/1) }` | `{}` |
 | `setMaxLine` | `{ "maxLine": uint32 }` | `{}` |
 | `setAudioSourceIndicator` | `{ "audioSourceIndicator": uint8 }` | `{}` |
 | `setMicDirectional` | `{ "micDirectional": uint8 }` | `{}` |

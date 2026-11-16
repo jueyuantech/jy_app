@@ -194,6 +194,12 @@ bool app_system_msg_handle_payload(JYT_ELF_MQ_MSG* msg);
 void app_message_flush_pending_after_screen_on(void);
 
 /**
+ * @brief 取消低电量提示及待显示请求，灭屏时延后清理 UI。
+ * @return 无返回值。
+ */
+void app_message_dismiss_low_battery_warning(void);
+
+/**
  * @brief 清空 ANCS UID 通知元数据、应用名称与第三方来电临时缓存。
  * @return 无返回值。
  */

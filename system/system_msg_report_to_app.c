@@ -144,13 +144,13 @@ bool system_report_touch_event(lv_event_code_t code) {
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onTouchEvent", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
     
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 1);
     mpack_write_cstr(&writer->writer, "event");
@@ -177,13 +177,13 @@ bool system_report_view_change(const char* view_name) {
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onViewChangedByName", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
     
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 1);
     mpack_write_cstr(&writer->writer, "viewName");
@@ -223,13 +223,13 @@ bool system_report_assistant_open(void) {
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onAssistantOpen", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
 
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 0);
     mpack_finish_map(&writer->writer);
@@ -243,13 +243,13 @@ bool system_report_assistant_close(void) {
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onAssistantClose", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
 
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 0);
     mpack_finish_map(&writer->writer);
@@ -263,13 +263,13 @@ bool system_report_guide_open(void) {
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onGuideOpen", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
 
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 0);
     mpack_finish_map(&writer->writer);
@@ -283,13 +283,13 @@ bool system_report_guide_close(void) {
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onGuideClose", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
 
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 0);
     mpack_finish_map(&writer->writer);
@@ -316,13 +316,13 @@ bool system_report_sys_state(uint8_t state, const char* trigger) {
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onSysStateChanged", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
     
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 2);
     mpack_write_cstr(&writer->writer, "sysState");
@@ -334,23 +334,37 @@ bool system_report_sys_state(uint8_t state, const char* trigger) {
     return app_mpack_send_writer(writer);
 }
 
-bool system_report_charge_state(uint8_t state) {
-    floatair_info("report charge state %d", state);
+/**
+ * @brief 向手机同时发送聚合充电状态 chargeState 和双侧位图 chargeStateBySide。
+ * @param[in] state 最低电量侧的充电状态，合法范围 0-1。
+ * @param[in] state_by_side bit0 为主侧充电，bit1 为从侧充电，合法范围 0-3。
+ * @return true 表示发送成功，false 表示参数非法或发送失败。
+ */
+bool system_report_charge_state(uint8_t state, uint8_t state_by_side) {
+    if (state > 1u || state_by_side > 3u) {
+        floatair_err("invalid charge states: aggregate=%u by_side=%u",
+                     (unsigned)state, (unsigned)state_by_side);
+        return false;
+    }
+    floatair_info("report charge states: aggregate=%u by_side=%u",
+                  (unsigned)state, (unsigned)state_by_side);
     
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onChargeStateChanged", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
     
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
-    mpack_start_map(&writer->writer, 1);
+    mpack_start_map(&writer->writer, 2);
     mpack_write_cstr(&writer->writer, "chargeState");
     mpack_write_u8(&writer->writer, state);
+    mpack_write_cstr(&writer->writer, "chargeStateBySide");
+    mpack_write_u8(&writer->writer, state_by_side);
     mpack_finish_map(&writer->writer);
     
     return app_mpack_send_writer(writer);
@@ -362,17 +376,39 @@ bool system_report_battery(uint32_t battery) {
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onBatteryChanged", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
 
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 1);
     mpack_write_cstr(&writer->writer, "battery");
     mpack_write_u32(&writer->writer, battery);
+    mpack_finish_map(&writer->writer);
+
+    return app_mpack_send_writer(writer);
+}
+
+bool system_report_case_battery(uint8_t battery) {
+    floatair_info("report case battery %u", (unsigned)battery);
+
+    msg_pack_t msgpack = {0};
+    msgpack.sequence = system_report_next_sequence();
+    msgpack.id = APP_MSG_ID_SYSTEM;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
+    strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
+    msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
+    strncpy(msgpack.cmd, "onCaseBatteryChanged", sizeof(msgpack.cmd));
+    msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
+
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
+    floatair_assert(writer != NULL, "create writer failed");
+    mpack_start_map(&writer->writer, 1);
+    mpack_write_cstr(&writer->writer, "battery");
+    mpack_write_u8(&writer->writer, battery);
     mpack_finish_map(&writer->writer);
 
     return app_mpack_send_writer(writer);
@@ -384,13 +420,13 @@ bool system_report_brightness(uint8_t brightness) {
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onBrightnessChanged", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
 
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 1);
     mpack_write_cstr(&writer->writer, "brightness");
@@ -424,13 +460,13 @@ bool system_report_attachment_type(uint8_t attachment_type,
     msg_pack_t msgpack = {0};
     msgpack.sequence = system_report_next_sequence();
     msgpack.id = APP_MSG_ID_SYSTEM;
-    msgpack.type = MSG_TYPE_DATA_UNRELIABLE;
+    msgpack.type = MSG_TYPE_DATA_RELIABLE;
     strncpy(msgpack.biz, "SystemInd", sizeof(msgpack.biz));
     msgpack.biz[sizeof(msgpack.biz) - 1] = '\0';
     strncpy(msgpack.cmd, "onAttachmentTypeChanged", sizeof(msgpack.cmd));
     msgpack.cmd[sizeof(msgpack.cmd) - 1] = '\0';
 
-    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_UNRELIABLE);
+    msg_pack_writer_t* writer = app_mpack_create_writer(&msgpack, MSG_TYPE_DATA_RELIABLE);
     floatair_assert(writer != NULL, "create writer failed");
     mpack_start_map(&writer->writer, 2);
     mpack_write_cstr(&writer->writer, "attachmentType");

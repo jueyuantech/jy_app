@@ -130,6 +130,8 @@ cd build
 cmake_args=(-G Ninja -DJY_APP_PRODUCT="$product_name")
 if [[ -n "$os_sdk_archive" ]]; then
     cmake_args+=(-DJY_APP_OS_SDK_ARCHIVE="$os_sdk_archive")
+else
+    cmake_args+=(-U JY_APP_OS_SDK_ARCHIVE)
 fi
 cmake "${cmake_args[@]}" ..
 ninja

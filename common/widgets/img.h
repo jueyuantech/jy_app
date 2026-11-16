@@ -1,3 +1,7 @@
+/**
+ * @file img.h
+ * @brief 通用图片组件及组件持有的位图加载接口。
+ */
 #ifndef COMMON_WIDGETS_IMG_H
 #define COMMON_WIDGETS_IMG_H
 
@@ -94,6 +98,14 @@ bool img_set_l8_data(img_t* img,
  * @return 返回当前图片源；组件无效时返回 `NULL`。
  */
 const void* img_get_src(img_t* img);
+
+/**
+ * @brief 完整解码灰度图片并持有 L8 位图，用于可靠旋转整图。
+ * @param[in] img 图片组件。
+ * @param[in] src 灰度图片源，解码器必须输出 L8 像素。
+ * @return 解码并设置成功返回 true，失败时保留原图片。
+ */
+bool img_set_decoded_l8_src(img_t* img, const void* src);
 
 /**
  * @brief 设置图片内容偏移。

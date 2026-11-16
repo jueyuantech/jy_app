@@ -1741,6 +1741,14 @@
     #endif
 #endif
 
+#ifndef LV_USE_HARFBUZZ_SHAPER
+    #ifdef CONFIG_LV_USE_HARFBUZZ_SHAPER
+        #define LV_USE_HARFBUZZ_SHAPER CONFIG_LV_USE_HARFBUZZ_SHAPER
+    #else
+        #define LV_USE_HARFBUZZ_SHAPER 0
+    #endif
+#endif
+
 /*==================
  * WIDGETS
  *================*/

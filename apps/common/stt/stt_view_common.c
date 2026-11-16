@@ -255,7 +255,7 @@ void stt_view_apply_stt_label_text_theme(label_t* label, lv_base_dir_t base_dir)
 
     obj = label_get_obj(label);
     stt_view_apply_text_theme(label,
-                              base_dir == LV_BASE_DIR_RTL ? LABEL_ALIGN_RIGHT : LABEL_ALIGN_LEFT,
+                              LABEL_ALIGN_AUTO,
                               LABEL_OVERFLOW_WRAP);
     if (obj != NULL) {
         stt_font = stt_get_font();

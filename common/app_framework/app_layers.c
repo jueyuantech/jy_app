@@ -49,6 +49,60 @@ static app_layers_state_t g_layers = {
     .popup_offset_x = INT32_MIN,
 };
 
+/** @brief 应用浮层节点的独立深度登记，随节点删除释放。 */
+typedef struct app_float_depth_t {
+    lv_obj_t* node;                  ///< 应用浮层的直接子节点。
+    int32_t distance;                ///< 当前双眼视差距离。
+    struct app_float_depth_t* next;  ///< 下一条登记。
+} app_float_depth_t;
+
+static app_float_depth_t* s_float_depths = NULL; ///< 仅显式设置深度的节点进入此表。
+
+/**
+ * @brief 删除节点时解除独立深度登记。
+ * @param[in] event 节点删除事件。
+ * @return 无返回值。
+ */
+static void app_layers_float_depth_deleted(lv_event_t* event) {
+    app_float_depth_t* entry = lv_event_get_user_data(event);
+    app_float_depth_t** link = &s_float_depths;
+    while (*link != NULL && *link != entry) {
+        link = &(*link)->next;
+    }
+    if (*link != NULL) {
+        *link = entry->next;
+        lv_free(entry);
+    }
+}
+
+bool app_layers_set_float_depth(lv_obj_t* node, int32_t distance) {
+    app_float_depth_t* entry = s_float_depths;
+    if (node == NULL || !lv_obj_is_valid(node) ||
+        lv_obj_get_parent(node) != g_layers.app_float ||
+        distance < 0 || distance > FLOATAIR_APP_FLOAT_DISTANCE) {
+        return false;
+    }
+    while (entry != NULL && entry->node != node) {
+        entry = entry->next;
+    }
+    if (entry == NULL) {
+        entry = lv_malloc(sizeof(*entry));
+        if (entry == NULL) {
+            return false;
+        }
+        entry->node = node;
+        entry->next = s_float_depths;
+        s_float_depths = entry;
+        lv_obj_add_event_cb(node, app_layers_float_depth_deleted, LV_EVENT_DELETE, entry);
+    }
+    entry->distance = distance;
+    /* 父层已有完整左眼视差，这里只补偿节点与父层的深度差。 */
+    lv_obj_set_style_translate_x(node,
+        app_stereo_node_pos_x_trans(APP_STEREO_EYE_LEFT, distance, 0) -
+        app_stereo_node_pos_x_trans(APP_STEREO_EYE_LEFT, FLOATAIR_APP_FLOAT_DISTANCE, 0), 0);
+    return true;
+}
+
 /**
  * @brief 判断对象是否有效。
  * @param[in] obj 待检查对象。
@@ -359,7 +413,25 @@ static void app_layers_redraw_right_eye_layers(lv_display_t* disp, lv_draw_buf_t
 
     app_layers_redraw_obj_to_eye(disp, right_buf, local_area, g_layers.background, 0, 0);
     app_layers_redraw_obj_to_eye(disp, right_buf, local_area, g_layers.app, 0, 0);
-    app_layers_redraw_obj_to_eye(disp, right_buf, local_area, g_layers.app_float, app_float_shift_x, 0);
+    if (s_float_depths == NULL) {
+        app_layers_redraw_obj_to_eye(disp, right_buf, local_area, g_layers.app_float, app_float_shift_x, 0);
+    } else if (app_layers_obj_valid(g_layers.app_float) &&
+               !lv_obj_has_flag(g_layers.app_float, LV_OBJ_FLAG_HIDDEN)) {
+        /* 独立深度节点按各自视差绘制；未登记的同层内容仍使用原有深度。 */
+        uint32_t count = lv_obj_get_child_count(g_layers.app_float);
+        for (uint32_t i = 0; i < count; ++i) {
+            lv_obj_t* child = lv_obj_get_child(g_layers.app_float, (int32_t)i);
+            int32_t shift = app_float_shift_x;
+            for (app_float_depth_t* entry = s_float_depths; entry != NULL; entry = entry->next) {
+                if (entry->node == child) {
+                    shift = app_stereo_node_pos_x_trans(APP_STEREO_EYE_RIGHT, entry->distance, 0) -
+                            app_stereo_node_pos_x_trans(APP_STEREO_EYE_LEFT, entry->distance, 0);
+                    break;
+                }
+            }
+            app_layers_redraw_obj_to_eye(disp, right_buf, local_area, child, shift, 0);
+        }
+    }
     app_layers_redraw_obj_to_eye(disp, right_buf, local_area, g_layers.popup_background, 0, 0);
     app_layers_redraw_obj_to_eye(disp, right_buf, local_area, g_layers.popup_content, popup_shift_x, 0);
     app_layers_redraw_obj_to_eye(disp, right_buf, local_area, g_layers.overlay, 0, 0);

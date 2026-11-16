@@ -28,8 +28,10 @@ typedef enum {
     PRODUCT_APP_CAP_STT_QUESTION_NO_SKIP = 1u << 2, ///< STT 问题区更新不可丢弃。
     PRODUCT_APP_CAP_ASSISTANT_OPEN_BLOCKED = 1u << 3, ///< 当前 App 阻止 KWS 打开 Assistant。
     PRODUCT_APP_CAP_GUIDE_SIMPLE = 1u << 4,         ///< 使用 Guide 内部自闭环的轻量引导。
+    PRODUCT_APP_CAP_GUIDE_RIGHT_TEMPLE = 1u << 8,   ///< 四步引导使用右镜腿提示及对应原尺寸示意图。
     PRODUCT_APP_CAP_DISPLAY_POSITION = 1u << 5,     ///< 支持按系统显示位置搬移应用图层。
     PRODUCT_APP_CAP_DISPLAY_POSITION_FLOAT = 1u << 6, ///< 仅支持按系统显示位置搬移应用浮层。
+    PRODUCT_APP_CAP_REQUIRES_PHONE = 1u << 7,       ///< 依赖手机连接，按 App 策略下断连时显示待连接。
 } product_app_capability_t;
 
 /**

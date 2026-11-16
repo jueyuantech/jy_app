@@ -81,9 +81,9 @@ The SDK package contains:
 
 | Directory / File | Purpose |
 | --- | --- |
-| `romfs/` | Firmware read-only resources. ARM builds copy it into build-directory staging before packaging. |
-| `lfsc/` | LittleFS C partition source directory. The built `uimain` is copied here for packaging. |
-| `lfsd/` | LittleFS D partition source directory. Generates `nuttx_lfsd.bin`. |
+| `romfs/` | Contains only `system/font/font.ttf` for font XIP access. |
+| `lfsc/` | Read-only `/jyt_c` ROMFS source: `uimain`, version, images and audio under `system/`. Packaging adds `lfsd/` defaults and `system/i18n/` translations. Total limit: 2 MiB. |
+| `lfsd/` | Default configuration templates, packaged under `/jyt_c/lfsd`. `nuttx_lfsd.bin` starts as an empty writable user partition. |
 | `left_romfs/` | Default left-temple read-only resources; currently contains `kws/kws_firmware.bin` and `kws/kws_model.bin` |
 | `products/<product>/left_romfs/` | Optional product-specific left-temple resources; replaces the default source when present without overlaying the directory |
 | `StringPool.csv` | Multi-language string pool input. Packaging generates i18n JSON. |
@@ -134,9 +134,9 @@ After an ARM build, the build directory contains:
 | Artifact | Description |
 | --- | --- |
 | `uimain` | ARM app-layer ELF |
-| `nuttx_lfsc.bin` | LittleFS C partition image |
+| `nuttx_lfsc.bin` | Read-only `/jyt_c` ROMFS image (App and static resources) |
 | `nuttx_lfsd.bin` | LittleFS D partition image |
-| `nuttx_romfs.bin` | ROMFS image |
+| `nuttx_romfs.bin` | ROMFS image containing only the system TTF |
 | `nuttx_lromfs.bin` | 1 MiB left-temple ROMFS image containing the selected product's KWS firmware and model |
 | `generated/` | Generated UI code, resource headers, build config, and related generated content |
 
@@ -161,4 +161,4 @@ After an ARM build, the build directory contains:
 | Platform directory | `bes28/` | `simulator/FloatairSimulator/` |
 | Main artifact | `uimain` and filesystem images | `floatair_simulator` / `floatair_simulator.exe` |
 | Graphics output | Real optical display | SDL2 window |
-| Resource path | Packaged into LittleFS / ROMFS | `jyt_d/` / `romfs/` under the build directory |
+| Resource path | Packaged into LittleFS / ROMFS | `jyt_c/` / `jyt_d/` / `romfs/` under the build directory |

@@ -46,13 +46,11 @@ static void system_avrcp_notify_listener(void) {
 }
 
 /**
- * @brief 保存播放器曲目标识并清空旧文字，进度等待查询结果校准。
+ * @brief 保存播放器曲目标识，文字内容由 Title、Artist 属性消息更新。
  * @param[in] packet AVRCP 事件包。
  * @return 无返回值。
  */
 static void system_avrcp_handle_track_changed(const jyt_avrcp_event_packet_t* packet) {
-    s_snapshot.title[0] = '\0';
-    s_snapshot.artist[0] = '\0';
     s_snapshot.track_uid_msb = packet->track_uid_msb;
     s_snapshot.track_uid_lsb = packet->track_uid_lsb;
     s_snapshot.track_valid = true;

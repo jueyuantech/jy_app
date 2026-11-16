@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
   "product": "jytek",
+  "home_view": "2",
+  "font_sizes": [18, 20, 26, 32],
   "status_bar_headset": true,
   "common_modules": ["stt", "speech"],
   "modules": [
@@ -11,7 +13,6 @@
     "navigation",
     "guide",
     "music",
-    "reader",
     "recorder",
     "langselection",
     "ai",
@@ -31,7 +32,6 @@
     {"key": "navigation", "macro": "NAVIGATION", "module": "navigation", "name": "navigation", "msg_id": 4},
     {"key": "guide", "macro": "GUIDE", "module": "guide", "name": "guide", "msg_id": 13, "capabilities": ["guide", "guide_simple"]},
     {"key": "music", "macro": "MUSIC", "module": "music", "name": "music", "msg_id": 6},
-    {"key": "reader", "macro": "READER", "module": "reader", "name": "reader", "msg_id": 9},
     {"key": "recorder", "macro": "RECORDER", "module": "recorder", "name": "recorder", "msg_id": 1002},
     {"key": "langselection", "macro": "LANGSELECTION", "module": "langselection", "name": "langselection"},
     {"key": "ai", "macro": "AI", "module": "ai", "name": "ai", "msg_id": 8, "capabilities": ["assistant_open_blocked", "stt_question_no_skip"]},
@@ -43,5 +43,8 @@
     "watch_home": "transcribe",
     "guide": "guide",
     "assistant": "assistant"
-  }
+  },
+  "font_type" : "bitmap" ,
+  "bitmap_font_size" : 32 ,
+  "bitmap_bpp" : 2
 }

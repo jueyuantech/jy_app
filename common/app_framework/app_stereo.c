@@ -390,103 +390,6 @@ static void app_stereo_insert_display_inv_area(lv_display_t* disp, const lv_area
 }
 
 /**
- * @brief 获取眼位名称。
- * @param[in] eye 目标眼位。
- * @return 返回用于日志输出的眼位名称。
- */
-static const char* app_stereo_eye_name(app_stereo_eye_t eye) {
-    return eye == APP_STEREO_EYE_LEFT ? "left" : "right";
-}
-
-/**
- * @brief 按指定眼位打印当前 LVGL 脏区列表。
- * @param[in] disp LVGL display。
- * @param[in] stage 日志阶段名称。
- * @param[in] eye 目标眼位。
- * @param[in] active_only 是否只打印未被合并标记的最终区域。
- * @return 无返回值。
- */
-static void app_stereo_log_eye_inv_areas(lv_display_t* disp,
-                                         const char* stage,
-                                         app_stereo_eye_t eye,
-                                         bool active_only) {
-    lv_area_t eye_area;
-    int32_t eye_x = 0;
-    int32_t eye_y = 0;
-    uint16_t active_count = 0;
-
-    if (disp == NULL || stage == NULL || disp->inv_p == 0u) {
-        return;
-    }
-
-    app_stereo_get_eye_area(eye, &eye_area);
-    app_stereo_get_eye_origin(eye, &eye_x, &eye_y);
-    for (uint16_t i = 0; i < disp->inv_p; i++) {
-        lv_area_t clipped;
-
-        if (active_only && disp->inv_area_joined[i] != 0) {
-            continue;
-        }
-
-        if (app_stereo_area_intersect(&clipped, &disp->inv_areas[i], &eye_area)) {
-            active_count++;
-        }
-    }
-
-    floatair_info("app stereo inv %s %s count=%u raw=%lu",
-                  stage,
-                  app_stereo_eye_name(eye),
-                  (unsigned)active_count,
-                  (unsigned long)disp->inv_p);
-    for (uint16_t i = 0; i < disp->inv_p; i++) {
-        const lv_area_t* area = &disp->inv_areas[i];
-        lv_area_t clipped;
-        lv_area_t local;
-
-        if (active_only && disp->inv_area_joined[i] != 0) {
-            continue;
-        }
-
-        if (!app_stereo_area_intersect(&clipped, area, &eye_area)) {
-            continue;
-        }
-
-        local = clipped;
-        lv_area_move(&local, -eye_x, -eye_y);
-        floatair_info("app stereo inv %s %s[%u]=abs(%d,%d)-(%d,%d) local(%d,%d)-(%d,%d) size=%lu joined=%u",
-                      stage,
-                      app_stereo_eye_name(eye),
-                      (unsigned)i,
-                      (int)clipped.x1,
-                      (int)clipped.y1,
-                      (int)clipped.x2,
-                      (int)clipped.y2,
-                      (int)local.x1,
-                      (int)local.y1,
-                      (int)local.x2,
-                      (int)local.y2,
-                      (unsigned long)lv_area_get_size(&clipped),
-                      (unsigned)disp->inv_area_joined[i]);
-    }
-}
-
-/**
- * @brief 分左右眼打印当前 LVGL 脏区列表。
- * @param[in] disp LVGL display。
- * @param[in] stage 日志阶段名称。
- * @param[in] active_only 是否只打印未被合并标记的最终区域。
- * @return 无返回值。
- */
-static void app_stereo_log_inv_areas(lv_display_t* disp, const char* stage, bool active_only) {
-    if (disp == NULL) {
-        return;
-    }
-
-    app_stereo_log_eye_inv_areas(disp, stage, APP_STEREO_EYE_LEFT, active_only);
-    app_stereo_log_eye_inv_areas(disp, stage, APP_STEREO_EYE_RIGHT, active_only);
-}
-
-/**
  * @brief 在 LVGL 渲染合并前统一压缩本帧左右眼脏区。
  * @param[in] e LVGL display 事件。
  * @return 无返回值。
@@ -506,27 +409,7 @@ static void app_stereo_refr_start_event_cb(lv_event_t* e) {
         return;
     }
 
-    app_stereo_log_inv_areas(disp, "small", false);
     app_stereo_compact_display_inv_areas(disp);
-}
-
-/**
- * @brief 在 LVGL 最终合并脏区后打印实际渲染区域。
- * @param[in] e LVGL display 事件。
- * @return 无返回值。
- */
-static void app_stereo_render_start_event_cb(lv_event_t* e) {
-    lv_display_t* disp = (lv_display_t*)lv_event_get_current_target(e);
-
-    if (disp != g_app_stereo.mirror_disp) {
-        return;
-    }
-
-    if (floatair_lcd_is_off()) {
-        return;
-    }
-
-    app_stereo_log_inv_areas(disp, "merged", true);
 }
 
 /**
@@ -858,7 +741,6 @@ bool app_stereo_install_display_mirror(lv_display_t* disp) {
     g_app_stereo.mirror_disp = disp;
     lv_display_add_event_cb(disp, app_stereo_invalidate_area_event_cb, LV_EVENT_INVALIDATE_AREA, NULL);
     lv_display_add_event_cb(disp, app_stereo_refr_start_event_cb, LV_EVENT_REFR_START, NULL);
-    lv_display_add_event_cb(disp, app_stereo_render_start_event_cb, LV_EVENT_RENDER_START, NULL);
     lv_display_add_event_cb(disp, app_stereo_flush_start_event_cb, LV_EVENT_FLUSH_START, NULL);
     lv_display_add_event_cb(disp, app_stereo_display_delete_event_cb, LV_EVENT_DELETE, NULL);
     floatair_info("app stereo display mirror installed: disp=%p", disp);

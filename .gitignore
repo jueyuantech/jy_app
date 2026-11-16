@@ -1,4 +1,6 @@
 *build*
+!thirdparty/harfbuzz/src/hb-face-builder.cc
+!thirdparty/harfbuzz/src/OT/glyf/path-builder.hh
 /install/
 !simulator/FloatairSimulator/build_all.sh
 !simulator/FloatairSimulator/build_all.bat
@@ -7,17 +9,25 @@
 .idea/
 *.txt
 !/products/*/lfsd/**
-!romfs/**
+/romfs/*
+!/romfs/system/
+/romfs/system/*
+!/romfs/system/font/
+/romfs/system/font/*
+!/romfs/system/font/font.ttf
 /StringPool.csv
 /apps/home/home_cfg.c
 /lfsd/
 /ui.res.json
-/romfs/system/images/*
-!/romfs/system/images/.gitkeep
-/romfs/system/audio/*
 download/
 lfs-env/
-lfsc/
+/lfsc/*
+!/lfsc/.gitkeep
+!/lfsc/system/
+/lfsc/system/*
+!/lfsc/system/images/
+/lfsc/system/images/*
+!/lfsc/system/images/.gitkeep
 simulator/test/app
 simulator/test/jyt_d
 lfsd/lfsd
@@ -53,3 +63,8 @@ AGENTS.md
 *.pyc
 .os_sdk_cache/
 .cache/
+
+# 保留 SDL2 上游构建、许可及随附文本。
+!thirdparty/SDL2/**
+# 忽略 SDL2 Android 示例工程的本地 Gradle 缓存。
+/thirdparty/SDL2/android-project/.gradle/

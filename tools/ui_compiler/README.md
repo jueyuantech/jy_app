@@ -36,6 +36,7 @@ struct stays stable.
 - Children inside a layout can use `layout_item.fill_x/fill_y/grow` for flex item sizing.
 - Labels can use `max_lines` with `overflow: "wrap"` to cap wrapped text height.
 - Labels can use `text_key` to initialize text from `app_get_str("KEY")`.
+- Use `border_post: true` to draw a widget border after its children, keeping scrolling text from covering the frame.
 - Any widget can use `floating: true` when it should be excluded from parent layout and drawn above sibling content.
 - `opa` accepts integers or semantic values such as `"transparent"`, `"cover"`, and `"60%"`.
 
@@ -113,7 +114,7 @@ Resource JSON can also declare file-backed audio resources:
 ```json
 "audio": {
   "click_single": {
-    "path": "/romfs/system/audio/click_single.wav"
+    "path": "/jyt_c/system/audio/click_single.wav"
   }
 }
 ```

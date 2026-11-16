@@ -9,6 +9,7 @@
 #include "common/stt/stt_view_common.h"
 #include "common/app_framework/app_layers.h"
 #include "common/app_framework/app_manager.h"
+#include "common/app_framework/app_router.h"
 #include "common/widgets/container.h"
 #include "common/widgets/label.h"
 #include "system/stt_common.h"
@@ -257,7 +258,7 @@ bool assistant_handle_event(lv_event_code_t code) {
             lv_obj_t* page_root = NULL;
 
             (void)assistant_close(true);
-            if (!system_config_is_userguide_finished()) {
+            if (app_router_is_userguide_pending()) {
                 page_root = app_manager_current_content_root();
                 if (page_root != NULL) {
                     (void)lv_obj_send_event(page_root, assistant_get_close_event(), NULL);

@@ -28,6 +28,7 @@ static size_t s_speech_profile_count = 0;
 static bool s_speech_msg_registered = false;    ///< Speech 消息是否已注册。
 static bool s_speech_exit_double_click_confirm_enabled = SPEECH_DEFAULT_EXIT_DOUBLE_CLICK; ///< 双击退出是否需要确认。
 static bool s_speech_report_double_click_enabled = SPEECH_DEFAULT_REPORT_DOUBLE_CLICK; ///< 双击是否仅上报手机。
+static bool s_speech_bordered_stt_enabled = false; ///< 当前 Speech 应用是否使用左右带框气泡。
 
 static const speech_app_profile_t* speech_current_profile(void) {
     return speech_profile_from_app_name(app_manager_current_name());
@@ -60,6 +61,18 @@ bool speech_exit_double_click_confirm_enabled(void) {
 
 bool speech_report_double_click_enabled(void) {
     return s_speech_report_double_click_enabled;
+}
+
+bool speech_bordered_stt_enabled(void) {
+    return s_speech_bordered_stt_enabled;
+}
+
+void speech_set_bordered_stt_enabled(bool enabled) {
+    if (s_speech_bordered_stt_enabled == enabled) {
+        return;
+    }
+    s_speech_bordered_stt_enabled = enabled;
+    speech_on_bordered_stt_changed();
 }
 
 static bool speech_msg_register_once(void) {
@@ -98,6 +111,7 @@ static bool speech_service_init(const speech_app_profile_t* profile) {
     cJSON* root = NULL;
     cJSON* exit_double_click = NULL;
     cJSON* report_double_click = NULL;
+    cJSON* bordered_stt = NULL;
 
     if (profile == NULL ||
         !floatair_fs_get_app_config_file(profile->config_name,
@@ -112,8 +126,10 @@ static bool speech_service_init(const speech_app_profile_t* profile) {
     }
     exit_double_click = cJSON_GetObjectItemCaseSensitive(root, "exitdoubleclick");
     report_double_click = cJSON_GetObjectItemCaseSensitive(root, "reportdoubleclick");
+    bordered_stt = cJSON_GetObjectItemCaseSensitive(root, "borderedstt");
     s_speech_exit_double_click_confirm_enabled = cJSON_IsTrue(exit_double_click);
     s_speech_report_double_click_enabled = cJSON_IsTrue(report_double_click);
+    s_speech_bordered_stt_enabled = cJSON_IsTrue(bordered_stt);
     cJSON_Delete(root);
     stt_service_init(config_path);
     return true;
@@ -152,6 +168,7 @@ static void speech_app_on_stop(void) {
     speech_msg_unregister_if_needed();
     speech_stt_clear();
     stt_service_deinit();
+    s_speech_bordered_stt_enabled = false;
     rpmsgttf_cache_bitmap_enable(false);
 }
 

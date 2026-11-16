@@ -11,12 +11,14 @@ from typing import Any
 
 
 CAPABILITIES = {
+    "requires_phone": "PRODUCT_APP_CAP_REQUIRES_PHONE",
     "upload_progress": "PRODUCT_APP_CAP_UPLOAD_PROGRESS",
     "assistant_open_blocked": "PRODUCT_APP_CAP_ASSISTANT_OPEN_BLOCKED",
     "display_position": "PRODUCT_APP_CAP_DISPLAY_POSITION",
     "display_position_float": "PRODUCT_APP_CAP_DISPLAY_POSITION_FLOAT",
     "guide": "PRODUCT_APP_CAP_GUIDE",
     "guide_simple": "PRODUCT_APP_CAP_GUIDE_SIMPLE",
+    "guide_right_temple": "PRODUCT_APP_CAP_GUIDE_RIGHT_TEMPLE",
     "stt_question_no_skip": "PRODUCT_APP_CAP_STT_QUESTION_NO_SKIP",
 }
 
@@ -63,6 +65,41 @@ def load_manifest(path: Path) -> dict[str, Any]:
     if product_name != path.parent.name:
         fail(f"product name {product_name!r} does not match directory {path.parent.name!r}")
     return data
+
+
+def parse_font_sizes(data: dict[str, Any]) -> list[int]:
+    """校验产品实际加载的字号，要求非空、合法且严格递增。"""
+    sizes = data.get("font_sizes")
+    if not isinstance(sizes, list) or not sizes:
+        fail("font_sizes must be a non-empty array")
+    if any(type(size) is not int or not 1 <= size <= 60 for size in sizes):
+        fail("font_sizes must contain integer sizes in range 1-60")
+    if sizes != sorted(set(sizes)):
+        fail("font_sizes must be unique and sorted in ascending order")
+    return sizes
+
+
+def parse_font_type(data: dict[str, Any]) -> tuple[str, int, int]:
+    """解析字体类型配置。
+
+    返回 (font_type, bitmap_font_size, bitmap_bpp)。
+    - font_type: "freetype" 或 "bitmap"
+    - bitmap_font_size: 点阵字库基准字号（像素），仅 font_type=bitmap 时有效
+    - bitmap_bpp: 点阵位深，默认 8，可选 1/2/4/8
+    """
+    font_type = data.get("font_type", "freetype")
+    if font_type not in ("freetype", "bitmap"):
+        fail(f"font_type must be 'freetype' or 'bitmap', got {font_type!r}")
+
+    bitmap_font_size = data.get("bitmap_font_size", 32)
+    if not isinstance(bitmap_font_size, int) or bitmap_font_size <= 0:
+        fail("bitmap_font_size must be a positive integer")
+
+    bitmap_bpp = data.get("bitmap_bpp", 8)
+    if bitmap_bpp not in (1, 2, 4, 8):
+        fail("bitmap_bpp must be one of 1, 2, 4, 8")
+
+    return font_type, bitmap_font_size, bitmap_bpp
 
 
 def parse_modules(
@@ -255,6 +292,16 @@ def parse_status_bar_headset(data: dict[str, Any]) -> bool:
     return enabled
 
 
+def parse_home_view(data: dict[str, Any]) -> int:
+    """校验 Home 展示方式：1 为静态切换，2 为图标滑动。"""
+    version = data.get("home_view", 1)
+    if isinstance(version, bool) or not isinstance(version, (str, int)):
+        fail(f"home_view must be 1 or 2: {version!r}")
+    if str(version) not in ("1", "2"):
+        fail(f"home_view must be 1 or 2: {version!r}")
+    return int(version)
+
+
 def parse_home_status_bar_position(data: dict[str, Any]) -> str:
     position = data.get("home_status_bar_position", "bottom")
     if position not in STATUS_BAR_POSITIONS:
@@ -333,10 +380,16 @@ def write_definitions_header(
     output: Path,
     apps: list[dict[str, Any]],
     home_status_bar_position: str,
+    home_view: int,
     home_guide_step2_mode: str,
     home_guide_step2_app_macro: str,
     status_bar_headset: bool,
     home_guide_apps: list[str],
+    font_sizes: list[int],
+    font_type: str,
+    bitmap_font_size: int,
+    bitmap_bpp: int,
+    bt_disconnect_policy: str,
 ) -> None:
     lines = [
         "/**",
@@ -344,6 +397,24 @@ def write_definitions_header(
         " * @brief 当前产品 App 名称与消息 ID 生成定义。",
         " */",
         "#pragma once",
+        "",
+        "#define PRODUCT_BT_DISCONNECT_POLICY_APP "
+        f"({1 if bt_disconnect_policy == 'app' else 0}) "
+        "///< 是否仅对需要手机的 App 显示待连接遮罩。",
+        "",
+        "#define PRODUCT_FONT_REGISTRY_ENTRIES " + ", ".join(
+            f"{{{size}u, NULL}}" for size in font_sizes
+        ) + " ///< 当前产品需要加载的系统字号及初始字体指针。",
+        "",
+        "/* 字体类型：freetype 矢量字库 / bitmap 点阵字库 */",
+        f"#define PRODUCT_FONT_TYPE_FREETYPE ({1 if font_type == 'freetype' else 0})",
+        f"#define PRODUCT_FONT_TYPE_BITMAP ({1 if font_type == 'bitmap' else 0})",
+        "",
+        "/* 点阵字库配置（仅 font_type=bitmap 时生效） */",
+        f"#define PRODUCT_BITMAP_FONT_SIZE ({bitmap_font_size}u) ///< 点阵字库基准字号（像素）",
+        f"#define PRODUCT_BITMAP_FONT_BPP ({bitmap_bpp}u) ///< 点阵位深 1/2/4/8",
+        "",
+        f"#define PRODUCT_HOME_VIEW ({home_view}) ///< 首页切换方式：1 静态，2 图标滑动。",
         "",
         "#define PRODUCT_HOME_STATUS_BAR_AT_TOP "
         f"({1 if home_status_bar_position == 'top' else 0})",
@@ -515,12 +586,18 @@ def write_registry_source(
 
 def generate(manifest: Path, apps_dir: Path, output_dir: Path) -> None:
     data = load_manifest(manifest)
+    bt_disconnect_policy = data.get("bt_disconnect_policy", "global")
+    if bt_disconnect_policy not in ("global", "app"):
+        fail("bt_disconnect_policy must be global or app")
+    font_sizes = parse_font_sizes(data)
+    font_type, bitmap_font_size, bitmap_bpp = parse_font_type(data)
     common_modules = parse_common_modules(data, apps_dir)
     modules = parse_modules(data, apps_dir, set(common_modules))
     apps, apps_by_key = parse_apps(data, {module["directory"] for module in modules})
     roles = parse_roles(data, apps_by_key)
     status_bar_headset = parse_status_bar_headset(data)
     home_status_bar_position = parse_home_status_bar_position(data)
+    home_view = parse_home_view(data)
     home_guide_step2_mode, home_guide_step2_app_macro = parse_home_guide_step2_mode(
         data,
         apps_by_key,
@@ -537,10 +614,16 @@ def generate(manifest: Path, apps_dir: Path, output_dir: Path) -> None:
         output_dir / "product_app_generated.h",
         apps,
         home_status_bar_position,
+        home_view,
         home_guide_step2_mode,
         home_guide_step2_app_macro,
         status_bar_headset,
         home_guide_apps,
+        font_sizes,
+        font_type,
+        bitmap_font_size,
+        bitmap_bpp,
+        bt_disconnect_policy,
     )
     write_registry_source(output_dir / "product_app_generated.c", modules, apps, roles)
 

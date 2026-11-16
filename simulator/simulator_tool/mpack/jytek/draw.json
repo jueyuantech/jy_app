@@ -185,7 +185,7 @@
             "h": 160,
             "id": 300,
             "isfloat": 0,
-            "path": "/romfs/system/images/ota.jpg",
+            "path": "/jyt_c/system/images/ota.jpg",
             "w": 160,
             "x": 40,
             "y": 290
@@ -201,7 +201,7 @@
             "h": 160,
             "id": 301,
             "isfloat": 0,
-            "path": "/romfs/system/images/__not_exist__.jpg",
+            "path": "/jyt_c/system/images/__not_exist__.jpg",
             "w": 160,
             "x": 220,
             "y": 290

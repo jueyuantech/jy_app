@@ -107,6 +107,18 @@ bool app_router_set_default_app_platform(const char* platform);
 bool app_router_has_app_config(void);
 
 /**
+ * @brief 判断当前平台是否需要按未完成的新手引导限制正常功能。
+ * @return `true` 表示非手表平台且引导尚未完成，`false` 表示无需限制。
+ */
+bool app_router_is_userguide_pending(void);
+
+/**
+ * @brief 在手机连接和平台就绪后补报保留的页面及 Assistant 状态。
+ * @return 无返回值；全局模式、前置流程或手机尚未就绪时不补报。
+ */
+void app_router_restore_phone_view(void);
+
+/**
  * @brief 清除本次连接收到的上位机平台配置。
  * @return 无返回值。
  */

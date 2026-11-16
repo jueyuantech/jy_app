@@ -18,7 +18,7 @@ class UiDesignerServerTests(unittest.TestCase):
         (self.root / "system" / "popups").mkdir(parents=True)
         (self.root / "apps" / "demo").mkdir(parents=True)
         (self.root / "images").mkdir(parents=True)
-        (self.root / "romfs" / "system" / "images").mkdir(parents=True)
+        (self.root / "lfsc" / "system" / "images").mkdir(parents=True)
         (self.root / "lfsd" / "system" / "font").mkdir(parents=True)
         (self.root / "lfsd" / "system" / "config.json").write_text(
             json.dumps({"fontinfo": {"weight": 26, "wordSpace": 1, "rowSpace": 2}}),
@@ -30,13 +30,13 @@ class UiDesignerServerTests(unittest.TestCase):
                 "name": "ui",
                 "images": {
                     "robot": {"symbol": "img_robot", "type": "lv_image_dsc_t"},
-                    "connecting": {"path": "/romfs/system/images/connecting.jpg"},
+                    "connecting": {"path": "/jyt_c/system/images/connecting.jpg"},
                 },
             }),
             encoding="utf-8",
         )
         Image.new("RGB", (2, 2), (20, 30, 40)).save(
-            self.root / "romfs" / "system" / "images" / "connecting.jpg",
+            self.root / "lfsc" / "system" / "images" / "connecting.jpg",
             format="JPEG",
         )
         (self.root / "StringPool.csv").write_text(

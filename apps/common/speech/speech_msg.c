@@ -248,6 +248,22 @@ static bool speech_settextdirection(mpack_node_t node, msg_pack_t* msg) {
     return ret;
 }
 
+/**
+ * @brief 仅在当前 Speech 会话内切换正文左右带框气泡。
+ * @param[in] node 请求数据。
+ * @param[in] msg 消息上下文。
+ * @return 消息处理和 ACK 发送结果。
+ */
+static bool speech_setborderedstt(mpack_node_t node, msg_pack_t* msg) {
+    uint64_t enabled = 0;
+
+    if (!app_msg_get_u64(node, false, "borderedStt", &enabled) || enabled > 1) {
+        return app_mpack_send_ack(msg, ErrBadParam);
+    }
+    speech_set_bordered_stt_enabled(enabled == 1);
+    return app_mpack_send_ack(msg, Dp_ErrNone);
+}
+
 static bool speech_setstate(mpack_node_t node, msg_pack_t* msg) {
     uint8_t state = 0;
 
@@ -302,6 +318,7 @@ static app_cmd_func_t s_speech_cmd_funcs[] = {
     {"setMicDirectional", speech_setmicdirectional},
     {"setLanguageHint", speech_setlanguagehint},
     {"setTextDirection", speech_settextdirection},
+    {"setBorderedStt", speech_setborderedstt},
 };
 
 bool speech_route_cmd(mpack_node_t node, msg_pack_t* msg) {

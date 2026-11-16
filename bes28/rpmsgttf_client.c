@@ -1,14 +1,9 @@
 /**
  * @file rpmsgttf_client.c
- * @brief RPMSG TTF 字体远程渲染客户端 — APP侧实现
+ * @brief LVGL 字体适配：字形在 M55 本地绘制，复杂文本交给 AP 排版
  *
- * 替代本地tiny_ttf(stb_truetype)引擎，通过RPMSG在M33上渲染glyph位图。
- * M55通过直接内存访问读取M33上的位图数据。
- *
- * 缓存全部在OS侧（rpmsgttf_client_lite.c）管理：
- *   - g_metric_cache (1024条): glyph metric缓存
- *   - g_cache (256条): glyph顶点+位图缓存
- * APP侧不做缓存，直接透传给OS层。
+ * 普通文本的度量、轮廓、栅格化及缓存均由 M55 的本地字体服务负责。
+ * 复杂文本仅将 UTF-8 与字体身份交给 AP，按返回的 glyph ID 在 M55 绘制。
  */
 
 #include "rpmsgttf_client.h"
@@ -17,9 +12,12 @@
 #include "rpmsgttf.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <limits.h>
+#include <errno.h>
 
 /* Include LVGL internals for draw_buf and cache types */
 #include "lvgl/src/draw/lv_draw_buf.h"
@@ -39,17 +37,38 @@ extern void rpmsgttf_release_glyph(int font_id, uint32_t pool_slot);
 
 /* Font descriptor */
 typedef struct {
+    uint32_t magic;     ///< RPMSG TTF 私有描述符标识。
     int32_t font_id;
     int32_t font_size;
     int32_t kerning;
     int32_t line_height;
     int32_t base_line;
-
     /* Bitmap wrapper for LVGL — points to OS-side buffer */
     lv_draw_buf_t bitmap_wrapper;
     uint32_t      current_pool_slot;
     uint8_t       wrapper_in_use;
 } rpmsgttf_font_desc_t;
+
+#define RPMSGTTF_DESC_MAGIC 0x52545446u
+
+static rpmsgttf_font_desc_t* rpmsgttf_get_desc(const lv_font_t* font)
+{
+    if (font == NULL || font->dsc == NULL) {
+        return NULL;
+    }
+
+    rpmsgttf_font_desc_t* dsc = (rpmsgttf_font_desc_t*)font->dsc;
+    if (dsc->magic != RPMSGTTF_DESC_MAGIC) {
+        return NULL;
+    }
+
+    return dsc;
+}
+
+bool rpmsgttf_is_font(const lv_font_t* font)
+{
+    return rpmsgttf_get_desc(font) != NULL;
+}
 
 /* LVGL callbacks */
 static bool rpmsgttf_get_glyph_dsc_cb(const lv_font_t* font,
@@ -101,6 +120,33 @@ static bool rpmsgttf_get_glyph_dsc_cb(const lv_font_t* font,
     dsc_out->entry = NULL;
 
     return true;
+}
+
+/** 功能：按 AP 返回的字形编号复用 M55 的描述与缓存；参数：字体、输出、编号、步进；返回：成功与否。 */
+bool rpmsgttf_get_glyph_dsc_by_gid(const lv_font_t* font, lv_font_glyph_dsc_t* out,
+                                  uint32_t glyph_id, int32_t advance_override)
+{
+    if (!rpmsgttf_is_font(font) || out == NULL || glyph_id == 0 ||
+        glyph_id >= RPMSGTTF_GLYPH_ID_FLAG) return false;
+    if (!rpmsgttf_get_glyph_dsc_cb(font, out, glyph_id | RPMSGTTF_GLYPH_ID_FLAG, 0)) return false;
+    if (advance_override >= 0) out->adv_w = advance_override > UINT16_MAX ? UINT16_MAX : advance_override;
+    out->resolved_font = font;
+    return true;
+}
+
+/** 功能：将 LVGL 逻辑文本及方向交给 AP，保留 OS 返回数组的所有权；参数：字体、文本、长度、方向、输出；返回：成功与否。 */
+bool rpmsgttf_shape_run(const lv_font_t* font, const char* text, uint32_t length,
+                       lv_base_dir_t direction, lv_text_shape_run_t* out)
+{
+    rpmsgttf_font_desc_t* dsc = rpmsgttf_get_desc(font);
+    if (out == NULL) return false;
+    memset(out, 0, sizeof(*out));
+    if (dsc == NULL) return false;
+    uint32_t rtl = direction == LV_BASE_DIR_RTL ? 1 : (direction == LV_BASE_DIR_LTR ? 0 : 2);
+    int ret = rpmsgshape_run(dsc->font_id, text, length, rtl,
+                            &out->glyphs, &out->glyph_count, &out->width);
+    if (ret < 0 && ret != -ENOSYS) floatair_err("[SHAPE] AP failed: bytes=%" PRIu32 " ret=%d", length, ret);
+    return ret == 0;
 }
 
 static const void* rpmsgttf_get_glyph_bitmap_cb(lv_font_glyph_dsc_t* g_dsc,
@@ -187,6 +233,7 @@ lv_font_t* rpmsgttf_create_font(const char* path, int32_t font_size,
     dsc->kerning = (int32_t)kerning;
     dsc->line_height = line_height;
     dsc->base_line = base_line;
+    dsc->magic = RPMSGTTF_DESC_MAGIC;
 
     /* Create LVGL font object */
     lv_font_t* out_font = lv_malloc_zeroed(sizeof(lv_font_t));
@@ -220,6 +267,7 @@ void rpmsgttf_destroy_font(lv_font_t* font)
         if (dsc->wrapper_in_use) {
             rpmsgttf_release_glyph(dsc->font_id, dsc->current_pool_slot);
         }
+        dsc->magic = 0;
         rpmsgttf_close_font(dsc->font_id);
         lv_free(dsc);
         font->dsc = NULL;

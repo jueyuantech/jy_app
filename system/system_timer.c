@@ -2,6 +2,7 @@
 
 #include "app_def.h"
 #include "app_lcd.h"
+#include "common/app_framework/app_router.h"
 #include "common/guide_runtime.h"
 #include "elf_common.h"
 #include "floatair_dbg.h"
@@ -196,7 +197,7 @@ bool system_timer_handle_trigger(uint32_t timer_id) {
             return true;
         }
         guide_runtime_state_t guide_state = guide_runtime_get_state();
-        if (!system_config_is_userguide_finished() &&
+        if (app_router_is_userguide_pending() &&
             system_get_btconn_state() &&
             guide_state != GUIDE_RUNTIME_STATE_IDLE) {
             floatair_info("connected userguide active, ignore sleep timer trigger: state=%d",

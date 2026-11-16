@@ -129,6 +129,8 @@ def resolve_resource_image_file(root: Path, resource_path: str) -> Path | None:
     if not normalized:
         return None
     rel = normalized.lstrip("/")
+    if rel.startswith("jyt_c/"):
+        rel = "lfsc/" + rel[len("jyt_c/"):]
     root_resolved = root.resolve()
     resolved = (root / rel).resolve()
     if resolved != root_resolved and root_resolved not in resolved.parents:

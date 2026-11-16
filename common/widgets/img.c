@@ -1,4 +1,9 @@
+/**
+ * @file img.c
+ * @brief 通用图片组件、像素数据持有和整图解码实现。
+ */
 #include "img.h"
+#include "lvgl/src/draw/lv_image_decoder_private.h"
 
 #include <string.h>
 
@@ -211,6 +216,94 @@ bool img_set_l8_data(img_t* img,
 
     lv_image_set_src(img->base.obj, &img->owned_dsc);
     return true;
+}
+
+/**
+ * @brief 将灰度图片完整解码为组件持有的 L8 位图，避免分块解码影响旋转。
+ * @param[in] img 图片组件。
+ * @param[in] src 灰度图片源，支持返回 L8 像素的整图或分块解码器。
+ * @return 解码并设置成功返回 true；失败时保留原图片。
+ */
+bool img_set_decoded_l8_src(img_t* img, const void* src) {
+    lv_image_decoder_dsc_t decoder;
+    lv_image_decoder_args_t args = {0};
+    lv_area_t full_area;
+    lv_area_t decoded_area;
+    uint8_t* pixels = NULL;
+    size_t copied = 0u;
+    size_t pixel_count;
+    bool success = false;
+
+    if (!img_is_valid(img) || src == NULL) {
+        return false;
+    }
+    args.no_cache = true;
+    if (lv_image_decoder_open(&decoder, src, &args) != LV_RESULT_OK) {
+        return false;
+    }
+    if (decoder.header.cf != LV_COLOR_FORMAT_L8 ||
+        decoder.header.w == 0u || decoder.header.h == 0u) {
+        lv_image_decoder_close(&decoder);
+        return false;
+    }
+    pixel_count = (size_t)decoder.header.w * decoder.header.h;
+    pixels = (uint8_t*)lv_malloc(pixel_count);
+    if (pixels == NULL) {
+        lv_image_decoder_close(&decoder);
+        return false;
+    }
+    full_area.x1 = 0;
+    full_area.y1 = 0;
+    full_area.x2 = (int32_t)decoder.header.w - 1;
+    full_area.y2 = (int32_t)decoder.header.h - 1;
+    decoded_area = full_area;
+    if (decoder.decoded == NULL) {
+        decoded_area.x1 = LV_COORD_MIN;
+        decoded_area.y1 = LV_COORD_MIN;
+        decoded_area.x2 = LV_COORD_MIN;
+        decoded_area.y2 = LV_COORD_MIN;
+        if (lv_image_decoder_get_area(&decoder, &full_area, &decoded_area) != LV_RESULT_OK) {
+            goto cleanup;
+        }
+    }
+    while (copied < pixel_count) {
+        const lv_draw_buf_t* block = decoder.decoded;
+        int32_t width = lv_area_get_width(&decoded_area);
+        int32_t height = lv_area_get_height(&decoded_area);
+        size_t block_pixels;
+
+        if (block == NULL || block->data == NULL ||
+            block->header.cf != LV_COLOR_FORMAT_L8 || width <= 0 || height <= 0 ||
+            decoded_area.x1 < 0 || decoded_area.y1 < 0 ||
+            decoded_area.x2 > full_area.x2 || decoded_area.y2 > full_area.y2 ||
+            block->header.w != (uint32_t)width || block->header.h != (uint32_t)height ||
+            block->header.stride < (uint32_t)width ||
+            (size_t)(height - 1) * block->header.stride + (size_t)width > block->data_size) {
+            goto cleanup;
+        }
+        block_pixels = (size_t)width * (size_t)height;
+        if (block_pixels > pixel_count - copied) {
+            goto cleanup;
+        }
+        for (int32_t row = 0; row < height; ++row) {
+            memcpy(pixels + (size_t)(decoded_area.y1 + row) * decoder.header.w + decoded_area.x1,
+                   block->data + (size_t)row * block->header.stride,
+                   (size_t)width);
+        }
+        copied += block_pixels;
+        if (copied == pixel_count) {
+            success = img_set_l8_data(img, pixels, pixel_count,
+                                      (int32_t)decoder.header.w, (int32_t)decoder.header.h);
+            break;
+        }
+        if (lv_image_decoder_get_area(&decoder, &full_area, &decoded_area) != LV_RESULT_OK) {
+            break;
+        }
+    }
+cleanup:
+    lv_image_decoder_close(&decoder);
+    lv_free(pixels);
+    return success;
 }
 
 /**

@@ -230,8 +230,6 @@ if ($Platform -eq 'mingw') {
 $PlatformTitle = if ($Platform -eq 'mingw') { 'Windows MinGW' } else { 'Windows MSVC' }
 $BuildTitle = if ($Platform -eq 'mingw') { 'Windows MinGW' } else { 'MSVC' }
 $BuildStem = $Platform
-$SdlLibDir = $Platform
-$SdlImportLib = if ($Platform -eq 'mingw') { 'libSDL2.dll.a' } else { 'SDL2.lib' }
 
 function Test-CompilerArch([string]$Compiler) {
     $dump = Read-FirstLine $Compiler @('-dumpmachine')
@@ -277,6 +275,20 @@ function Find-MingwCompiler([string]$Exe, [string]$Kind) {
         }
     }
     return $null
+}
+
+# 查找同一工具链中架构和编译器类型一致的 C/C++ 编译器；不完整时返回空。
+function Find-MingwCompilerPair {
+    $kind = if ($CompilerKind -eq 'gcc') { 'gcc' } else { 'llvm' }
+    $cExe = if ($CompilerKind -eq 'gcc') { "$MingwTriple-gcc.exe" } else { "$MingwTriple-clang.exe" }
+    $cxxExe = if ($CompilerKind -eq 'gcc') { "$MingwTriple-g++.exe" } else { "$MingwTriple-clang++.exe" }
+    $compiler = Find-MingwCompiler $cExe $kind
+    if (-not $compiler) { return $null }
+    $cxxCompiler = Join-Path (Split-Path -Parent $compiler) $cxxExe
+    if (-not ((Test-Path $cxxCompiler) -and (Test-CompilerArch $cxxCompiler) -and (Test-CompilerKind $cxxCompiler $kind))) {
+        return $null
+    }
+    return @{ Compiler = $compiler; CxxCompiler = $cxxCompiler; TargetArgs = @() }
 }
 
 function Test-MingwCanLink([string]$Compiler) {
@@ -409,16 +421,15 @@ function Check-PlatformDeps {
     if (-not (Check-Program ninja)) { $failed = $true }
 
     if ($Platform -eq 'mingw') {
-        $exe = if ($CompilerKind -eq 'gcc') { "$MingwTriple-gcc.exe" } else { "$MingwTriple-clang.exe" }
-        $kind = if ($CompilerKind -eq 'gcc') { 'gcc' } else { 'llvm' }
-        $compiler = Find-MingwCompiler $exe $kind
-        if ($compiler) {
-            Write-Host "[CHECK] compiler: $(Status-Text $true) (`"$compiler`")"
-            $canLink = Test-MingwCanLink $compiler
+        $pair = Find-MingwCompilerPair
+        if ($pair) {
+            Write-Host "[CHECK] C compiler: $(Status-Text $true) (`"$($pair.Compiler)`")"
+            Write-Host "[CHECK] C++ compiler: $(Status-Text $true) (`"$($pair.CxxCompiler)`")"
+            $canLink = Test-MingwCanLink $pair.Compiler
             Write-Host "[CHECK] compiler link Windows ${Arch}: $(Status-Text $canLink)"
             if (-not $canLink) { $failed = $true }
         } else {
-            Write-Host "[CHECK] compiler: $(Status-Text $false) ($exe)"
+            Write-Host "[CHECK] matching C/C++ compiler pair: $(Status-Text $false) ($MingwTriple $CompilerKind)"
             $failed = $true
         }
     } else {
@@ -435,10 +446,7 @@ function Check-PlatformDeps {
         }
     }
 
-    $sdlBase = Join-Path $ScriptDir "windows\SDL2\lib\$SdlLibDir\$Arch"
-    if (-not (Check-File 'bundled SDL2 CMake config' (Join-Path $ScriptDir 'windows\SDL2\cmake\sdl2-config.cmake'))) { $failed = $true }
-    if (-not (Check-File "bundled SDL2.dll $Arch" (Join-Path $sdlBase 'SDL2.dll'))) { $failed = $true }
-    if (-not (Check-File "bundled SDL2 import lib $Arch" (Join-Path $sdlBase $SdlImportLib))) { $failed = $true }
+    if (-not (Check-File 'bundled SDL2 source' (Join-Path $ProjectRoot 'thirdparty\SDL2\CMakeLists.txt'))) { $failed = $true }
 
     if ($failed) {
         Write-Err "$PlatformTitle simulator deps are incomplete."
@@ -449,14 +457,13 @@ function Check-PlatformDeps {
 
 function Prepare-Compiler {
     if ($Platform -eq 'mingw') {
-        $exe = if ($CompilerKind -eq 'gcc') { "$MingwTriple-gcc.exe" } else { "$MingwTriple-clang.exe" }
-        $kind = if ($CompilerKind -eq 'gcc') { 'gcc' } else { 'llvm' }
-        $compiler = Find-MingwCompiler $exe $kind
-        if (-not $compiler) { Die "$PlatformTitle compiler was not found for $Arch`: $exe" }
-        $env:Path = "$(Split-Path -Parent $compiler);$env:Path"
-        Write-Host "[INFO] Added compiler directory to PATH: `"$(Split-Path -Parent $compiler)`""
-        Write-Host "[INFO] Using MinGW $CompilerKind`: `"$compiler`""
-        return @{ Compiler = $compiler; TargetArg = $null }
+        $pair = Find-MingwCompilerPair
+        if (-not $pair) { Die "$PlatformTitle matching C/C++ compilers were not found for $Arch ($CompilerKind)." }
+        $env:Path = "$(Split-Path -Parent $pair.Compiler);$env:Path"
+        Write-Host "[INFO] Added compiler directory to PATH: `"$(Split-Path -Parent $pair.Compiler)`""
+        Write-Host "[INFO] Using MinGW $CompilerKind C: `"$($pair.Compiler)`""
+        Write-Host "[INFO] Using MinGW $CompilerKind C++: `"$($pair.CxxCompiler)`""
+        return $pair
     }
 
     if (-not (Ensure-MsvcEnv)) { Die "Visual Studio developer environment for $Arch was not found." }
@@ -464,11 +471,13 @@ function Prepare-Compiler {
     if (-not $compiler) { Die "MSVC compiler was not found: $CompilerKind.exe" }
     if ($CompilerKind -eq 'cl') {
         Write-Host "[INFO] Using MSVC cl: `"$compiler`""
-        return @{ Compiler = $compiler; TargetArg = $null }
+        return @{ Compiler = $compiler; CxxCompiler = $compiler; TargetArgs = @() }
     }
     Write-Host "[INFO] Using Visual Studio LLVM: `"$compiler`""
     Write-Host "[INFO] Using MSVC LLVM target: $MsvcClangTarget"
-    return @{ Compiler = $compiler; TargetArg = "-DCMAKE_C_COMPILER_TARGET=$MsvcClangTarget" }
+    $cxxCompiler = if ($CompilerKind -eq 'clang') { Join-Path (Split-Path -Parent $compiler) 'clang++.exe' } else { $compiler }
+    if (-not (Test-Path $cxxCompiler)) { Die "MSVC C++ compiler was not found: $cxxCompiler" }
+    return @{ Compiler = $compiler; CxxCompiler = $cxxCompiler; TargetArgs = @("-DCMAKE_C_COMPILER_TARGET=$MsvcClangTarget", "-DCMAKE_CXX_COMPILER_TARGET=$MsvcClangTarget") }
 }
 
 Set-Location $ProjectRoot
@@ -511,9 +520,10 @@ $cmakeArgs = @(
     '-DCMAKE_BUILD_TYPE=Debug',
     "-DCMAKE_INSTALL_PREFIX=$InstallPrefix",
     "-DCMAKE_C_COMPILER=$($compilerInfo.Compiler)",
+    "-DCMAKE_CXX_COMPILER=$($compilerInfo.CxxCompiler)",
     "-DJY_APP_PRODUCT=$ProductName"
 )
-if ($compilerInfo.TargetArg) { $cmakeArgs += $compilerInfo.TargetArg }
+$cmakeArgs += $compilerInfo.TargetArgs
 if ($OsSdkArchive) { $cmakeArgs += "-DJY_APP_OS_SDK_ARCHIVE=$OsSdkArchive" }
 
 Write-Host "[INFO] Configuring $BuildTitle $Arch simulator build with $CompilerKind in `"$BuildDir`"..."

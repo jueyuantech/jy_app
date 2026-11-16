@@ -16,7 +16,7 @@
 
 #define DEFAULT_TIME_FORMAT "%02d:%02d"
 #define DEFAULT_TIME "00:00"
-#define DEFAULT_BATTERY_LEVEL 0
+#define DEFAULT_BATTERY_LEVEL UINT8_MAX ///< 尚未收到 OS 电量上报，不显示电池。
 
 #define STATUS_BAR_MAX_BATTERY_TEXT "100%"
 
@@ -121,9 +121,10 @@ void status_bar_update_app_name(lv_obj_t* status_bar, const char* app_name);
 void status_bar_set_time_visible(lv_obj_t* status_bar, bool visible);
 
 /**
- * @brief Update battery level
- * @param status_bar Status bar object
- * @param level Battery level (0-100)
+ * @brief 更新电量，未上报时隐藏电池图标及百分比。
+ * @param[in] status_bar 状态栏对象。
+ * @param[in] level 电量百分比（0-100），DEFAULT_BATTERY_LEVEL 表示未上报。
+ * @return 无返回值。
  */
 void status_bar_update_battery(lv_obj_t* status_bar, uint8_t level);
 

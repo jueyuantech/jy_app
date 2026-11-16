@@ -198,27 +198,6 @@ run_linux_local_builds() {
     done
 }
 
-run_mingw_builds() {
-    local arch
-    local compiler_kind
-
-    for arch in x86 x64; do
-        for compiler_kind in gcc llvm; do
-            print_separator_if_needed
-            if "${DEVELOP_CMD[@]}" --platform mingw --compiler "$compiler_kind" --arch "$arch" \
-                    --check-platform-deps >/dev/null 2>&1; then
-                echo "[CHECK] MinGW $arch $compiler_kind: $(status_yes)"
-                run_build "Windows MinGW $arch $compiler_kind" \
-                    "${DEVELOP_CMD[@]}" ${OS_SDK_ARCHIVE:+"$OS_SDK_ARCHIVE"} --platform mingw --compiler "$compiler_kind" --arch "$arch" \
-                    --prefix "install/mingw-$arch-$compiler_kind" --product "$PRODUCT_NAME" --no_run
-            else
-                echo "[CHECK] MinGW $arch $compiler_kind: $(status_no)"
-                skip_build "Windows MinGW $arch $compiler_kind" "platform dependencies are not available"
-            fi
-        done
-    done
-}
-
 run_macos_local_build() {
     print_separator_if_needed
     if "${DEVELOP_CMD[@]}" --platform macos --compiler llvm --check-platform-deps >/dev/null 2>&1; then
@@ -236,12 +215,10 @@ case "$(uname -s)" in
     Linux)
         echo "[INFO] Detecting supported Linux host builds..."
         run_linux_local_builds
-        run_mingw_builds
         ;;
     Darwin)
         echo "[INFO] Detecting supported macOS host builds..."
         run_macos_local_build
-        run_mingw_builds
         ;;
     *)
         status_error "Unsupported host: $(uname -s)"

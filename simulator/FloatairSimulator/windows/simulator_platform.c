@@ -1,3 +1,4 @@
+/** @brief Windows 模拟器窗口控制、网络、文件与事件管道的平台适配。 */
 #include "../simulator_platform.h"
 
 #include <winsock2.h>
@@ -14,6 +15,74 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <wchar.h>
+#include <SDL_syswm.h>
+
+#define SIMULATOR_TOPMOST_PROPERTY L"FloatairSimulator.TopmostMenu"
+#define SIMULATOR_TOPMOST_COMMAND 0x1F10 /* 自定义系统命令需小于 0xF000，低四位为零。 */
+
+/** @brief 根据窗口实际置顶状态更新原生菜单的勾选标记。 */
+static void simulator_sync_topmost_menu(HWND window)
+{
+    bool enabled = (GetWindowLongPtrW(window, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0;
+    CheckMenuItem(GetSystemMenu(window, FALSE), SIMULATOR_TOPMOST_COMMAND,
+                  MF_BYCOMMAND | (enabled ? MF_CHECKED : MF_UNCHECKED));
+}
+
+/** @brief 处理置顶菜单命令，其余消息保留 SDL 原窗口过程。 */
+static LRESULT CALLBACK simulator_window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
+{
+    WNDPROC original = (WNDPROC)GetPropW(window, SIMULATOR_TOPMOST_PROPERTY);
+    if (!original) return DefWindowProcW(window, message, wparam, lparam);
+    if (message == WM_SYSCOMMAND && (wparam & 0xFFF0) == SIMULATOR_TOPMOST_COMMAND) {
+        bool enabled = (GetWindowLongPtrW(window, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0;
+        SetWindowPos(window, enabled ? HWND_NOTOPMOST : HWND_TOPMOST,
+                     0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        simulator_sync_topmost_menu(window);
+        return 0;
+    }
+    if (message == WM_INITMENUPOPUP && (HMENU)wparam == GetSystemMenu(window, FALSE)) {
+        simulator_sync_topmost_menu(window);
+    }
+    if (message == WM_NCDESTROY) {
+        SetWindowLongPtrW(window, GWLP_WNDPROC, (LONG_PTR)original);
+        RemovePropW(window, SIMULATOR_TOPMOST_PROPERTY);
+    }
+    return CallWindowProcW(original, window, message, wparam, lparam);
+}
+
+/**
+ * @brief 在标题栏右键菜单中安装“置顶”勾选项，默认开启置顶。
+ * @param[in] sdl_window SDL 窗口指针。
+ * @return 安装成功返回 true，失败返回 false。
+ */
+bool simulator_platform_install_topmost_menu(void* sdl_window)
+{
+    SDL_SysWMinfo info;
+    HWND window;
+    HMENU menu;
+    WNDPROC original;
+    SDL_VERSION(&info.version);
+    if (!sdl_window || !SDL_GetWindowWMInfo((SDL_Window*)sdl_window, &info) ||
+        info.subsystem != SDL_SYSWM_WINDOWS) return false;
+    window = info.info.win.window;
+    if (GetPropW(window, SIMULATOR_TOPMOST_PROPERTY)) return true;
+    menu = GetSystemMenu(window, FALSE);
+    if (!menu || !InsertMenuW(menu, SC_CLOSE, MF_BYCOMMAND | MF_STRING,
+                              SIMULATOR_TOPMOST_COMMAND, L"\u7f6e\u9876")) return false;
+    original = (WNDPROC)GetWindowLongPtrW(window, GWLP_WNDPROC);
+    if (!original || !SetPropW(window, SIMULATOR_TOPMOST_PROPERTY, (HANDLE)original)) {
+        DeleteMenu(menu, SIMULATOR_TOPMOST_COMMAND, MF_BYCOMMAND);
+        return false;
+    }
+    if (!SetWindowLongPtrW(window, GWLP_WNDPROC, (LONG_PTR)simulator_window_proc)) {
+        RemovePropW(window, SIMULATOR_TOPMOST_PROPERTY);
+        DeleteMenu(menu, SIMULATOR_TOPMOST_COMMAND, MF_BYCOMMAND);
+        return false;
+    }
+    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    simulator_sync_topmost_menu(window);
+    return true;
+}
 
 #if defined(_MSC_VER) && !defined(S_ISDIR)
 #define S_ISDIR(mode) (((mode) & _S_IFMT) == _S_IFDIR)
@@ -347,7 +416,7 @@ bool simulator_platform_fifo_start(const char* path,
 
     pipe = CreateNamedPipeA(path,
                             PIPE_ACCESS_INBOUND,
-                            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+                            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT,
                             1,
                             4096,
                             4096,
@@ -373,6 +442,13 @@ bool simulator_platform_fifo_start(const char* path,
     return true;
 }
 
+/**
+ * @brief 非阻塞读取事件管道，区分监听、已连接和客户端断开状态。
+ * @param[in] fd 管道启用标记。
+ * @param[out] buf 接收缓冲区。
+ * @param[in] len 缓冲区字节容量。
+ * @return 读取字节数；暂不可读返回 -1 并设置 EAGAIN，其他失败设置对应 errno。
+ */
 int simulator_platform_fifo_read(int fd, void* buf, size_t len)
 {
     HANDLE pipe = g_fifo_pipe;
@@ -387,9 +463,17 @@ int simulator_platform_fifo_read(int fd, void* buf, size_t len)
         BOOL connected = ConnectNamedPipe(pipe, NULL);
         DWORD err = GetLastError();
 
-        if (connected || err == ERROR_PIPE_CONNECTED) {
+        if (!connected && (err == ERROR_PIPE_CONNECTED || err == ERROR_NO_DATA)) {
+            /* 短连接写入后即关闭时仍可能有缓冲数据，先读完再处理断开。 */
             g_fifo_pipe_connected = 1;
-        } else if (err == ERROR_OPERATION_ABORTED || err == ERROR_INVALID_HANDLE) {
+        } else if (!connected && err == ERROR_BROKEN_PIPE) {
+            /* 没有剩余数据的旧连接已断开，释放后重新监听。 */
+            DisconnectNamedPipe(pipe);
+            errno = EAGAIN;
+            return -1;
+        } else if (connected || err == ERROR_PIPE_LISTENING ||
+                   err == ERROR_OPERATION_ABORTED || err == ERROR_INVALID_HANDLE) {
+            /* PIPE_NOWAIT 下返回成功仅表示已进入监听，不代表客户端已连接。 */
             errno = EAGAIN;
             return -1;
         } else {
@@ -401,8 +485,17 @@ int simulator_platform_fifo_read(int fd, void* buf, size_t len)
     if (!ReadFile(pipe, buf, (DWORD)len, &bytes_read, NULL)) {
         DWORD err = GetLastError();
 
-        if (err == ERROR_NO_DATA || err == ERROR_BROKEN_PIPE || err == ERROR_OPERATION_ABORTED ||
-            err == ERROR_INVALID_HANDLE) {
+        if (err == ERROR_NO_DATA) {
+            errno = EAGAIN;
+            return -1;
+        }
+        if (err == ERROR_PIPE_LISTENING) {
+            g_fifo_pipe_connected = 0;
+            errno = EAGAIN;
+            return -1;
+        }
+        if (err == ERROR_BROKEN_PIPE || err == ERROR_PIPE_NOT_CONNECTED ||
+            err == ERROR_OPERATION_ABORTED || err == ERROR_INVALID_HANDLE) {
             DisconnectNamedPipe(pipe);
             g_fifo_pipe_connected = 0;
             errno = EAGAIN;
@@ -432,6 +525,8 @@ void simulator_platform_fifo_stop(const char* path,
     }
 
     *running = 0;
+    /* 管道读取不阻塞，先等线程退出，再释放它使用的句柄。 */
+    pthread_join(*thread, NULL);
 
     if (*fd != -1) {
         HANDLE pipe = g_fifo_pipe;
@@ -439,8 +534,6 @@ void simulator_platform_fifo_stop(const char* path,
         g_fifo_pipe = INVALID_HANDLE_VALUE;
         *fd = -1;
     }
-
-    pthread_join(*thread, NULL);
 
     g_fifo_pipe_connected = 0;
 }

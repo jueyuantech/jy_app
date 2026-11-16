@@ -1,6 +1,6 @@
 /**
  * @file system_config_json.c
- * @brief 基于 ROMFS 默认值与 LFSD 稀疏覆盖的系统配置读写实现。
+ * @brief 基于 JYTC 默认值与 LFSD 稀疏覆盖的系统配置读写实现。
  * @author jytek
  * @version 1.0.0
  * @date 2026-01-31
@@ -22,7 +22,7 @@
 #include "lvgl.h"
 #include "floatair_fs.h"
 
-#define SYSTEM_CONFIG_ROMFS_LFSD_ROOT "/romfs/lfsd" ///< ROMFS 中随固件发布的 LFSD 配置模板根目录。
+#define SYSTEM_CONFIG_JYTC_LFSD_ROOT "/jyt_c/lfsd" ///< JYTC 中随固件发布的 LFSD 配置模板根目录。
 #define SYSTEM_CONFIG_TEMP_SUFFIX ".tmp"             ///< 配置原子写回使用的临时文件后缀。
 
 static char* read_all(const char* path);
@@ -89,20 +89,20 @@ static int system_config_save_file(const char* path, const cJSON* root) {
 }
 
 /**
- * @brief 将 LFSD 配置路径映射到 ROMFS 配置模板路径。
+ * @brief 将 LFSD 配置路径映射到 JYTC 配置模板路径。
  * @param[in] config_file LFSD 配置路径。
- * @param[out] romfs_path ROMFS 模板路径缓冲区。
- * @param[in] path_size ROMFS 模板路径缓冲区容量。
+ * @param[out] jytc_path JYTC 模板路径缓冲区。
+ * @param[in] path_size JYTC 模板路径缓冲区容量。
  * @return 映射成功返回 `true`。
  */
-static bool system_config_get_romfs_path(const char* config_file,
-                                         char* romfs_path,
+static bool system_config_get_jytc_path(const char* config_file,
+                                         char* jytc_path,
                                          size_t path_size) {
     const char* lfsd_root = floatair_fs_get_root_path();
     size_t lfsd_root_len = 0;
     int path_len = 0;
 
-    if (config_file == NULL || romfs_path == NULL || path_size == 0 ||
+    if (config_file == NULL || jytc_path == NULL || path_size == 0 ||
         lfsd_root == NULL || lfsd_root[0] == '\0') {
         return false;
     }
@@ -112,22 +112,22 @@ static bool system_config_get_romfs_path(const char* config_file,
         floatair_err("config path is outside lfsd root: %s", config_file);
         return false;
     }
-    path_len = snprintf(romfs_path,
+    path_len = snprintf(jytc_path,
                         path_size,
                         "%s%s",
-                        SYSTEM_CONFIG_ROMFS_LFSD_ROOT,
+                        SYSTEM_CONFIG_JYTC_LFSD_ROOT,
                         config_file + lfsd_root_len);
     if (path_len < 0 || (size_t)path_len >= path_size) {
-        floatair_err("romfs config path is too long: %s", config_file);
+        floatair_err("jytc config path is too long: %s", config_file);
         return false;
     }
     return true;
 }
 
 /**
- * @brief 判断覆盖字段类型是否与 ROMFS 默认字段类型一致。
+ * @brief 判断覆盖字段类型是否与 JYTC 默认字段类型一致。
  * @param[in] config_item 覆盖字段。
- * @param[in] template_item ROMFS 模板字段。
+ * @param[in] template_item JYTC 模板字段。
  * @return 类型一致返回 `true`。
  */
 static bool system_config_field_type_matches(const cJSON* config_item,
@@ -140,8 +140,8 @@ static bool system_config_field_type_matches(const cJSON* config_item,
 }
 
 /**
- * @brief 使用 LFSD 稀疏配置递归覆盖 ROMFS 完整配置。
- * @param[in,out] config ROMFS 完整配置副本。
+ * @brief 使用 LFSD 稀疏配置递归覆盖 JYTC 完整配置。
+ * @param[in,out] config JYTC 完整配置副本。
  * @param[in] overrides LFSD 稀疏覆盖配置。
  * @return 合并成功返回 `true`。
  */
@@ -182,9 +182,9 @@ static bool system_config_apply_overrides(cJSON* config, const cJSON* overrides)
 }
 
 /**
- * @brief 根据完整有效配置与 ROMFS 默认配置生成 LFSD 稀疏覆盖。
+ * @brief 根据完整有效配置与 JYTC 默认配置生成 LFSD 稀疏覆盖。
  * @param[in] config 完整有效配置。
- * @param[in] config_template ROMFS 完整默认配置。
+ * @param[in] config_template JYTC 完整默认配置。
  * @return 成功返回覆盖对象，否则返回 `NULL`。
  */
 static cJSON* system_config_create_overrides(const cJSON* config,
@@ -248,16 +248,16 @@ static bool system_config_remove_file(const char* path) {
 }
 
 cJSON* system_config_load_json(const char* config_file) {
-    char romfs_path[SYSTEM_MAX_PATH_LEN] = {0};
+    char jytc_path[SYSTEM_MAX_PATH_LEN] = {0};
     cJSON* config = NULL;
     cJSON* overrides = NULL;
 
-    if (!system_config_get_romfs_path(config_file, romfs_path, sizeof(romfs_path))) {
+    if (!system_config_get_jytc_path(config_file, jytc_path, sizeof(jytc_path))) {
         return NULL;
     }
-    config = system_config_load_file(romfs_path);
+    config = system_config_load_file(jytc_path);
     if (!cJSON_IsObject(config)) {
-        floatair_err("romfs config is invalid: %s", romfs_path);
+        floatair_err("jytc config is invalid: %s", jytc_path);
         cJSON_Delete(config);
         return NULL;
     }
@@ -280,7 +280,7 @@ cJSON* system_config_load_json(const char* config_file) {
 }
 
 /**
- * @brief 删除 LFSD 配置及其临时文件，使配置恢复使用 ROMFS 默认值。
+ * @brief 删除 LFSD 配置及其临时文件，使配置恢复使用 JYTC 默认值。
  * @param[in] config_file LFSD 配置文件路径。
  * @return 文件均不存在或删除成功返回 `true`。
  */
@@ -299,18 +299,18 @@ static bool system_config_reset(const char* config_file) {
 }
 
 int system_config_save_json(const char* config_file, const cJSON* config) {
-    char romfs_path[SYSTEM_MAX_PATH_LEN] = {0};
+    char jytc_path[SYSTEM_MAX_PATH_LEN] = {0};
     cJSON* config_template = NULL;
     cJSON* overrides = NULL;
     int result = -1;
 
     if (!cJSON_IsObject(config) ||
-        !system_config_get_romfs_path(config_file, romfs_path, sizeof(romfs_path))) {
+        !system_config_get_jytc_path(config_file, jytc_path, sizeof(jytc_path))) {
         return -1;
     }
-    config_template = system_config_load_file(romfs_path);
+    config_template = system_config_load_file(jytc_path);
     if (!cJSON_IsObject(config_template)) {
-        floatair_err("romfs config is invalid: %s", romfs_path);
+        floatair_err("jytc config is invalid: %s", jytc_path);
         cJSON_Delete(config_template);
         return -1;
     }

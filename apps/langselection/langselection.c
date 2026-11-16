@@ -292,7 +292,7 @@ static void langselection_page_create(lv_obj_t* root, const app_page_data_t* dat
     lv_obj_set_style_border_width(root, 0, LV_PART_MAIN);
     lv_obj_remove_flag(root, LV_OBJ_FLAG_SCROLLABLE);
 
-    s_font_s = get_font_by_size_near(20);
+    s_font_s = get_system_font();
     floatair_assert(s_font_s != NULL, "font s missing");
 
     s_lang_cont = lv_obj_create(root);

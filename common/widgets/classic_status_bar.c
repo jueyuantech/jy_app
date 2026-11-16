@@ -333,7 +333,7 @@ lv_obj_t* status_bar_create_with_pos(lv_obj_t* parent, int32_t width, const lv_f
     if (pos == STATUS_BAR_POS_BOTTOM) {
         status_bar_align_right_widgets(data);
         status_bar_update_headset_state(status_bar, false, false);
-        status_bar_update_battery(status_bar, 0);
+        status_bar_update_battery(status_bar, DEFAULT_BATTERY_LEVEL);
     }
     return status_bar;
 }
@@ -472,9 +472,10 @@ void status_bar_set_time_visible(lv_obj_t* status_bar, bool visible) {
 }
 
 /**
- * @brief Update battery level
- * @param status_bar Status bar object
- * @param level Battery level (0-100)
+ * @brief 更新电量，未上报时隐藏电池显示。
+ * @param[in] status_bar 状态栏对象。
+ * @param[in] level 电量百分比（0-100），DEFAULT_BATTERY_LEVEL 表示未上报。
+ * @return 无返回值。
  */
 void status_bar_update_battery(lv_obj_t* status_bar, uint8_t level) {
     if (status_bar == NULL) {
@@ -487,6 +488,14 @@ void status_bar_update_battery(lv_obj_t* status_bar, uint8_t level) {
         floatair_err("battery_label or battery_icon is NULL");
         return;
     }
+
+    if (level == DEFAULT_BATTERY_LEVEL) {
+        data->battery_level = level;
+        lv_obj_add_flag(data->battery_label, LV_OBJ_FLAG_HIDDEN);
+        status_bar_update_charge_state(status_bar, data->charge_state);
+        return;
+    }
+    lv_obj_remove_flag(data->battery_label, LV_OBJ_FLAG_HIDDEN);
 
     // Update battery percentage label
     char battery_text[10] = {0};
@@ -510,6 +519,12 @@ void status_bar_update_battery(lv_obj_t* status_bar, uint8_t level) {
     }
 }
 
+/**
+ * @brief 缓存充电状态，仅在电量已上报后显示对应电池图标。
+ * @param[in] status_bar 状态栏对象。
+ * @param[in] state 充电状态，1 表示充电中。
+ * @return 无返回值。
+ */
 void status_bar_update_charge_state(lv_obj_t* status_bar, uint8_t state) {
     if (status_bar == NULL) {
         floatair_err("status_bar is NULL");
@@ -518,6 +533,12 @@ void status_bar_update_charge_state(lv_obj_t* status_bar, uint8_t state) {
     status_bar_data_t* data = (status_bar_data_t*)lv_obj_get_user_data(status_bar);
     if (data == NULL || data->battery_icon == NULL) {
         floatair_err("battery_icon is NULL");
+        return;
+    }
+
+    data->charge_state = state;
+    if (data->battery_level == DEFAULT_BATTERY_LEVEL) {
+        lv_obj_add_flag(data->battery_icon, LV_OBJ_FLAG_HIDDEN);
         return;
     }
 
@@ -554,7 +575,6 @@ void status_bar_update_charge_state(lv_obj_t* status_bar, uint8_t state) {
     } else {
         lv_obj_add_flag(data->battery_icon, LV_OBJ_FLAG_HIDDEN);
     }
-    data->charge_state = state;
 }
 
 void status_bar_update_bt_state(lv_obj_t* status_bar, bool connected) {

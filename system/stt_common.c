@@ -1,3 +1,4 @@
+/** @brief STT 消息处理、显示配置与会话缓冲管理。 */
 #include <time.h>
 #include "stt_common.h"
 
@@ -11,6 +12,8 @@
 
 stt_config_t stt_config = {
     .audioSourceIndicator = AUDIOSOURCE_INVALID,
+    .sourceTextDirection = TEXT_DIRECTION_AUTO,
+    .targetTextDirection = TEXT_DIRECTION_AUTO,
 };
 static uint32_t s_stt_font_size = 24;
 stt_info_t *stt_info_buf = NULL;
@@ -21,6 +24,8 @@ lv_style_t stt_stylebolder;
 static void stt_config_reset(void) {
     memset(&stt_config, 0, sizeof(stt_config));
     stt_config.audioSourceIndicator = AUDIOSOURCE_INVALID;
+    stt_config.sourceTextDirection = TEXT_DIRECTION_AUTO;
+    stt_config.targetTextDirection = TEXT_DIRECTION_AUTO;
 }
 
 #define STT_FLOW_Q8_PENDING_LOW 8   ///< Q-8 轻度堆积阈值，开始隔帧跳过普通 STT 更新。
@@ -370,6 +375,19 @@ bool stt_buffer_push(stt_info_t* info) {
     }
 }
 
+void stt_buffer_remove_area(uint32_t area) {
+    if (stt_info_buf == NULL) {
+        return;
+    }
+    for (int i = 0; i < stt_size(); ) {
+        if (stt_info_buf[i].area == area) {
+            stt_remove_index(i);
+        } else {
+            ++i;
+        }
+    }
+}
+
 const char* stt_buffer_get_user_by_index(size_t index) {
     if (stt_info_buf == NULL) {
         floatair_err("stt_info_buf is NULL");
@@ -538,9 +556,13 @@ bool stt_update_sttinfo(mpack_node_t node, msg_pack_t* msg) {
         floatair_err("input err");
         return app_mpack_send_ack(msg, ErrBadParam);
     }
-    if (!app_msg_get_u32(node, true, "id", &(stt_info.id))) {
-        floatair_err("id err");
-        return app_mpack_send_ack(msg, ErrBadParam);
+    {
+        mpack_node_t id_node = mpack_node_map_cstr_optional(node, "id");
+        if (!mpack_node_is_missing(id_node) && !mpack_node_is_nil(id_node) &&
+            !app_msg_get_u32(node, false, "id", &(stt_info.id))) {
+            floatair_err("id err");
+            return app_mpack_send_ack(msg, ErrBadParam);
+        }
     }
     if (!app_msg_get_u8(node, true, "area", &(stt_info.area))) {
         floatair_err("area err");

@@ -32,6 +32,7 @@ static notification_item_t s_notification_queue[SYSTEM_NOTIFICATION_QUEUE_MAX] =
 static size_t s_notification_queue_count = 0;
 static notification_item_t s_active_notification = {0};
 static notify_call_state_t s_active_call_state = NOTIFY_CALL_STATE_RINGING;
+static bool s_call_dismiss_pending = false; ///< 息屏期间请求关闭电话弹窗，亮屏后先销毁旧 UI。
 
 /**
  * @brief 清空当前活动通知及其来电阶段缓存。
@@ -522,6 +523,7 @@ void system_notification_dismiss_call(void) {
     bool has_cached_call_notify = s_active_notification.entry.mode == NOTIFY_MODE_CALL;
 
     if (system_get_sys_state() == LCD_OFF) {
+        s_call_dismiss_pending = true;
         if (has_cached_call_notify) {
             system_notification_clear_active();
         }
@@ -529,6 +531,7 @@ void system_notification_dismiss_call(void) {
         return;
     }
 
+    s_call_dismiss_pending = false;
     has_active_call_notify = notify_get_active_mode(&active_mode) &&
                              active_mode == NOTIFY_MODE_CALL;
     if (has_active_call_notify || has_cached_call_notify) {
@@ -536,6 +539,21 @@ void system_notification_dismiss_call(void) {
         system_notification_clear_active();
     }
     s_active_call_state = NOTIFY_CALL_STATE_RINGING;
+}
+
+void system_notification_flush_pending_after_screen_on(void) {
+    notify_mode_t active_mode = NOTIFY_MODE_MESSAGE;
+
+    if (floatair_lcd_is_off() || !s_call_dismiss_pending) {
+        return;
+    }
+
+    s_call_dismiss_pending = false;
+    if (notify_get_active_mode(&active_mode) && active_mode == NOTIFY_MODE_CALL) {
+        floatair_info("dismiss ended call popup after screen on");
+        notify_dismiss();
+    }
+    /* 新来电可能已写入缓存并触发亮屏，此处只销毁旧 UI，不清理新来电缓存。 */
 }
 
 static bool system_notification_prepare_entry(notification_item_t* item,

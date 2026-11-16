@@ -133,12 +133,14 @@ static inline void pthread_mutex_ensure_initialized(pthread_mutex_t* mutex)
 
 static inline int pthread_mutex_init(pthread_mutex_t* mutex, const void* attr)
 {
+    pthread_mutex_t initial_mutex = PTHREAD_MUTEX_INITIALIZER;
+
     (void)attr;
     if (!mutex) {
         return EINVAL;
     }
 
-    *mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+    *mutex = initial_mutex;
     pthread_mutex_ensure_initialized(mutex);
     return 0;
 }

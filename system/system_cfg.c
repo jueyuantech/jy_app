@@ -36,6 +36,7 @@ static uint8_t config_display_mode        = 0;
 static uint16_t config_lcd_sleep_timeout  = 0;
 static uint16_t config_deep_sleep_timeout = 0;
 static uint16_t config_inactivity_timeout = 0;
+static uint16_t config_notification_duration = 8;
 static bool config_bl_auto                = false;
 static uint8_t config_brightness          = 0;
 static char* config_curlang               = NULL;
@@ -431,6 +432,15 @@ bool system_config_set_inactivity_timeout(uint16_t inactivity_timeout) {
     return system_cfgfile_update();
 }
 
+uint16_t system_config_get_notification_duration(void) {
+    return config_notification_duration;
+}
+
+bool system_config_set_notification_duration(uint16_t notification_duration) {
+    config_notification_duration = notification_duration;
+    return system_cfgfile_update();
+}
+
 uint16_t system_config_get_deep_sleep_timeout(void) {
     return config_deep_sleep_timeout;
 }
@@ -572,6 +582,7 @@ bool system_cfgfile_load(void) {
     parse_u16_key(root, "lcd_sleep_timeout", &config_lcd_sleep_timeout);
     parse_u16_key(root, "deep_sleep_timeout", &config_deep_sleep_timeout);
     parse_u16_key(root, "inactivity_timeout", &config_inactivity_timeout);
+    parse_u16_key(root, "notification_duration", &config_notification_duration);
     system_cfg_normalize_sleep_timeout_fields();
     parse_bool_key(root, "bl_auto", &config_bl_auto);
     config_brightness = (g_section_data.jyt_default_brightness > UINT8_MAX)
@@ -726,6 +737,12 @@ bool system_cfgfile_update(void) {
     cJSON_AddItemToObject(
         root, "inactivity_timeout", cJSON_CreateNumber((double) config_inactivity_timeout));
 
+    cJSON_DeleteItemFromObjectCaseSensitive(root, "notification_duration");
+    cJSON_AddItemToObject(
+        root,
+        "notification_duration",
+        cJSON_CreateNumber((double) config_notification_duration));
+
     cJSON_DeleteItemFromObjectCaseSensitive(root, "bl_auto");
     cJSON_AddItemToObject(root, "bl_auto", cJSON_CreateBool(config_bl_auto));
 
@@ -814,6 +831,7 @@ void system_cfgfile_dump(void) {
     floatair_dbg("config_lcd_sleep_timeout: %u", config_lcd_sleep_timeout);
     floatair_dbg("config_deep_sleep_timeout: %u", config_deep_sleep_timeout);
     floatair_dbg("config_inactivity_timeout: %u", config_inactivity_timeout);
+    floatair_dbg("config_notification_duration: %u", config_notification_duration);
     floatair_dbg("config_bl_auto: %s", config_bl_auto ? "true" : "false");
     floatair_dbg("config_brightness: %u", config_brightness);
     floatair_dbg("config_curlang: %s", config_curlang ? config_curlang : "NULL");

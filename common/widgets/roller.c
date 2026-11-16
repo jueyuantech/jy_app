@@ -576,6 +576,57 @@ static void roller_set_selected_internal(roller_t* roller, uint32_t index, bool 
 }
 
 /**
+ * @brief 设置滚筒每一行的固定高度。
+ *
+ * @param roller 滚筒对象。
+ * @param height 每一行的高度。
+ * @return 无返回值。
+ */
+void roller_widget_set_row_height(lv_obj_t* roller,
+                                  int32_t height) {
+    roller_t* roller_obj = NULL;
+
+    if (!roller) {
+        return;
+    }
+
+    roller_obj = (roller_t*)lv_obj_get_user_data(roller);
+    if (!roller_obj) {
+        return;
+    }
+
+    roller_obj->cfg.row_height = height;
+
+    roller_update_layout(roller_obj);
+}
+
+/**
+ * @brief 设置滚筒每一行之间的垂直间距。
+ *
+ * @param roller 滚筒对象。
+ * @param gap 相邻行之间的间距。
+ * @return 无返回值。
+ */
+void roller_widget_set_row_gap(lv_obj_t* roller,
+                               int32_t gap) {
+    roller_t* roller_obj = NULL;
+
+    if (!roller) {
+        return;
+    }
+
+    roller_obj = (roller_t*)lv_obj_get_user_data(roller);
+    if (!roller_obj) {
+        return;
+    }
+
+    roller_obj->cfg.row_gap = gap;
+
+    roller_update_layout(roller_obj);
+}
+
+
+/**
  * @brief 滚轮删除事件回调。
  *
  * @param e LVGL 事件对象。

@@ -138,6 +138,8 @@ set(PLATFORM_SOURCES
 )
 
 set(PLATFORM_COMPILE_OPTIONS
+    # Offline debug information; stripped from the device copy when packaging.
+    -g
     -c
     -fmessage-length=0
     -fno-aggressive-loop-optimizations
@@ -188,50 +190,7 @@ set(PLATFORM_LINK_OPTIONS
     -Wl,--gc-sections
 )
 
-set(PLATFORM_COMPILE_DEFS "")
-if(EXISTS "${PROJECT_ROOT}/.config")
-    file(STRINGS "${PROJECT_ROOT}/.config" DEFCONFIG_LINES)
-    foreach(line IN LISTS DEFCONFIG_LINES)
-        # 过滤注释行、空行和无等号的行
-        string(STRIP "${line}" line_stripped)
-        if(NOT line_stripped OR line_stripped MATCHES "^#" OR NOT line_stripped MATCHES "=")
-            continue()
-        endif()
-
-        # 拆分键值对（修复 CMake 算术表达式错误）
-        string(FIND "${line_stripped}" "=" EQ_POS)
-        # CMake 正确的算术运算方式：math(EXPR)
-        math(EXPR VALUE_START_POS "${EQ_POS} + 1")
-        # 拆分 KEY：从 0 到 EQ_POS 的子串
-        string(SUBSTRING "${line_stripped}" 0 ${EQ_POS} KEY)
-        # 拆分 VALUE：从 VALUE_START_POS 到末尾（长度-1 表示取到最后）
-        string(SUBSTRING "${line_stripped}" ${VALUE_START_POS} -1 VALUE)
-
-        string(STRIP "${KEY}" KEY)
-        string(STRIP "${VALUE}" VALUE)
-
-	    # 空字符串剥离引号
-        if(VALUE MATCHES ^\"\"$)
-            string(REGEX REPLACE "^\"(.*)\"$" "\\1" VALUE "${VALUE}")
-        endif()
-	    # 转换 y/n 为 1/0，保留其他值原样
-        if(VALUE STREQUAL "y")
-            set(VALUE "1")
-        elseif(VALUE STREQUAL "n")
-            set(VALUE "0")
-        endif()
-        message(STATUS "Loaded .config def: ${KEY}=${VALUE}")
-	    # Check for truly empty values that would cause issues
-        if("${VALUE}" STREQUAL "" AND NOT "${line_stripped}" MATCHES "=")
-            message(FATAL_ERROR "Invalid value for ${KEY}")
-        else()
-            list(APPEND PLATFORM_COMPILE_DEFS "${KEY}=${VALUE}")
-            set(${KEY} "${VALUE}")
-        endif()
-    endforeach()
-else()
-    message(FATAL_ERROR ".config file missing at ${PROJECT_ROOT}/.config")
-endif()
+set(PLATFORM_COMPILE_DEFS JY_APP_SHAPE_ON_AP=1)
 
 # Conditional sources based on .config
 if(CONFIG_RPMSG_TTF_CLIENT)

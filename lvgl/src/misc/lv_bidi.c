@@ -1,6 +1,6 @@
 /**
  * @file lv_bidi.c
- *
+ * @brief 基于 SheenBidi 的 LVGL 双向文本适配实现。
  */
 
 /*********************
@@ -14,61 +14,231 @@
 
 #if LV_USE_BIDI
 
-/*********************
- *      DEFINES
- *********************/
-#define LV_BIDI_BRACKET_DEPTH   4
-
-// Highest bit of the 16-bit pos_conv value specifies whether this pos is RTL or not
-#define GET_POS(x) ((x) & 0x7FFF)
-#define IS_RTL_POS(x) (((x) & 0x8000) != 0)
-#define SET_RTL_POS(x, is_rtl) (GET_POS(x) | ((is_rtl)? 0x8000: 0))
-
-/**********************
- *      TYPEDEFS
- **********************/
-typedef struct {
-    uint32_t bracket_pos;
-    lv_base_dir_t dir;
-} bracket_stack_t;
-
-typedef struct {
-    bracket_stack_t br_stack[LV_BIDI_BRACKET_DEPTH];
-    uint8_t br_stack_p;
-} lv_bidi_ctx_t;
-
-/**********************
- *  STATIC PROTOTYPES
- **********************/
-
-static uint32_t lv_bidi_get_next_paragraph(const char * txt);
-static lv_base_dir_t lv_bidi_get_letter_dir(uint32_t letter);
-static bool lv_bidi_letter_is_weak(uint32_t letter);
-static bool lv_bidi_letter_is_rtl(uint32_t letter);
-static bool lv_bidi_letter_is_neutral(uint32_t letter);
-
-static lv_base_dir_t get_next_run(lv_bidi_ctx_t * ctx, const char * txt, lv_base_dir_t base_dir, uint32_t max_len,
-                                  uint32_t * len,
-                                  uint16_t  * pos_conv_len);
-static void rtl_reverse(char * dest, const char * src, uint32_t len, uint16_t * pos_conv_out, uint16_t pos_conv_rd_base,
-                        uint16_t pos_conv_len);
-static uint32_t char_change_to_pair(uint32_t letter);
-static lv_base_dir_t bracket_process(lv_bidi_ctx_t * ctx, const char * txt, uint32_t next_pos, uint32_t len,
-                                     uint32_t letter,
-                                     lv_base_dir_t base_dir);
-static void fill_pos_conv(uint16_t * out, uint16_t len, uint16_t index);
-static uint32_t get_txt_len(const char * txt, uint32_t max_len);
+#include <SheenBidi/SheenBidi.h>
 
 /**********************
  *  STATIC VARIABLES
  **********************/
-static const uint8_t bracket_left[] = {"<({["};
-static const uint8_t bracket_right[] = {">)}]"};
 static const char * custom_neutrals = NULL;
 
 /**********************
- *      MACROS
+ *   STATIC FUNCTIONS
  **********************/
+
+/**
+ * 获取下一段文本的字节长度。
+ *
+ * @param txt 待处理文本
+ * @return 当前段落的字节长度
+ */
+static uint32_t lv_bidi_get_next_paragraph(const char * txt)
+{
+    uint32_t i = 0;
+
+    if(txt == NULL || txt[0] == '\0') return 0;
+
+    lv_text_encoded_next(txt, &i);
+
+    while(txt[i] != '\0' && txt[i] != '\n' && txt[i] != '\r') {
+        lv_text_encoded_next(txt, &i);
+    }
+
+    return i;
+}
+
+/**
+ * 获取 UTF-8 文本的字节长度。
+ *
+ * @param txt 待统计文本
+ * @return 文本字节长度
+ */
+static uint32_t lv_bidi_strlen(const char * txt)
+{
+    uint32_t len = 0;
+
+    if(txt == NULL) return 0;
+
+    while(txt[len] != '\0') len++;
+
+    return len;
+}
+
+/**
+ * 把 LVGL 基础方向转换为 SheenBidi 段落基础 level。
+ *
+ * @param base_dir LVGL 基础方向
+ * @return SheenBidi 段落基础 level
+ */
+static SBLevel lv_bidi_to_sheen_base_level(lv_base_dir_t base_dir)
+{
+    if(base_dir == LV_BASE_DIR_RTL) return 1;
+    if(base_dir == LV_BASE_DIR_LTR) return 0;
+    return SBLevelDefaultLTR;
+}
+
+/**
+ * 把 SheenBidi level 转换为 LVGL 基础方向。
+ *
+ * @param level SheenBidi embedding level
+ * @return LVGL 基础方向
+ */
+static lv_base_dir_t lv_bidi_from_sheen_level(SBLevel level)
+{
+    return (level & 1) ? LV_BASE_DIR_RTL : LV_BASE_DIR_LTR;
+}
+
+/**
+ * 统计指定字节位置之前的 UTF-8 字符数。
+ *
+ * @param text 待统计文本
+ * @param byte_limit 截止字节位置
+ * @return 截止位置之前的字符数量
+ */
+static uint32_t lv_bidi_count_chars_before(const char * text, uint32_t byte_limit)
+{
+    uint32_t i = 0;
+    uint32_t count = 0;
+
+    if(text == NULL) return 0;
+
+    while(text[i] != '\0' && i < byte_limit) {
+        uint32_t before = i;
+        lv_text_encoded_next(text, &i);
+        if(i <= before) break;
+        if(i <= byte_limit) count++;
+    }
+
+    return count;
+}
+
+/**
+ * 获取 UTF-8 文本在最大字节长度内的字符数量。
+ *
+ * @param txt 待统计文本
+ * @param max_len 最大字节长度
+ * @return 字符数量
+ */
+static uint32_t get_txt_len(const char * txt, uint32_t max_len)
+{
+    return lv_bidi_count_chars_before(txt, max_len);
+}
+
+/**
+ * 填充 LVGL 逻辑/视觉位置映射。
+ *
+ * @param out 位置映射输出
+ * @param len 映射长度
+ * @param index 起始逻辑位置
+ * @param is_rtl 该片段是否为 RTL
+ */
+static void lv_bidi_fill_pos_conv(uint16_t * out, uint16_t len, uint16_t index, bool is_rtl)
+{
+    uint16_t i;
+
+    if(out == NULL) return;
+
+    for(i = 0; i < len; i++) {
+        uint16_t pos = (uint16_t)((index + i) & 0x7FFF);
+        out[i] = is_rtl ? (uint16_t)(pos | 0x8000) : pos;
+    }
+}
+
+/**
+ * 在 SheenBidi 失败时填充原序文本和位置映射。
+ *
+ * @param str_in 输入文本
+ * @param str_out 输出文本
+ * @param len 字节长度
+ * @param pos_conv_out 位置映射输出
+ * @param pos_conv_len 位置映射长度
+ */
+static void lv_bidi_copy_identity(const char * str_in, char * str_out, uint32_t len,
+                                  uint16_t * pos_conv_out, uint16_t pos_conv_len)
+{
+    if(str_out) {
+        lv_memcpy(str_out, str_in, len);
+        str_out[len] = '\0';
+    }
+
+    lv_bidi_fill_pos_conv(pos_conv_out, pos_conv_len, 0, false);
+}
+
+/**
+ * 按视觉顺序写入一个 SheenBidi run。
+ *
+ * @param str_in 原始逻辑文本
+ * @param str_out 视觉顺序输出
+ * @param run SheenBidi 视觉 run
+ * @param reverse_chars 是否按字符反向写入该 run
+ * @param wr 输出字节写入位置
+ * @param visual_pos 输出视觉字符位置
+ * @param pos_conv_out 位置映射输出
+ * @param pos_conv_len 位置映射长度
+ * @return 写入后的字节位置
+ */
+static uint32_t lv_bidi_write_visual_run(const char * str_in, char * str_out, const SBRun * run,
+                                         bool reverse_chars, uint32_t wr, uint32_t * visual_pos,
+                                         uint16_t * pos_conv_out, uint16_t pos_conv_len)
+{
+    uint32_t start = (uint32_t)run->offset;
+    uint32_t end = (uint32_t)(run->offset + run->length);
+
+    if(!reverse_chars) {
+        uint32_t rd = start;
+
+        while(rd < end && str_in[rd] != '\0') {
+            uint32_t before = rd;
+            uint32_t logical_pos;
+
+            lv_text_encoded_next(str_in, &rd);
+            if(rd <= before || rd > end) break;
+
+            if(str_out) {
+                lv_memcpy(&str_out[wr], &str_in[before], rd - before);
+            }
+
+            logical_pos = lv_bidi_count_chars_before(str_in, before);
+            if(pos_conv_out && *visual_pos < pos_conv_len) {
+                pos_conv_out[*visual_pos] = (uint16_t)(logical_pos & 0x7FFF);
+            }
+
+            wr += rd - before;
+            (*visual_pos)++;
+        }
+    }
+    else {
+        uint32_t rd = end;
+
+        while(rd > start) {
+            uint32_t before = rd;
+            uint32_t logical_pos;
+
+            uint32_t letter = lv_text_encoded_prev(str_in, &before);
+            if(before >= rd || before < start) break;
+
+            if(str_out) {
+                uint32_t mirror = SBCodepointGetMirror(letter);
+                uint32_t encoded = lv_text_unicode_to_encoded(mirror);
+                /* 镜像映射保持 UTF-8 长度，沿用调用方 len + 1 的缓冲约定。 */
+                if(mirror && lv_text_encoded_size((const char *)&encoded) == rd - before) {
+                    lv_memcpy(&str_out[wr], &encoded, rd - before);
+                }
+                else lv_memcpy(&str_out[wr], &str_in[before], rd - before);
+            }
+
+            logical_pos = lv_bidi_count_chars_before(str_in, before);
+            if(pos_conv_out && *visual_pos < pos_conv_len) {
+                pos_conv_out[*visual_pos] = (uint16_t)((logical_pos & 0x7FFF) | 0x8000);
+            }
+
+            wr += rd - before;
+            rd = before;
+            (*visual_pos)++;
+        }
+    }
+
+    return wr;
+}
 
 /**********************
  *   GLOBAL FUNCTIONS
@@ -76,10 +246,10 @@ static const char * custom_neutrals = NULL;
 
 void lv_bidi_process(const char * str_in, char * str_out, lv_base_dir_t base_dir)
 {
-    if(base_dir == LV_BASE_DIR_AUTO) base_dir = lv_bidi_detect_base_dir(str_in);
-
     uint32_t par_start = 0;
     uint32_t par_len;
+
+    if(str_in == NULL || str_out == NULL) return;
 
     while(str_in[par_start] == '\n' || str_in[par_start] == '\r') {
         str_out[par_start] = str_in[par_start];
@@ -100,26 +270,35 @@ void lv_bidi_process(const char * str_in, char * str_out, lv_base_dir_t base_dir
     str_out[par_start] = '\0';
 }
 
-/**
- * Auto-detect the direction of a text based on the first strong character
- * @param txt the text to process
- * @return `LV_BASE_DIR_LTR` or `LV_BASE_DIR_RTL`
- */
 lv_base_dir_t lv_bidi_detect_base_dir(const char * txt)
 {
-    uint32_t i = 0;
-    uint32_t letter;
-    while(txt[i] != '\0') {
-        letter = lv_text_encoded_next(txt, &i);
+    uint32_t len = lv_bidi_strlen(txt);
+    SBCodepointSequence codepoint_sequence;
+    SBAlgorithmRef algorithm;
+    SBParagraphRef paragraph;
+    lv_base_dir_t dir = LV_BASE_DIR_LTR;
 
-        lv_base_dir_t dir;
-        dir = lv_bidi_get_letter_dir(letter);
-        if(dir == LV_BASE_DIR_RTL || dir == LV_BASE_DIR_LTR) return dir;
+    if(len == 0) {
+        if(LV_BIDI_BASE_DIR_DEF == LV_BASE_DIR_RTL) return LV_BASE_DIR_RTL;
+        return LV_BASE_DIR_LTR;
     }
 
-    /*If there were no strong char earlier return with the default base dir*/
-    if(LV_BIDI_BASE_DIR_DEF == LV_BASE_DIR_AUTO) return LV_BASE_DIR_LTR;
-    else return LV_BIDI_BASE_DIR_DEF;
+    codepoint_sequence.stringEncoding = SBStringEncodingUTF8;
+    codepoint_sequence.stringBuffer = txt;
+    codepoint_sequence.stringLength = len;
+
+    algorithm = SBAlgorithmCreate(&codepoint_sequence);
+    if(algorithm == NULL) return dir;
+
+    paragraph = SBAlgorithmCreateParagraph(algorithm, 0, len, SBLevelDefaultLTR);
+    if(paragraph) {
+        dir = lv_bidi_from_sheen_level(SBParagraphGetBaseLevel(paragraph));
+        SBParagraphRelease(paragraph);
+    }
+
+    SBAlgorithmRelease(algorithm);
+
+    return dir;
 }
 
 uint16_t lv_bidi_get_logical_pos(const char * str_in, char ** bidi_txt, uint32_t len, lv_base_dir_t base_dir,
@@ -127,9 +306,12 @@ uint16_t lv_bidi_get_logical_pos(const char * str_in, char ** bidi_txt, uint32_t
 {
     uint32_t pos_conv_len = get_txt_len(str_in, len);
     char * buf = lv_malloc(len + 1);
+    uint16_t * pos_conv_buf;
+    uint16_t res;
+
     if(buf == NULL) return (uint16_t) -1;
 
-    uint16_t * pos_conv_buf = lv_malloc(pos_conv_len * sizeof(uint16_t));
+    pos_conv_buf = lv_malloc(pos_conv_len * sizeof(uint16_t));
     if(pos_conv_buf == NULL) {
         lv_free(buf);
         return (uint16_t) -1;
@@ -137,12 +319,18 @@ uint16_t lv_bidi_get_logical_pos(const char * str_in, char ** bidi_txt, uint32_t
 
     if(bidi_txt) *bidi_txt = buf;
 
-    lv_bidi_process_paragraph(str_in, bidi_txt ? *bidi_txt : NULL, len, base_dir, pos_conv_buf, pos_conv_len);
+    lv_bidi_process_paragraph(str_in, bidi_txt ? *bidi_txt : buf, len, base_dir, pos_conv_buf, pos_conv_len);
 
-    if(is_rtl) *is_rtl = IS_RTL_POS(pos_conv_buf[visual_pos]);
+    if(visual_pos >= pos_conv_len) {
+        if(bidi_txt == NULL) lv_free(buf);
+        lv_free(pos_conv_buf);
+        return (uint16_t) -1;
+    }
+
+    if(is_rtl) *is_rtl = (pos_conv_buf[visual_pos] & 0x8000) != 0;
+    res = (uint16_t)(pos_conv_buf[visual_pos] & 0x7FFF);
 
     if(bidi_txt == NULL) lv_free(buf);
-    uint16_t res = GET_POS(pos_conv_buf[visual_pos]);
     lv_free(pos_conv_buf);
     return res;
 }
@@ -152,9 +340,12 @@ uint16_t lv_bidi_get_visual_pos(const char * str_in, char ** bidi_txt, uint16_t 
 {
     uint32_t pos_conv_len = get_txt_len(str_in, len);
     char * buf = lv_malloc(len + 1);
+    uint16_t * pos_conv_buf;
+    uint16_t i;
+
     if(buf == NULL) return (uint16_t) -1;
 
-    uint16_t * pos_conv_buf = lv_malloc(pos_conv_len * sizeof(uint16_t));
+    pos_conv_buf = lv_malloc(pos_conv_len * sizeof(uint16_t));
     if(pos_conv_buf == NULL) {
         lv_free(buf);
         return (uint16_t) -1;
@@ -162,18 +353,18 @@ uint16_t lv_bidi_get_visual_pos(const char * str_in, char ** bidi_txt, uint16_t 
 
     if(bidi_txt) *bidi_txt = buf;
 
-    lv_bidi_process_paragraph(str_in, bidi_txt ? *bidi_txt : NULL, len, base_dir, pos_conv_buf, pos_conv_len);
+    lv_bidi_process_paragraph(str_in, bidi_txt ? *bidi_txt : buf, len, base_dir, pos_conv_buf, pos_conv_len);
 
-    for(uint16_t i = 0; i < pos_conv_len; i++) {
-        if(GET_POS(pos_conv_buf[i]) == logical_pos) {
-
-            if(is_rtl) *is_rtl = IS_RTL_POS(pos_conv_buf[i]);
+    for(i = 0; i < pos_conv_len; i++) {
+        if((pos_conv_buf[i] & 0x7FFF) == logical_pos) {
+            if(is_rtl) *is_rtl = (pos_conv_buf[i] & 0x8000) != 0;
             lv_free(pos_conv_buf);
 
             if(bidi_txt == NULL) lv_free(buf);
             return i;
         }
     }
+
     lv_free(pos_conv_buf);
     if(bidi_txt == NULL) lv_free(buf);
     return (uint16_t) -1;
@@ -182,94 +373,144 @@ uint16_t lv_bidi_get_visual_pos(const char * str_in, char ** bidi_txt, uint16_t 
 void lv_bidi_process_paragraph(const char * str_in, char * str_out, uint32_t len, lv_base_dir_t base_dir,
                                uint16_t * pos_conv_out, uint16_t pos_conv_len)
 {
-    uint32_t run_len = 0;
-    lv_base_dir_t run_dir;
-    uint32_t rd = 0;
-    uint32_t wr;
-    uint16_t pos_conv_run_len = 0;
-    uint16_t pos_conv_rd = 0;
-    uint16_t pos_conv_wr;
+    SBCodepointSequence codepoint_sequence;
+    SBAlgorithmRef algorithm;
+    SBParagraphRef paragraph = NULL;
+    SBLineRef line = NULL;
+    const SBRun * runs;
+    SBUInteger run_count;
+    SBLevel base_level;
+    uint32_t wr = 0;
+    uint32_t visual_pos = 0;
+    SBUInteger i;
 
-    if(base_dir == LV_BASE_DIR_AUTO) base_dir = lv_bidi_detect_base_dir(str_in);
-    if(base_dir == LV_BASE_DIR_RTL) {
-        wr = len;
-        pos_conv_wr = pos_conv_len;
-    }
-    else {
-        wr = 0;
-        pos_conv_wr = 0;
-    }
+    if(str_in == NULL) return;
 
     if(str_out) str_out[len] = '\0';
 
-    lv_base_dir_t dir = base_dir;
-
-    /*Empty the bracket stack*/
-    lv_bidi_ctx_t ctx;
-    lv_memzero(&ctx, sizeof(ctx));
-
-    /*Process neutral chars in the beginning*/
-    while(rd < len) {
-        uint32_t letter = lv_text_encoded_next(str_in, &rd);
-        pos_conv_rd++;
-        dir = lv_bidi_get_letter_dir(letter);
-        if(dir == LV_BASE_DIR_NEUTRAL)  dir = bracket_process(&ctx, str_in, rd, len, letter, base_dir);
-        else if(dir != LV_BASE_DIR_WEAK) break;
+    if(len == 0) {
+        lv_bidi_copy_identity(str_in, str_out, len, pos_conv_out, pos_conv_len);
+        return;
     }
 
-    if(rd && str_in[rd] != '\0' && rd < len) {
-        lv_text_encoded_prev(str_in, &rd);
-        pos_conv_rd--;
+    codepoint_sequence.stringEncoding = SBStringEncodingUTF8;
+    codepoint_sequence.stringBuffer = str_in;
+    codepoint_sequence.stringLength = len;
+
+    algorithm = SBAlgorithmCreate(&codepoint_sequence);
+    if(algorithm == NULL) {
+        lv_bidi_copy_identity(str_in, str_out, len, pos_conv_out, pos_conv_len);
+        return;
     }
 
-    if(rd) {
-        if(base_dir == LV_BASE_DIR_LTR) {
-            if(str_out) {
-                lv_memcpy(&str_out[wr], str_in, rd);
-                wr += rd;
-            }
-            if(pos_conv_out) {
-                fill_pos_conv(&pos_conv_out[pos_conv_wr], pos_conv_rd, 0);
-                pos_conv_wr += pos_conv_rd;
-            }
-        }
-        else {
-            wr -= rd;
-            pos_conv_wr -= pos_conv_rd;
-            rtl_reverse(str_out ? &str_out[wr] : NULL, str_in, rd, pos_conv_out ? &pos_conv_out[pos_conv_wr] : NULL, 0,
-                        pos_conv_rd);
-        }
+    base_level = lv_bidi_to_sheen_base_level(base_dir);
+    paragraph = SBAlgorithmCreateParagraph(algorithm, 0, len, base_level);
+    if(paragraph == NULL) {
+        SBAlgorithmRelease(algorithm);
+        lv_bidi_copy_identity(str_in, str_out, len, pos_conv_out, pos_conv_len);
+        return;
     }
 
-    /*Get and process the runs*/
-
-    while(rd < len && str_in[rd]) {
-        run_dir = get_next_run(&ctx, &str_in[rd], base_dir, len - rd, &run_len, &pos_conv_run_len);
-
-        if(base_dir == LV_BASE_DIR_LTR) {
-            if(run_dir == LV_BASE_DIR_LTR) {
-                if(str_out) lv_memcpy(&str_out[wr], &str_in[rd], run_len);
-                if(pos_conv_out) fill_pos_conv(&pos_conv_out[pos_conv_wr], pos_conv_run_len, pos_conv_rd);
-            }
-            else rtl_reverse(str_out ? &str_out[wr] : NULL, &str_in[rd], run_len, pos_conv_out ? &pos_conv_out[pos_conv_wr] : NULL,
-                                 pos_conv_rd, pos_conv_run_len);
-            wr += run_len;
-            pos_conv_wr += pos_conv_run_len;
-        }
-        else {
-            wr -= run_len;
-            pos_conv_wr -= pos_conv_run_len;
-            if(run_dir == LV_BASE_DIR_LTR) {
-                if(str_out) lv_memcpy(&str_out[wr], &str_in[rd], run_len);
-                if(pos_conv_out) fill_pos_conv(&pos_conv_out[pos_conv_wr], pos_conv_run_len, pos_conv_rd);
-            }
-            else rtl_reverse(str_out ? &str_out[wr] : NULL, &str_in[rd], run_len, pos_conv_out ? &pos_conv_out[pos_conv_wr] : NULL,
-                                 pos_conv_rd, pos_conv_run_len);
-        }
-
-        rd += run_len;
-        pos_conv_rd += pos_conv_run_len;
+    line = SBParagraphCreateLine(paragraph, 0, SBParagraphGetLength(paragraph));
+    if(line == NULL) {
+        SBParagraphRelease(paragraph);
+        SBAlgorithmRelease(algorithm);
+        lv_bidi_copy_identity(str_in, str_out, len, pos_conv_out, pos_conv_len);
+        return;
     }
+
+    runs = SBLineGetRunsPtr(line);
+    run_count = SBLineGetRunCount(line);
+
+    for(i = 0; i < run_count; i++) {
+        bool reverse_chars = (runs[i].level & 1) != 0;
+        wr = lv_bidi_write_visual_run(str_in, str_out, &runs[i], reverse_chars, wr, &visual_pos,
+                                      pos_conv_out, pos_conv_len);
+    }
+
+    if(str_out) str_out[wr] = '\0';
+
+    SBLineRelease(line);
+    SBParagraphRelease(paragraph);
+    SBAlgorithmRelease(algorithm);
+}
+
+bool lv_bidi_get_visual_runs(const char * str_in, uint32_t len, lv_base_dir_t base_dir,
+                             lv_bidi_visual_runs_t * runs_out)
+{
+    SBCodepointSequence codepoint_sequence;
+    SBAlgorithmRef algorithm;
+    SBParagraphRef paragraph = NULL;
+    SBLineRef line = NULL;
+    const SBRun * runs;
+    SBUInteger run_count;
+    SBUInteger i;
+
+    if(runs_out == NULL) return false;
+
+    lv_memzero(runs_out, sizeof(*runs_out));
+
+    if(str_in == NULL || len == 0) return false;
+
+    codepoint_sequence.stringEncoding = SBStringEncodingUTF8;
+    codepoint_sequence.stringBuffer = str_in;
+    codepoint_sequence.stringLength = len;
+
+    algorithm = SBAlgorithmCreate(&codepoint_sequence);
+    if(algorithm == NULL) return false;
+
+    paragraph = SBAlgorithmCreateParagraph(algorithm, 0, len, lv_bidi_to_sheen_base_level(base_dir));
+    if(paragraph == NULL) {
+        SBAlgorithmRelease(algorithm);
+        return false;
+    }
+
+    line = SBParagraphCreateLine(paragraph, 0, SBParagraphGetLength(paragraph));
+    if(line == NULL) {
+        SBParagraphRelease(paragraph);
+        SBAlgorithmRelease(algorithm);
+        return false;
+    }
+
+    runs = SBLineGetRunsPtr(line);
+    run_count = SBLineGetRunCount(line);
+    if(runs == NULL || run_count == 0) {
+        SBLineRelease(line);
+        SBParagraphRelease(paragraph);
+        SBAlgorithmRelease(algorithm);
+        return false;
+    }
+
+    runs_out->runs = lv_malloc(sizeof(lv_bidi_visual_run_t) * run_count);
+    if(runs_out->runs == NULL) {
+        SBLineRelease(line);
+        SBParagraphRelease(paragraph);
+        SBAlgorithmRelease(algorithm);
+        return false;
+    }
+
+    runs_out->run_count = (uint32_t)run_count;
+    for(i = 0; i < run_count; i++) {
+        runs_out->runs[i].byte_start = (uint32_t)runs[i].offset;
+        runs_out->runs[i].byte_len = (uint32_t)runs[i].length;
+        runs_out->runs[i].base_dir = lv_bidi_from_sheen_level(runs[i].level);
+    }
+
+    SBLineRelease(line);
+    SBParagraphRelease(paragraph);
+    SBAlgorithmRelease(algorithm);
+    return true;
+}
+
+void lv_bidi_visual_runs_destroy(lv_bidi_visual_runs_t * runs)
+{
+    if(runs == NULL) return;
+
+    if(runs->runs) {
+        lv_free(runs->runs);
+    }
+
+    lv_memzero(runs, sizeof(*runs));
 }
 
 void lv_bidi_calculate_align(lv_text_align_t * align, lv_base_dir_t * base_dir, const char * txt)
@@ -285,380 +526,7 @@ void lv_bidi_calculate_align(lv_text_align_t * align, lv_base_dir_t * base_dir, 
 void lv_bidi_set_custom_neutrals_static(const char * neutrals)
 {
     custom_neutrals = neutrals;
-}
-
-/**********************
- *   STATIC FUNCTIONS
- **********************/
-
-/**
- * Get the next paragraph from a text
- * @param txt the text to process
- * @return the length of the current paragraph in byte count
- */
-static uint32_t lv_bidi_get_next_paragraph(const char * txt)
-{
-    uint32_t i = 0;
-
-    lv_text_encoded_next(txt, &i);
-
-    while(txt[i] != '\0' && txt[i] != '\n' && txt[i] != '\r') {
-        lv_text_encoded_next(txt, &i);
-    }
-
-    return i;
-}
-
-/**
- * Get the direction of a character
- * @param letter a Unicode character
- * @return `LV_BASE_DIR_RTL/LTR/WEAK/NEUTRAL`
- */
-static lv_base_dir_t lv_bidi_get_letter_dir(uint32_t letter)
-{
-    if(lv_bidi_letter_is_rtl(letter)) return LV_BASE_DIR_RTL;
-    if(lv_bidi_letter_is_neutral(letter)) return LV_BASE_DIR_NEUTRAL;
-    if(lv_bidi_letter_is_weak(letter)) return LV_BASE_DIR_WEAK;
-
-    return LV_BASE_DIR_LTR;
-}
-/**
- * Tell whether a character is weak or not
- * @param letter a Unicode character
- * @return true/false
- */
-static bool lv_bidi_letter_is_weak(uint32_t letter)
-{
-    uint32_t i = 0;
-    static const char weaks[] = "0123456789";
-
-    do {
-        uint32_t x = lv_text_encoded_next(weaks, &i);
-        if(letter == x) {
-            return true;
-        }
-    } while(weaks[i] != '\0');
-
-    return false;
-}
-/**
- * Tell whether a character is RTL or not
- * @param letter a Unicode character
- * @return true/false
- */
-static bool lv_bidi_letter_is_rtl(uint32_t letter)
-{
-    if(letter == 0x202E) return true;               /*Unicode of LV_BIDI_RLO*/
-
-    /*Check for Persian and Arabic characters [https://en.wikipedia.org/wiki/Arabic_script_in_Unicode]*/
-    if(letter >= 0x600 && letter <= 0x6FF) return true;
-    if(letter >= 0xFB50 && letter <= 0xFDFF) return true;
-    if(letter >= 0xFE70 && letter <= 0xFEFE) return true; /* U+FEFF is the UTF-8 BOM, not Arabic text. */
-
-    /*Check for Hebrew characters [https://en.wikipedia.org/wiki/Unicode_and_HTML_for_the_Hebrew_alphabet]*/
-    if(letter >= 0x590 && letter <= 0x5FF) return true;
-    if(letter >= 0xFB1D && letter <= 0xFB4F) return true;
-
-    return false;
-}
-
-/**
- * Tell whether a character is neutral or not
- * @param letter a Unicode character
- * @return true/false
- */
-static bool lv_bidi_letter_is_neutral(uint32_t letter)
-{
-    uint16_t i;
-    const char * neutrals = " \t\n\r.,:;'\"`!?%/\\-=()[]{}<>@#&$|";
-    if(letter == 0xFEFF) return true; /* UTF-8 BOM has no text direction. */
-    if(custom_neutrals) {
-        neutrals = custom_neutrals;
-    }
-
-    for(i = 0; neutrals[i] != '\0'; i++) {
-        if(letter == (uint32_t)neutrals[i]) return true;
-    }
-
-    return false;
-}
-
-static uint32_t get_txt_len(const char * txt, uint32_t max_len)
-{
-    uint32_t len = 0;
-    uint32_t i   = 0;
-
-    while(i < max_len && txt[i] != '\0') {
-        lv_text_encoded_next(txt, &i);
-        len++;
-    }
-
-    return len;
-}
-
-static void fill_pos_conv(uint16_t * out, uint16_t len, uint16_t index)
-{
-    uint16_t i;
-    for(i = 0; i < len; i++) {
-        out[i] = SET_RTL_POS(index, false);
-        index++;
-    }
-}
-
-static lv_base_dir_t get_next_run(lv_bidi_ctx_t * ctx, const char * txt, lv_base_dir_t base_dir, uint32_t max_len,
-                                  uint32_t * len,
-                                  uint16_t  * pos_conv_len)
-{
-    uint32_t i = 0;
-    uint32_t letter;
-
-    uint16_t pos_conv_i = 0;
-
-    letter = lv_text_encoded_next(txt, NULL);
-    lv_base_dir_t dir = lv_bidi_get_letter_dir(letter);
-    if(dir == LV_BASE_DIR_NEUTRAL)  dir = bracket_process(ctx, txt, 0, max_len, letter, base_dir);
-
-    /*Find the first strong char. Skip the neutrals*/
-    while(dir == LV_BASE_DIR_NEUTRAL || dir == LV_BASE_DIR_WEAK) {
-        letter = lv_text_encoded_next(txt, &i);
-
-        pos_conv_i++;
-        dir = lv_bidi_get_letter_dir(letter);
-        if(dir == LV_BASE_DIR_NEUTRAL)  dir = bracket_process(ctx, txt, i, max_len, letter, base_dir);
-
-        if(dir == LV_BASE_DIR_LTR || dir == LV_BASE_DIR_RTL)  break;
-
-        if(i >= max_len || txt[i] == '\0' || txt[i] == '\n' || txt[i] == '\r') {
-            *len = i;
-            *pos_conv_len = pos_conv_i;
-            return base_dir;
-        }
-    }
-
-    lv_base_dir_t run_dir = dir;
-
-    uint32_t i_prev = i;
-    uint32_t i_last_strong = i;
-    uint16_t pos_conv_i_prev = pos_conv_i;
-    uint16_t pos_conv_i_last_strong = pos_conv_i;
-
-    /*Find the next char which has different direction*/
-    lv_base_dir_t next_dir = base_dir;
-    while(i_prev < max_len && txt[i] != '\0' && txt[i] != '\n' && txt[i] != '\r') {
-        letter = lv_text_encoded_next(txt, &i);
-        pos_conv_i++;
-        next_dir  = lv_bidi_get_letter_dir(letter);
-        if(next_dir == LV_BASE_DIR_NEUTRAL)  next_dir = bracket_process(ctx, txt, i, max_len, letter, base_dir);
-
-        if(next_dir == LV_BASE_DIR_WEAK) {
-            if(run_dir == LV_BASE_DIR_RTL) {
-                if(base_dir == LV_BASE_DIR_RTL) {
-                    next_dir = LV_BASE_DIR_LTR;
-                }
-            }
-        }
-
-        /*New dir found?*/
-        if((next_dir == LV_BASE_DIR_RTL || next_dir == LV_BASE_DIR_LTR) && next_dir != run_dir) {
-            /*Include neutrals if `run_dir == base_dir`*/
-            if(run_dir == base_dir) {
-                *len = i_prev;
-                *pos_conv_len = pos_conv_i_prev;
-            }
-            /*Exclude neutrals if `run_dir != base_dir`*/
-            else {
-                *len = i_last_strong;
-                *pos_conv_len = pos_conv_i_last_strong;
-            }
-
-            return run_dir;
-        }
-
-        if(next_dir != LV_BASE_DIR_NEUTRAL) {
-            i_last_strong = i;
-            pos_conv_i_last_strong = pos_conv_i;
-        }
-
-        i_prev = i;
-        pos_conv_i_prev = pos_conv_i;
-    }
-
-    /*Handle end of of string. Apply `base_dir` on trailing neutrals*/
-
-    /*Include neutrals if `run_dir == base_dir`*/
-    if(run_dir == base_dir) {
-        *len = i_prev;
-        *pos_conv_len = pos_conv_i_prev;
-    }
-    /*Exclude neutrals if `run_dir != base_dir`*/
-    else {
-        *len = i_last_strong;
-        *pos_conv_len = pos_conv_i_last_strong;
-    }
-
-    return run_dir;
-}
-
-static void rtl_reverse(char * dest, const char * src, uint32_t len, uint16_t * pos_conv_out, uint16_t pos_conv_rd_base,
-                        uint16_t pos_conv_len)
-{
-    uint32_t i = len;
-    uint32_t wr = 0;
-    uint16_t pos_conv_i = pos_conv_len;
-    uint16_t pos_conv_wr = 0;
-
-    while(i) {
-        uint32_t letter = lv_text_encoded_prev(src, &i);
-        uint16_t pos_conv_letter = --pos_conv_i;
-
-        /*Keep weak letters (numbers) as LTR*/
-        if(lv_bidi_letter_is_weak(letter)) {
-            uint32_t last_weak = i;
-            uint32_t first_weak = i;
-            uint16_t pos_conv_last_weak = pos_conv_i;
-            uint16_t pos_conv_first_weak = pos_conv_i;
-            while(i) {
-                letter = lv_text_encoded_prev(src, &i);
-                pos_conv_letter = --pos_conv_i;
-
-                /*No need to call `char_change_to_pair` because there not such chars here*/
-
-                /*Finish on non-weak char*/
-                /*but treat number and currency related chars as weak*/
-                if(lv_bidi_letter_is_weak(letter) == false && letter != '.' && letter != ',' && letter != '$' && letter != '%') {
-                    lv_text_encoded_next(src, &i);   /*Rewind one letter*/
-                    pos_conv_i++;
-                    first_weak = i;
-                    pos_conv_first_weak = pos_conv_i;
-                    break;
-                }
-            }
-            if(i == 0) {
-                first_weak = 0;
-                pos_conv_first_weak = 0;
-            }
-
-            if(dest) lv_memcpy(&dest[wr], &src[first_weak], last_weak - first_weak + 1);
-            if(pos_conv_out) fill_pos_conv(&pos_conv_out[pos_conv_wr], pos_conv_last_weak - pos_conv_first_weak + 1,
-                                               pos_conv_rd_base + pos_conv_first_weak);
-            wr += last_weak - first_weak + 1;
-            pos_conv_wr += pos_conv_last_weak - pos_conv_first_weak + 1;
-        }
-
-        /*Simply store in reversed order*/
-        else {
-            uint32_t letter_size = lv_text_encoded_size((const char *)&src[i]);
-            /*Swap arithmetical symbols*/
-            if(letter_size == 1) {
-                uint32_t new_letter = letter = char_change_to_pair(letter);
-                if(dest) dest[wr] = (uint8_t)new_letter;
-                if(pos_conv_out) pos_conv_out[pos_conv_wr] = SET_RTL_POS(pos_conv_rd_base + pos_conv_letter, true);
-                wr++;
-                pos_conv_wr++;
-            }
-            /*Just store the letter*/
-            else {
-                if(dest) lv_memcpy(&dest[wr], &src[i], letter_size);
-                if(pos_conv_out) pos_conv_out[pos_conv_wr] = SET_RTL_POS(pos_conv_rd_base + pos_conv_i, true);
-                wr += letter_size;
-                pos_conv_wr++;
-            }
-        }
-    }
-}
-
-static uint32_t char_change_to_pair(uint32_t letter)
-{
-
-    uint8_t i;
-    for(i = 0; bracket_left[i] != '\0'; i++) {
-        if(letter == bracket_left[i]) return bracket_right[i];
-    }
-
-    for(i = 0; bracket_right[i] != '\0'; i++) {
-        if(letter == bracket_right[i]) return bracket_left[i];
-    }
-
-    return letter;
-}
-
-static lv_base_dir_t bracket_process(lv_bidi_ctx_t * ctx, const char * txt, uint32_t next_pos, uint32_t len,
-                                     uint32_t letter,
-                                     lv_base_dir_t base_dir)
-{
-    lv_base_dir_t bracket_dir = LV_BASE_DIR_NEUTRAL;
-
-    uint8_t i;
-    /*Is the letter an opening bracket?*/
-    for(i = 0; bracket_left[i] != '\0'; i++) {
-        if(bracket_left[i] == letter) {
-            /*If so find its matching closing bracket.
-             *If a char with base dir. direction is found then the brackets will have `base_dir` direction*/
-            uint32_t txt_i = next_pos;
-            while(txt_i < len) {
-                uint32_t letter_next = lv_text_encoded_next(txt, &txt_i);
-                if(letter_next == bracket_right[i]) {
-                    /*Closing bracket found*/
-                    break;
-                }
-                else {
-                    /*Save the dir*/
-                    lv_base_dir_t letter_dir = lv_bidi_get_letter_dir(letter_next);
-                    if(letter_dir == base_dir) {
-                        bracket_dir = base_dir;
-                    }
-                }
-            }
-
-            /*There were no matching closing bracket*/
-            if(txt_i > len)  return LV_BASE_DIR_NEUTRAL;
-
-            /*There where a strong char with base dir in the bracket so the dir is found.*/
-            if(bracket_dir != LV_BASE_DIR_NEUTRAL && bracket_dir != LV_BASE_DIR_WEAK) break;
-
-            /*If there were no matching strong chars in the brackets then check the previous chars*/
-            txt_i = next_pos;
-            if(txt_i) lv_text_encoded_prev(txt, &txt_i);
-            while(txt_i > 0) {
-                uint32_t letter_next = lv_text_encoded_prev(txt, &txt_i);
-                lv_base_dir_t letter_dir = lv_bidi_get_letter_dir(letter_next);
-                if(letter_dir == LV_BASE_DIR_LTR || letter_dir == LV_BASE_DIR_RTL) {
-                    bracket_dir = letter_dir;
-                    break;
-                }
-            }
-
-            /*There where a previous strong char which can be used*/
-            if(bracket_dir != LV_BASE_DIR_NEUTRAL) break;
-
-            /*There were no strong chars before the bracket, so use the base dir.*/
-            if(txt_i == 0) bracket_dir = base_dir;
-
-            break;
-        }
-    }
-
-    /*The letter was an opening bracket*/
-    if(bracket_left[i] != '\0') {
-
-        if(bracket_dir == LV_BASE_DIR_NEUTRAL || ctx->br_stack_p == LV_BIDI_BRACKET_DEPTH) return LV_BASE_DIR_NEUTRAL;
-
-        ctx->br_stack[ctx->br_stack_p].bracket_pos = i;
-        ctx->br_stack[ctx->br_stack_p].dir = bracket_dir;
-
-        ctx->br_stack_p++;
-        return bracket_dir;
-    }
-    else if(ctx->br_stack_p > 0) {
-        /*Is the letter a closing bracket of the last opening?*/
-        if(letter == bracket_right[ctx->br_stack[ctx->br_stack_p - 1].bracket_pos]) {
-            bracket_dir = ctx->br_stack[ctx->br_stack_p - 1].dir;
-            ctx->br_stack_p--;
-            return bracket_dir;
-        }
-    }
-
-    return LV_BASE_DIR_NEUTRAL;
+    LV_UNUSED(custom_neutrals);
 }
 
 #endif /*LV_USE_BIDI*/

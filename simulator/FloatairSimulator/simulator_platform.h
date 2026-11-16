@@ -1,3 +1,4 @@
+/** @brief 模拟器跨平台网络、文件、窗口与事件管道接口。 */
 #pragma once
 
 #include <stdbool.h>
@@ -22,6 +23,15 @@ int simulator_platform_socket_wait_readable(int sock, int timeout_ms);
 int simulator_platform_socket_send(int sock, const void* buf, size_t len);
 int simulator_platform_socket_recv(int sock, void* buf, size_t len);
 void simulator_platform_socket_close(int* fd);
+
+#if defined(_WIN32)
+/**
+ * @brief 为 SDL 窗口添加标题栏右键菜单的置顶勾选项，默认开启置顶。
+ * @param[in] sdl_window SDL 窗口指针，菜单随窗口销毁。
+ * @return 安装成功返回 true，失败返回 false。
+ */
+bool simulator_platform_install_topmost_menu(void* sdl_window);
+#endif
 
 void simulator_platform_init_text_io(void);
 void simulator_platform_sleep_ms(unsigned int timeout_ms);

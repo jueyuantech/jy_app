@@ -277,6 +277,17 @@ uint16_t system_config_get_inactivity_timeout(void);
  */
 bool system_config_set_inactivity_timeout(uint16_t inactivity_timeout);
 /**
+ * @brief 获取消息弹窗显示时长。
+ * @return 返回显示时长，单位为秒。
+ */
+uint16_t system_config_get_notification_duration(void);
+/**
+ * @brief 设置消息弹窗显示时长。
+ * @param[in] notification_duration 显示时长，单位为秒。
+ * @return `true` 表示保存成功，`false` 表示保存失败。
+ */
+bool system_config_set_notification_duration(uint16_t notification_duration);
+/**
  * @brief 获取深度休眠超时时间。
  * @return 返回超时时间，单位为秒。
  */
@@ -378,6 +389,14 @@ bool system_factoryreset_execute(void);
 bool system_route_cmd(mpack_node_t node, msg_pack_t* msg);
 
 /**
+ * @brief 按命令表处理手机 ACK/NCK，未登记的回包静默结束。
+ * @param[in] node 回包 data 节点。
+ * @param[in] msg 已解析的回包消息头。
+ * @return `true` 表示回包已消费，`false` 表示参数或处理失败。
+ */
+bool system_handle_ack(mpack_node_t node, msg_pack_t* msg);
+
+/**
  * @brief 处理心跳事件。
  * @return `true` 表示处理成功，`false` 表示处理失败。
  */
@@ -450,6 +469,8 @@ bool system_report_guide_close(void);
 #define SYSTEM_SYS_STATE_TRIGGER_IMU_DOUBLE_TAP       "imuDoubleTap"       ///< IMU 双击触发。
 #define SYSTEM_SYS_STATE_TRIGGER_IMU_HEAD_UP          "imuHeadUp"          ///< IMU 抬头触发。
 #define SYSTEM_SYS_STATE_TRIGGER_IMU_HEAD_DOWN        "imuHeadDown"        ///< IMU 低头触发。
+#define SYSTEM_SYS_STATE_TRIGGER_IMU_ANY_MOTION       "imuAnyMotion"       ///< IMU 检测到运动触发。
+#define SYSTEM_SYS_STATE_TRIGGER_IMU_NO_MOTION        "imuNoMotion"        ///< IMU 检测到静止触发。
 #define SYSTEM_SYS_STATE_TRIGGER_WEAR_ON              "wearOn"             ///< 佩戴检测到戴上触发。
 #define SYSTEM_SYS_STATE_TRIGGER_KEYWORD_SPOTTING     "keywordSpotting"    ///< 关键词唤醒触发。
 #define SYSTEM_SYS_STATE_TRIGGER_INACTIVITY_TIMEOUT   "inactivityTimeout"  ///< 无操作超时触发。
@@ -463,17 +484,24 @@ bool system_report_guide_close(void);
  */
 bool system_report_sys_state(uint8_t state, const char* trigger);
 /**
- * @brief 上报充电状态。
- * @param[in] state 充电状态值。
+ * @brief 上报手机协议的聚合和双侧充电状态。
+ * @param[in] state 最低电量侧的充电状态，0：未充电，1：充电。
+ * @param[in] state_by_side 0：均未充电，1：仅主侧，2：仅从侧，3：双侧充电。
  * @return `true` 表示上报成功，`false` 表示上报失败。
  */
-bool system_report_charge_state(uint8_t state);
+bool system_report_charge_state(uint8_t state, uint8_t state_by_side);
 /**
  * @brief 上报电量信息。
  * @param[in] battery 电量百分比。
  * @return `true` 表示上报成功，`false` 表示上报失败。
  */
 bool system_report_battery(uint32_t battery);
+/**
+ * @brief 上报眼镜盒电量信息。
+ * @param[in] battery 眼镜盒电量百分比。
+ * @return `true` 表示上报成功，`false` 表示上报失败。
+ */
+bool system_report_case_battery(uint8_t battery);
 /**
  * @brief 上报当前屏幕亮度。
  * @param[in] brightness 亮度值，范围 0-255。
@@ -688,6 +716,11 @@ const char* system_get_blename(void);
  * @return 返回应用固件版本字符串。
  */
 const char* system_get_fwver(void);
+/**
+ * @brief 获取当前 ROMFS 系统字库的 MD5 摘要。
+ * @return 成功时返回 32 位小写十六进制摘要，读取或校验失败时返回空字符串。
+ */
+const char* system_get_font_md5(void);
 /**
  * @brief 获取底层系统版本号。
  * @return 返回底层系统版本字符串。

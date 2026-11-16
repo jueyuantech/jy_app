@@ -20,16 +20,24 @@
 #include "common/app_framework/app_router.h"
 #include "common/app_framework/app_stereo.h"
 #include "common/product_app.h"
+#if defined(APP_NAME_FACTORY)
+#include "factory/factory.h"
+#endif
 #include "system/popups/notify/notify.h"
 #include "common/widgets/toast.h"
 #include "system/popups/assistant/assistant.h"
 #include "system/popups/notify_list/notify_list.h"
 #include "app_lcd.h"
+#include "app_def.h"
 #include "sys_adapter.h"
 #include "ui_res.h"
 
 #include <inttypes.h>
 #include <time.h>
+
+/* 未校时 RTC 的缺省日期早于产品有效日期；日历硬件支持到 2099 年。 */
+#define SYSTEM_RTC_VALID_EPOCH_MIN INT64_C(1735689600)  ///< 2025-01-01 00:00:00 UTC。
+#define SYSTEM_RTC_VALID_EPOCH_END INT64_C(4102444800)  ///< 2100-01-01 00:00:00 UTC，不包含。
 
 static lv_obj_t* g_status_bar = NULL;                 ///< app 层当前状态栏对象
 static lv_obj_t* g_bt_disconnect_status_bar = NULL;   ///< 蓝牙断连遮罩层底部状态栏对象
@@ -46,7 +54,7 @@ static bool g_status_bar_left_headset_connected = false;  ///< 最近一次同�
 static bool g_status_bar_right_headset_connected = false; ///< 最近一次同步的右侧耳机附件连接状态。
 static time_t g_status_bar_time_epoch = 0;            ///< 最近一次收到的设备时间戳
 static bool g_status_bar_time_valid = false;          ///< 设备时间戳缓存是否有效
-static bool g_status_bar_time_reliable = false;       ///< 时间是否已通过手机对表确认可靠
+static bool g_status_bar_time_reliable = false;       ///< 时间是否已由手机校时或 RTC 恢复确认可靠
 static bool g_status_bar_time_visible = true;         ///< 当前 App 是否允许状态栏展示时间
 static bool g_status_bar_refresh_pending = false;     ///< 灭屏期间状态栏缓存变化后待亮屏刷新标记
 static bool g_screen_refresh_pending = false;         ///< 等待下一应用刷新周期处理的强制刷屏标记
@@ -84,8 +92,19 @@ bool system_ui_send_progress_hint(const system_progress_hint_param_t* param) {
  * @return `true` 表示允许显示断连遮罩，`false` 表示当前应让前置流程独占页面。
  */
 static bool system_bt_disconnect_overlay_should_show(void) {
+#if defined(APP_NAME_FACTORY)
+    if (factory_aging_is_enabled()) {
+        return false;
+    }
+#endif
+    const char* app_name = assistant_is_open()
+                               ? product_app_role_name(PRODUCT_APP_ROLE_ASSISTANT)
+                               : app_manager_current_name();
+
     return system_config_get_langselection_finish() &&
-           (!system_get_btconn_state() || !app_router_has_app_config());
+           (!system_get_btconn_state() || !app_router_has_app_config()) &&
+           (!PRODUCT_BT_DISCONNECT_POLICY_APP ||
+            product_app_name_has_capability(app_name, PRODUCT_APP_CAP_REQUIRES_PHONE));
 }
 
 /**
@@ -303,7 +322,7 @@ static void system_ui_set_status_bar_time_visible(lv_obj_t* status_bar, bool vis
 }
 
 /**
- * @brief 设置状态栏时间是否已通过手机对表确认可靠。
+ * @brief 设置状态栏时间是否已由手机校时或 RTC 恢复确认可靠。
  * @param[in] reliable `true` 表示时间可靠并允许显示，`false` 表示隐藏时间。
  * @return 无返回值。
  */
@@ -670,19 +689,26 @@ void system_ui_update_headset_state(bool left_connected, bool right_connected) {
 }
 
 /**
- * @brief 获取当前设备时间及手机对时可靠性。
- * @param[out] reliable 时间是否已通过手机对时确认可靠；允许传入 `NULL`。
+ * @brief 获取当前设备时间，认可手机校时或 RTC 恢复的有效时间。
+ * @param[out] reliable 时间是否已由手机校时或 RTC 恢复确认可靠；允许传入 `NULL`。
  * @return 当前设备时间戳。
  */
 time_t system_ui_time_now(bool* reliable) {
+    time_t now;
+#if defined(BUILD_NATIVE) && BUILD_NATIVE
+    now = simulator_system_time_now();
+#else
+    now = time(NULL);
+    /* 固件启动已从 RTC 恢复系统时间，无需再次连接手机才允许显示。 */
+    if ((int64_t)now >= SYSTEM_RTC_VALID_EPOCH_MIN &&
+        (int64_t)now < SYSTEM_RTC_VALID_EPOCH_END) {
+        g_status_bar_time_reliable = true;
+    }
+#endif
     if (reliable != NULL) {
         *reliable = g_status_bar_time_reliable;
     }
-#if defined(BUILD_NATIVE) && BUILD_NATIVE
-    return simulator_system_time_now();
-#else
-    return time(NULL);
-#endif
+    return now;
 }
 
 /**
@@ -695,6 +721,7 @@ bool system_ui_update_time_from_epoch(time_t time_now) {
 
     g_status_bar_time_epoch = time_now;
     g_status_bar_time_valid = true;
+    (void)system_ui_time_now(NULL);
     if (floatair_lcd_get_state() == LCD_OFF) {
         g_status_bar_refresh_pending = true;
         floatair_dbg("time ui update deferred: lcd off");
@@ -739,10 +766,11 @@ void system_ui_flush_pending_after_screen_on(void) {
 }
 
 /**
- * @brief 在蓝牙断连遮罩显示时拦截页面输入事件。
+ * @brief 在蓝牙断连遮罩显示时拦截页面输入事件，按 App 模式支持双击返回。
+ * @param[in] code 归一化后的 LVGL 输入事件码。
  * @return `true` 表示事件已被遮罩吞掉，`false` 表示应继续分发。
  */
-bool system_ui_try_intercept_bt_disconnect_overlay_input(void) {
+bool system_ui_try_intercept_bt_disconnect_overlay_input(lv_event_code_t code) {
     if (!system_config_get_langselection_finish()) {
         return false;
     }
@@ -750,6 +778,13 @@ bool system_ui_try_intercept_bt_disconnect_overlay_input(void) {
         return false;
     }
 
+    if (PRODUCT_BT_DISCONNECT_POLICY_APP && code == LV_EVENT_DCLICKED) {
+        if (assistant_is_open()) {
+            (void)assistant_close(false);
+        } else {
+            (void)app_router_exit_current_app();
+        }
+    }
     floatair_info("bt disconnect overlay intercepted input");
     return true;
 }
@@ -822,7 +857,9 @@ void system_ui_set_bt_disconnect_overlay_visible(bool visible) {
         system_notification_clear();
         toast_dismiss_active();
         (void)notify_list_close();
-        (void)assistant_close(false);
+        if (!PRODUCT_BT_DISCONNECT_POLICY_APP) {
+            (void)assistant_close(false);
+        }
         jyt_dual_screen_set_root_distance((int)distance);
         g_display_level_applied = level;
         system_ui_sync_app_layer_scene();

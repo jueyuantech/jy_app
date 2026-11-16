@@ -615,4 +615,36 @@ void test_label_max_width(void)
     TEST_ASSERT_EQUAL_SCREENSHOT("widgets/label_max_width.png");
 }
 
+void test_label_max_width_includes_border_in_wrap_height(void)
+{
+    const char * text = "No meeting, bring all the news materials and construction personnel without missing a single item.";
+    const lv_font_t * font = lv_obj_get_style_text_font(label, LV_PART_MAIN);
+    int32_t letter_space = lv_obj_get_style_text_letter_space(label, LV_PART_MAIN);
+    int32_t line_space = lv_obj_get_style_text_line_space(label, LV_PART_MAIN);
+    lv_point_t without_border;
+    lv_point_t with_border;
+    int32_t max_width;
+
+    for(max_width = 80; max_width <= 300; max_width++) {
+        lv_text_get_size(&without_border, text, font, letter_space, line_space,
+                         max_width - 32, LV_TEXT_FLAG_NONE);
+        lv_text_get_size(&with_border, text, font, letter_space, line_space,
+                         max_width - 36, LV_TEXT_FLAG_NONE);
+        if(with_border.y > without_border.y) break;
+    }
+    TEST_ASSERT_LESS_OR_EQUAL_INT32(300, max_width);
+
+    lv_label_set_text(label, text);
+    lv_obj_set_style_pad_left(label, 16, LV_PART_MAIN);
+    lv_obj_set_style_pad_right(label, 16, LV_PART_MAIN);
+    lv_obj_set_style_border_width(label, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_side(label, LV_BORDER_SIDE_FULL, LV_PART_MAIN);
+    lv_obj_set_style_max_width(label, max_width, LV_PART_MAIN);
+    lv_obj_update_layout(label);
+
+    lv_text_get_size(&with_border, text, font, letter_space, line_space,
+                     lv_obj_get_content_width(label), LV_TEXT_FLAG_NONE);
+    TEST_ASSERT_EQUAL_INT32(with_border.y, lv_obj_get_content_height(label));
+}
+
 #endif

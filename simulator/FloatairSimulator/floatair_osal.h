@@ -1,3 +1,6 @@
+/**
+ * @brief 模拟器消息队列与本地消息的 OSAL 适配。
+ */
 #pragma once
 #include "floatair_def.h"
 #include "floatair_dbg.h"
@@ -46,13 +49,26 @@ static inline OSAL_MQ_MSG *__linux_osal_waiting_mq_msg(MQ_NAME_ID qid, CpuSpeedR
     return m;
 }
 
+/**
+ * @brief 限时等待系统消息，关闭时退出消息线程。
+ * @param qid 目标消息队列标识。
+ * @param speed CPU 速度请求，模拟器不使用。
+ * @param timeout 等待毫秒数，负数表示无限等待。
+ * @return 成功返回消息，超时或失败返回 NULL；关闭时不返回。
+ */
 static inline OSAL_MQ_MSG *__linux_osal_timeout_waiting_mq_msg(MQ_NAME_ID qid, CpuSpeedReq speed, int timeout)
 {
     (void)qid;
     (void)speed;
     JYT_ELF_MQ_MSG *sysmsg = NULL;
     int r = Waiting4SystemMessageTimeout(&sysmsg, timeout);
-    if (r != (int)sizeof(JYT_ELF_MQ_MSG*) || !sysmsg) return NULL;
+    if (r != (int)sizeof(JYT_ELF_MQ_MSG*) || !sysmsg) {
+        /* 关闭请求必须终止消息线程，普通超时仍返回空消息。 */
+        if (r < 0 && simulator_shutdown_requested()) {
+            pthread_exit(NULL);
+        }
+        return NULL;
+    }
     OSAL_MQ_MSG *m = (OSAL_MQ_MSG *)malloc(sizeof(OSAL_MQ_MSG));
     if (!m) { free(sysmsg); return NULL; }
     m->header.chip = 0;

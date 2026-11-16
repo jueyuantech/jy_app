@@ -1,3 +1,4 @@
+/** @brief 模拟器文件系统适配，提供资源路径及文件访问。 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,13 @@
 #include <limits.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <io.h>
+#else
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 
 #include "../../common/floatair_fs.h"
 #include "../../common/app_def.h"
@@ -18,7 +26,9 @@
 #include <stdlib.h>
 
 typedef struct {
-    FILE* fp;
+    FILE* fp;                 ///< 打开的宿主文件。
+    void *mapped;             ///< 宿主系统持有的只读文件映射。
+    uint32_t mapped_size;     ///< 映射长度，用于关闭时解除映射。
 } fa_file_t;
 
 struct floatair_dir {
@@ -54,9 +64,12 @@ static int fs_stat_path(const char* path, floatair_stat_t* st_out)
 }
 
 #define SYSTEM_ROOT_PATH "/jyt_d"
-#define LVGL_SYSTEM_IMAGES_PATH "/romfs/system/images/"
+#define LVGL_SYSTEM_IMAGES_PATH "/jyt_c/system/images/" ///< JYTC 内置图片目录。
 #define LVGL_SYSTEM_FONT_FILE   "/romfs/system/font/font.ttf" ///< 系统常规文字字体文件。
-#define LVGL_SYSTEM_I18N_PATH   "/romfs/system/i18n"
+#define LVGL_SYSTEM_FONT_BITMAP_FILE "/romfs/system/font/font.bin" ///< 系统点阵字库文件 (font_type=bitmap)。
+#define LVGL_SYSTEM_FONT_BITMAP_DIR "/romfs/system/font/" ///< 点阵字库目录，多字号字库存放于此。
+#define LVGL_SYSTEM_FONT_MD5_FILE "/romfs/system/font/font.md5" ///< 系统常规文字字体的 MD5 摘要文件。
+#define LVGL_SYSTEM_I18N_PATH   "/jyt_c/system/i18n" ///< JYTC 多语言资源目录。
 #define SYSTEM_CONFIG_FILE "/jyt_d/system/config.json"
 #define SIMULATOR_LFSD_CAPACITY_BYTES (6U * 1024U * 1024U) ///< 模拟器中 LFSD 分区的模拟总容量。
 
@@ -68,7 +81,7 @@ static void to_host_path(const char* in, char* out, size_t outsz)
     char exe_path[SYSTEM_MAX_PATH_LEN];
     simulator_platform_get_executable_dir(exe_path, sizeof(exe_path));
 
-    if (strncmp(in, "/jyt_d", 6) == 0 || strncmp(in, "/romfs", 6) == 0) {
+    if (strncmp(in, "/jyt_d", 6) == 0 || strncmp(in, "/jyt_c", 6) == 0 || strncmp(in, "/romfs", 6) == 0) {
         snprintf(out, outsz, "%s%s", exe_path, in);
     } else {
         strncpy(out, in, outsz - 1);
@@ -80,7 +93,7 @@ static void to_host_path(const char* in, char* out, size_t outsz)
     }
     
     if (out[0] == '\0') {
-        if (strncmp(in, "/jyt_d", 6) == 0 || strncmp(in, "/romfs", 6) == 0) {
+        if (strncmp(in, "/jyt_d", 6) == 0 || strncmp(in, "/jyt_c", 6) == 0 || strncmp(in, "/romfs", 6) == 0) {
             snprintf(out, outsz, ".%s", in);
         } else {
             strncpy(out, in, outsz - 1);
@@ -102,7 +115,34 @@ const char *floatair_fs_get_system_images_path(void)
 
 const char *floatair_fs_get_system_font_file(void)
 {
+#if PRODUCT_FONT_TYPE_BITMAP
+    return LVGL_SYSTEM_FONT_BITMAP_FILE;
+#else
     return LVGL_SYSTEM_FONT_FILE;
+#endif
+}
+
+const char *floatair_fs_get_system_font_bitmap_file(void)
+{
+    return LVGL_SYSTEM_FONT_BITMAP_FILE;
+}
+
+bool floatair_fs_get_system_font_bitmap_file_for_size(int32_t size, char *buf, size_t bufsz)
+{
+    if (buf == NULL || bufsz == 0 || size <= 0) {
+        return false;
+    }
+    int n = snprintf(buf, bufsz, "%sfont_%" PRId32 ".bin", LVGL_SYSTEM_FONT_BITMAP_DIR, size);
+    return n > 0 && (size_t)n < bufsz;
+}
+
+/**
+ * @brief 获取系统字库 MD5 摘要文件路径。
+ * @return 返回模拟器 ROMFS 中的字库摘要路径。
+ */
+const char *floatair_fs_get_system_font_md5_file(void)
+{
+    return LVGL_SYSTEM_FONT_MD5_FILE;
 }
 
 const char *floatair_fs_get_system_i18n_path(void)
@@ -180,7 +220,53 @@ void* floatair_fs_open(const char* path_in, uint32_t mode) {
         return NULL;
     }
     h->fp = fp;
+    h->mapped = NULL;
+    h->mapped_size = 0;
     return h;
+}
+
+/**
+ * @brief 使用宿主只读文件映射模拟 ROMFS 零拷贝，关闭文件时解除映射。
+ * @param[in] handle 只读文件句柄。
+ * @param[out] data 文件映射起始地址。
+ * @param[out] size 文件字节数。
+ * @return 成功返回 FLOATAIR_FS_OK，映射失败返回错误码。
+ */
+int floatair_fs_map_readonly(void *handle, const void **data, uint32_t *size) {
+    if (!data || !size) return FLOATAIR_FS_ERR_PARAM;
+    *data = NULL;
+    *size = 0;
+    if (!handle) return FLOATAIR_FS_ERR_PARAM;
+    fa_file_t *h = (fa_file_t *)handle;
+    if (!h->mapped) {
+#ifdef _WIN32
+        HANDLE file = (HANDLE)_get_osfhandle(_fileno(h->fp));
+        LARGE_INTEGER length;
+        if (file == INVALID_HANDLE_VALUE || !GetFileSizeEx(file, &length) ||
+            length.QuadPart <= 0 || (uint64_t)length.QuadPart > UINT32_MAX) {
+            return FLOATAIR_FS_ERR_IO;
+        }
+        HANDLE mapping = CreateFileMappingW(file, NULL, PAGE_READONLY, 0, 0, NULL);
+        if (!mapping) return FLOATAIR_FS_ERR_IO;
+        void *mapped = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+        CloseHandle(mapping);
+        if (!mapped) return FLOATAIR_FS_ERR_IO;
+        h->mapped_size = (uint32_t)length.QuadPart;
+#else
+        struct stat st;
+        if (fstat(fileno(h->fp), &st) < 0 || !S_ISREG(st.st_mode) ||
+            st.st_size <= 0 || (uint64_t)st.st_size > UINT32_MAX) {
+            return FLOATAIR_FS_ERR_IO;
+        }
+        void *mapped = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_PRIVATE, fileno(h->fp), 0);
+        if (mapped == MAP_FAILED) return FLOATAIR_FS_ERR_IO;
+        h->mapped_size = (uint32_t)st.st_size;
+#endif
+        h->mapped = mapped;
+    }
+    *data = h->mapped;
+    *size = h->mapped_size;
+    return FLOATAIR_FS_OK;
 }
 
 int floatair_fs_read(void* handle, void* buf, uint32_t btr, uint32_t* br) {
@@ -242,9 +328,17 @@ int floatair_fs_sync(void* handle) {
 int floatair_fs_close(void* handle) {
     if (!handle) return FLOATAIR_FS_ERR_PARAM;
     fa_file_t* h = (fa_file_t*)handle;
+    int map_result = 0;
+    if (h->mapped) {
+#ifdef _WIN32
+        if (!UnmapViewOfFile(h->mapped)) map_result = -1;
+#else
+        map_result = munmap(h->mapped, h->mapped_size);
+#endif
+    }
     int r = fclose(h->fp);
     free(h);
-    if (r != 0) {
+    if (r != 0 || map_result != 0) {
         return FLOATAIR_FS_ERR_IO;
     }
     return FLOATAIR_FS_OK;

@@ -18,6 +18,7 @@
 #include "common/guide_runtime.h"
 #if defined(APP_NAME_HOME)
 #include "home/home.h"
+#include "home/home_guide.h"
 #endif
 #include "product_app.h"
 #include "system/system.h"
@@ -227,6 +228,7 @@ static bool system_systemcontrol_closeguide(mpack_node_t node, msg_pack_t* msg) 
     }
 #if defined(APP_NAME_HOME)
     home_view_reset_selection();
+    home_guide_show_message_notify(app_get_str("BOOT_GUIDE_NOTIFY_SKIPPED"));
 #endif
     (void)system_report_view_change(home_app);
     return app_mpack_send_ack(msg, Dp_ErrNone);

@@ -58,6 +58,12 @@ bool system_touch_event_convert(uint8_t event);
  */
 bool system_imu_event_convert_to_touch(uint8_t event);
 /**
+ * @brief 按静态检测配置处理 IMU 运动/静止事件并控制亮灭屏。
+ * @param[in] event `SET_IMU_ANY_MOTION` 或 `SET_IMU_NO_MOTION`。
+ * @return `true` 表示事件已处理，`false` 表示事件类型无效。
+ */
+bool system_update_imu_motion(uint16_t event);
+/**
  * @brief 将 IMU 抬头/低头事件直接映射为系统亮灭屏。
  * @param[in] msg IMU 方向消息。
  * @return `true` 表示事件已处理，`false` 表示处理失败。

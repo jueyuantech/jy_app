@@ -25,6 +25,23 @@ extern "C" {
  *      TYPEDEFS
  **********************/
 
+/**
+ * BiDi 视觉 run，记录原始文本中的字节范围和该 run 的基础方向。
+ */
+typedef struct {
+    uint32_t byte_start;      /**< run 在原始行文本中的起始字节位置 */
+    uint32_t byte_len;        /**< run 的字节长度 */
+    lv_base_dir_t base_dir;   /**< run 的绘制方向 */
+} lv_bidi_visual_run_t;
+
+/**
+ * BiDi 视觉 run 列表，runs 由调用方通过 lv_bidi_visual_runs_destroy 释放。
+ */
+typedef struct {
+    lv_bidi_visual_run_t * runs; /**< 按视觉顺序排列的 run 数组 */
+    uint32_t run_count;          /**< run 数量 */
+} lv_bidi_visual_runs_t;
+
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
@@ -87,6 +104,23 @@ uint16_t lv_bidi_get_visual_pos(const char * str_in, char ** bidi_txt, uint16_t 
  */
 void lv_bidi_process_paragraph(const char * str_in, char * str_out, uint32_t len, lv_base_dir_t base_dir,
                                uint16_t * pos_conv_out, uint16_t pos_conv_len);
+
+/**
+ * 获取一行文本的 BiDi 视觉 run 列表，run 内仍保持原始逻辑顺序。
+ * @param str_in 输入行文本
+ * @param len 行文本字节长度
+ * @param base_dir 基础方向
+ * @param runs_out 输出视觉 run 列表
+ * @return 成功返回 true，否则返回 false
+ */
+bool lv_bidi_get_visual_runs(const char * str_in, uint32_t len, lv_base_dir_t base_dir,
+                             lv_bidi_visual_runs_t * runs_out);
+
+/**
+ * 释放 lv_bidi_get_visual_runs 创建的 run 列表。
+ * @param runs 待释放的 run 列表
+ */
+void lv_bidi_visual_runs_destroy(lv_bidi_visual_runs_t * runs);
 
 /**********************
  *      MACROS

@@ -1,6 +1,11 @@
 include_guard(GLOBAL)
 
 function(jy_app_configure_arm_target target_name)
+    get_filename_component(_arm_bin "${CMAKE_C_COMPILER}" DIRECTORY)
+    find_program(JY_APP_OBJCOPY NAMES "${TOOLCHAIN_PREFIX}objcopy" HINTS "${_arm_bin}")
+    if(NOT JY_APP_OBJCOPY)
+        message(FATAL_ERROR "ARM objcopy is required to create the device ELF")
+    endif()
     target_compile_options(${target_name} PRIVATE ${PLATFORM_COMPILE_OPTIONS})
     target_link_options(${target_name} PRIVATE ${PLATFORM_LINK_OPTIONS})
 
@@ -16,23 +21,58 @@ function(jy_app_configure_arm_target target_name)
         endif()
     endforeach()
 
-    # Regenerate filesystem images when KWS resources change even if no C source changed.
-    set_property(TARGET ${target_name} APPEND PROPERTY LINK_DEPENDS
+    set(_font_md5_script "${PROJECT_ROOT}/scripts/write_font_md5.py")
+    set(_bitmap_font_script "${PROJECT_ROOT}/scripts/generate_bitmap_font.py")
+    set(_staging_font_dir "${CMAKE_CURRENT_BINARY_DIR}/romfs_staging/system/font")
+
+    # Regenerate filesystem images when the packer, fonts, hash generator, or KWS resources change.
+    set(_font_link_depends
+        "${PROJECT_ROOT}/scripts/fs_img.py"
         "${_left_kws_firmware}"
         "${_left_kws_model}"
+        "${PROJECT_ROOT}/romfs/system/font/font.ttf"
+        "${_font_md5_script}"
     )
+    if(JY_APP_FONT_TYPE STREQUAL "bitmap")
+        list(APPEND _font_link_depends "${_bitmap_font_script}")
+    endif()
+    set_property(TARGET ${target_name} APPEND PROPERTY LINK_DEPENDS ${_font_link_depends})
+
+    if(JY_APP_FONT_TYPE STREQUAL "bitmap")
+        # 单基准字号点阵字库：生成 font.bin，运行时按目标字号缩放渲染。
+        set(_font_staging_file "${_staging_font_dir}/font.bin")
+        set(_font_prepare_cmds
+            COMMAND "${Python3_EXECUTABLE}" "${_bitmap_font_script}"
+                    --font "${PROJECT_ROOT}/romfs/system/font/font.ttf"
+                    --output "${_font_staging_file}"
+                    --size "${JY_APP_BITMAP_FONT_SIZE}"
+                    --bpp "${JY_APP_BITMAP_BPP}"
+        )
+        set(_font_md5_args --font "${_font_staging_file}")
+    else()
+        set(_font_staging_file "${_staging_font_dir}/font.ttf")
+        set(_font_prepare_cmds
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${PROJECT_ROOT}/romfs/system/font/font.ttf"
+                    "${_font_staging_file}"
+        )
+        set(_font_md5_args --font "${_font_staging_file}")
+    endif()
 
     add_custom_command(TARGET ${target_name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/romfs_staging"
         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/left_romfs_staging"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${PROJECT_ROOT}/romfs"
-                "${CMAKE_CURRENT_BINARY_DIR}/romfs_staging"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_staging_font_dir}"
+        ${_font_prepare_cmds}
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 "${JY_APP_LEFT_ROMFS_DIR}"
                 "${CMAKE_CURRENT_BINARY_DIR}/left_romfs_staging"
+        COMMAND "${Python3_EXECUTABLE}" "${_font_md5_script}"
+                ${_font_md5_args}
         COMMAND "${Python3_EXECUTABLE}" "${PROJECT_ROOT}/scripts/fs_img.py"
                 --source "$<TARGET_FILE:${target_name}>"
+                --objcopy "${JY_APP_OBJCOPY}"
+                --app-version "${JY_APP_VERSION_STRING}"
                 --romfs-dir "${CMAKE_CURRENT_BINARY_DIR}/romfs_staging"
                 --left-romfs-dir "${CMAKE_CURRENT_BINARY_DIR}/left_romfs_staging"
                 --symbol-file "${JY_APP_OS_SDK_FLOATAIR_DIR}/SymbolTable.def"
@@ -42,33 +82,71 @@ function(jy_app_configure_arm_target target_name)
 endfunction()
 
 function(jy_app_configure_simulator_target target_name)
+
+    set(_font_md5_script "${PROJECT_ROOT}/scripts/write_font_md5.py")
+    set(_bitmap_font_script "${PROJECT_ROOT}/scripts/generate_bitmap_font.py")
+    set(_sim_font_dir "${CMAKE_BINARY_DIR}/romfs/system/font")
+
+    set(_sim_font_depends
+        "${PROJECT_ROOT}/romfs/system/font/font.ttf"
+        "${_font_md5_script}"
+    )
+    if(JY_APP_FONT_TYPE STREQUAL "bitmap")
+        list(APPEND _sim_font_depends "${_bitmap_font_script}")
+    endif()
+    set_property(TARGET ${target_name} APPEND PROPERTY LINK_DEPENDS ${_sim_font_depends})
+
+    if(JY_APP_FONT_TYPE STREQUAL "bitmap")
+        # 单基准字号点阵字库：生成 font.bin，运行时按目标字号缩放渲染。
+        set(_sim_font_file "${_sim_font_dir}/font.bin")
+        set(_sim_font_prepare_cmds
+            COMMAND "${Python3_EXECUTABLE}" "${_bitmap_font_script}"
+                    --font "${PROJECT_ROOT}/romfs/system/font/font.ttf"
+                    --output "${_sim_font_file}"
+                    --size "${JY_APP_BITMAP_FONT_SIZE}"
+                    --bpp "${JY_APP_BITMAP_BPP}"
+        )
+        set(_sim_font_md5_args --font "${_sim_font_file}")
+    else()
+        set(_sim_font_file "${_sim_font_dir}/font.ttf")
+        set(_sim_font_prepare_cmds
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${PROJECT_ROOT}/romfs/system/font/font.ttf"
+                    "${_sim_font_file}"
+        )
+        set(_sim_font_md5_args --font "${_sim_font_file}")
+    endif()
+
     target_compile_options(${target_name} PRIVATE ${PLATFORM_COMPILE_OPTIONS})
     target_link_options(${target_name} PRIVATE ${PLATFORM_LINK_OPTIONS})
 
-    if(SIMULATOR_USE_PKG_CONFIG_SDL2)
-        find_package(PkgConfig QUIET)
-        if(NOT PkgConfig_FOUND)
-            message(FATAL_ERROR "pkg-config is required for the Linux x86 SDL2 build.")
-        endif()
-
+    # 三端模拟器统一从固定版本源码构建 SDL2 静态库。
+    set(SDL_SHARED OFF CACHE BOOL "Build SDL2 shared library" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "Build SDL2 static library" FORCE)
+    set(SDL_TEST OFF CACHE BOOL "Build SDL2 test library" FORCE)
+    set(SDL_TESTS OFF CACHE BOOL "Build SDL2 tests" FORCE)
+    set(SDL2_DISABLE_INSTALL ON CACHE BOOL "Disable SDL2 SDK installation" FORCE)
+    if(JY_APP_TARGET_PLATFORM STREQUAL "linux" AND "-m32" IN_LIST PLATFORM_COMPILE_OPTIONS)
         set(_saved_pkg_config_libdir "$ENV{PKG_CONFIG_LIBDIR}")
-        if(LINUX_X86_SDL2_PATH)
-            set(ENV{PKG_CONFIG_LIBDIR} "${LINUX_X86_SDL2_PATH}")
-        endif()
-        pkg_check_modules(SIMULATOR_PKG_SDL2 REQUIRED sdl2)
+        set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig")
+    endif()
+    add_subdirectory("${PROJECT_ROOT}/thirdparty/SDL2"
+                     "${CMAKE_BINARY_DIR}/thirdparty/SDL2" EXCLUDE_FROM_ALL)
+    if(JY_APP_TARGET_PLATFORM STREQUAL "linux")
+        # SDL 静态库需兼容 Linux 默认的 PIE 可执行文件链接。
+        set_target_properties(SDL2-static PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    endif()
+    if(JY_APP_TARGET_PLATFORM STREQUAL "macos")
+        # SDL2 的旧 macOS API 弃用提示仅在第三方目标中关闭。
+        target_compile_options(SDL2-static PRIVATE -Wno-deprecated-declarations)
+    endif()
+    if(JY_APP_TARGET_PLATFORM STREQUAL "msvc" AND
+       CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        # SDL2 上游源码采用 UTF-8，避免 cl 按系统代码页读取。
+        target_compile_options(SDL2-static PRIVATE /utf-8)
+    endif()
+    if(DEFINED _saved_pkg_config_libdir)
         set(ENV{PKG_CONFIG_LIBDIR} "${_saved_pkg_config_libdir}")
-        unset(_saved_pkg_config_libdir)
-
-        target_include_directories(${target_name} PRIVATE ${SIMULATOR_PKG_SDL2_INCLUDE_DIRS})
-        target_compile_options(${target_name} PRIVATE ${SIMULATOR_PKG_SDL2_CFLAGS_OTHER})
-        set(SIMULATOR_SDL_LIBS ${SIMULATOR_PKG_SDL2_LDFLAGS})
-    else()
-        find_package(SDL2 REQUIRED)
-        target_include_directories(${target_name} PRIVATE ${SDL2_INCLUDE_DIRS})
-        set(SIMULATOR_SDL_LIBS ${SDL2_LIBRARIES})
-        if(TARGET SDL2::SDL2)
-            set(SIMULATOR_SDL_LIBS SDL2::SDL2)
-        endif()
     endif()
 
     set(SIMULATOR_THREAD_LIBS)
@@ -77,60 +155,44 @@ function(jy_app_configure_simulator_target target_name)
         set(SIMULATOR_THREAD_LIBS Threads::Threads)
     endif()
 
+    target_link_libraries(jy_lvgl PRIVATE SDL2::SDL2-static)
     target_link_libraries(${target_name} PRIVATE
-        ${SIMULATOR_SDL_LIBS}
+        SDL2::SDL2-static
         ${SIMULATOR_THREAD_LIBS}
         ${PLATFORM_LINK_LIBS}
     )
 
     if(MSVC)
         target_compile_options(${target_name} PRIVATE /FImsvc_compat.h)
+        target_compile_options(jy_lvgl PRIVATE /FImsvc_compat.h)
     elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
         target_compile_options(${target_name} PRIVATE -include time.h)
-    endif()
-
-    set(LV_TINY_TTF_SOURCE "${LVGL_DIR}/src/libs/tiny_ttf/lv_tiny_ttf.c")
-    if(EXISTS "${LV_TINY_TTF_SOURCE}" AND
-            (CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang"))
-        set_source_files_properties("${LV_TINY_TTF_SOURCE}" PROPERTIES COMPILE_FLAGS "-Wno-format")
-    endif()
-
-    set(LV_FS_CBFS_SOURCE "${LVGL_DIR}/src/libs/fsdrv/lv_fs_cbfs.c")
-    if(EXISTS "${LV_FS_CBFS_SOURCE}" AND CMAKE_C_COMPILER_ID MATCHES "Clang")
-        set_source_files_properties("${LV_FS_CBFS_SOURCE}" PROPERTIES COMPILE_FLAGS "-Wno-unused-function")
+        target_compile_options(jy_lvgl PRIVATE -include time.h)
     endif()
 
     add_custom_command(TARGET ${target_name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/jyt_d"
         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/romfs"
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/jyt_c"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/jyt_d"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_sim_font_dir}"
+        ${_sim_font_prepare_cmds}
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${PROJECT_ROOT}/romfs"
-                "${CMAKE_BINARY_DIR}/romfs"
-        COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/romfs/lfsd"
+                "${PROJECT_ROOT}/lfsc/system"
+                "${CMAKE_BINARY_DIR}/jyt_c/system"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 "${PROJECT_ROOT}/lfsd"
-                "${CMAKE_BINARY_DIR}/romfs/lfsd"
+                "${CMAKE_BINARY_DIR}/jyt_c/lfsd"
+        COMMAND "${Python3_EXECUTABLE}" "${_font_md5_script}"
+                ${_sim_font_md5_args}
         COMMAND "${Python3_EXECUTABLE}" "${PROJECT_ROOT}/scripts/StringPool.py"
                 --csv "${PROJECT_ROOT}/StringPool.csv"
-                --json-out "${CMAKE_BINARY_DIR}/romfs/system/i18n"
+                --json-out "${CMAKE_BINARY_DIR}/jyt_c/system/i18n"
     )
 
     set(SIMULATOR_INSTALL_RUNTIME_FILES)
 
     if(JY_APP_TARGET_PLATFORM STREQUAL "mingw")
-        if(TARGET SDL2::SDL2)
-            add_custom_command(TARGET ${target_name} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "$<TARGET_FILE:SDL2::SDL2>"
-                        "$<TARGET_FILE_DIR:${target_name}>/SDL2.dll"
-            )
-            get_target_property(_sdl2_runtime_path SDL2::SDL2 IMPORTED_LOCATION)
-            if(_sdl2_runtime_path)
-                list(APPEND SIMULATOR_INSTALL_RUNTIME_FILES "${_sdl2_runtime_path}")
-            endif()
-            unset(_sdl2_runtime_path)
-        endif()
 
         get_filename_component(_mingw_bin_dir "${CMAKE_C_COMPILER}" DIRECTORY)
         get_filename_component(_mingw_compiler_name "${CMAKE_C_COMPILER}" NAME)
@@ -231,19 +293,6 @@ function(jy_app_configure_simulator_target target_name)
         unset(_mingw_target_triple)
         unset(_mingw_compiler_name)
         unset(_mingw_bin_dir)
-    elseif(JY_APP_TARGET_PLATFORM STREQUAL "msvc")
-        if(TARGET SDL2::SDL2)
-            add_custom_command(TARGET ${target_name} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "$<TARGET_FILE:SDL2::SDL2>"
-                        "$<TARGET_FILE_DIR:${target_name}>/SDL2.dll"
-            )
-            get_target_property(_sdl2_runtime_path SDL2::SDL2 IMPORTED_LOCATION)
-            if(_sdl2_runtime_path)
-                list(APPEND SIMULATOR_INSTALL_RUNTIME_FILES "${_sdl2_runtime_path}")
-            endif()
-            unset(_sdl2_runtime_path)
-        endif()
     endif()
 
     install(TARGETS ${target_name}
@@ -251,6 +300,9 @@ function(jy_app_configure_simulator_target target_name)
     )
     install(DIRECTORY "${CMAKE_BINARY_DIR}/jyt_d/"
         DESTINATION "jyt_d"
+    )
+    install(DIRECTORY "${CMAKE_BINARY_DIR}/jyt_c/"
+        DESTINATION "jyt_c"
     )
     install(DIRECTORY "${CMAKE_BINARY_DIR}/romfs/"
         DESTINATION "romfs"

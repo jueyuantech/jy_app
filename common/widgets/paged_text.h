@@ -34,6 +34,13 @@ typedef enum {
     PAGED_TEXT_STEP_VIEW_PERCENT,    ///< 按可视高度百分比滚动。
 } paged_text_step_mode_t;
 
+/** @brief 连续滚动一次步进的处理结果。 */
+typedef enum {
+    PAGED_TEXT_SCROLL_ERROR = -1, ///< 组件无效或文本窗口分配失败，可稍后重试。
+    PAGED_TEXT_SCROLL_END = 0,    ///< 已到文末，无需继续驱动。
+    PAGED_TEXT_SCROLL_ACTIVE = 1, ///< 尚有正文可继续滚动。
+} paged_text_scroll_result_t;
+
 /**
  * @brief 分页文本高亮窗口配置。
  */
@@ -166,6 +173,18 @@ bool paged_text_page_up(paged_text_t* paged_text);
  * @return `true` 表示滚动位置发生变化。
  */
 bool paged_text_page_down(paged_text_t* paged_text);
+
+/**
+ * @brief 从当前页内位置向前连续滚动，只渲染当前页及后两页的小文本窗口。
+ *
+ * 调用方按实际经过时间换算像素步进；停止调用即可暂停，继续调用保持当前位置。
+ * 手动翻页、切换源文本或重新排版会重置页内滚动位置。
+ *
+ * @param paged_text 目标组件句柄。
+ * @param pixels 本次向上移动的像素数；0 仅准备窗口并检查是否到达文末。
+ * @return 返回仍可滚动、到达文末或窗口准备失败的状态。
+ */
+paged_text_scroll_result_t paged_text_scroll_forward(paged_text_t* paged_text, uint32_t pixels);
 
 /**
  * @brief 跳转到指定页索引。

@@ -1,11 +1,15 @@
 <div align="center">
   <a href="https://www.floatairos.com">
+    <img src="images/logo.png" alt="JYtek" width="120">
+  </a>
+  <br>
+  <a href="https://www.floatairos.com">
     <img src="images/floatair.png" alt="Floatair" width="320">
   </a>
 
   <h1>Floatair</h1>
 
-  <p><strong>智能眼镜固件应用层</strong></p>
+  <p><strong>JY 智能眼镜固件应用层</strong></p>
   <p>Protocol Runtime · System Services · UI Infrastructure · Simulator · Firmware Delivery</p>
 
   <p>
@@ -59,8 +63,9 @@ Floatair 提供桌面模拟器用于页面开发、状态验证和输入事件�
 
 `scripts/package.*` 生成的 `.7z` 烧录包可直接交给 JY 烧录工具使用：
 
-- 加载 `.7z` 固件包，刷新串口。
-- 通过面板日志、进度条和 `重试` / `中断` 按钮处理烧录过程；点击 `关于->帮助` 查看完整说明。
+- 加载 `.7z` 固件包，刷新串口，并在左侧设备 / 右侧设备面板中选择对应 COM 口。
+- 烧录前必须确认左右串口没有选反；选反会导致眼镜显示 `LR ERROR`。
+- 通过面板日志、进度条和 `重试` / `中断` 按钮处理烧录过程；点击 `使用说明` 查看完整说明。
 
 <p align="center">
   <img src="images/jy_burn_cn.png" alt="JY 烧录工具" width="640">
@@ -95,8 +100,8 @@ Floatair 提供桌面模拟器用于页面开发、状态验证和输入事件�
 | `bes28/` | ARM 固件侧平台适配入口 |
 | `simulator/FloatairSimulator/` | 桌面模拟器平台适配、构建脚本和运行入口 |
 | `scripts/` | 文件系统镜像、资源生成、字符串池、发布等脚本 |
-| `lfsd/` | 模拟器和打包流程使用的可写资源目录 |
-| `romfs/` | 固件只读资源目录 |
+| `lfsd/` | 默认配置模板源目录 |
+| `romfs/` | 系统 TTF 字体目录 |
 | `lvgl/` | LVGL 图形库 |
 | `thirdparty/` | 第三方库，例如 `mpack`、`cJSON`、`i18n` |
 | `images/` | LVGL 图片资源源码 |
@@ -174,6 +179,7 @@ CMake 模块按职责拆分：
 Overlay 清理会清空根目录 `lfsd/`，随后把当前产品的 `lfsd/` 完整复制到根目录。切换产品时必须执行该同步流程，避免保留上一个产品的文件。修改通用 LFSD 资源时，需要同步更新所有使用该资源的产品目录。
 
 每个 Speech 逻辑 App 的配置独立保存在 `products/<product>/lfsd/apps/<app>/config.json`；多个 Speech 入口之间不得再共用 `apps/speech/config.json`。
+其中 `borderedstt` 控制 STT 正文是否按消息 `area` 左右排列带框气泡；未配置或为 `false` 时保持无框正文布局。
 
 每个 `products/<product>/product.json` 使用正向清单声明参与构建的 App 模块、逻辑 App 的 name/msgid、公共角色和能力。构建只收集清单中的 `apps/<app>/`，并在构建目录生成身份定义和注册表；未列入清单的 App 目录不会参与源码或 UI 编译。
 
@@ -188,6 +194,8 @@ Overlay 清理会清空根目录 `lfsd/`，随后把当前产品的 `lfsd/` 完�
 | `schema_version` | 是 | 清单格式版本，目前只支持 `1`。 |
 | `product` | 是 | 产品名，必须与 `products/<product>/` 的目录名完全一致，只能包含字母、数字、下划线和连字符。 |
 | `status_bar_headset` | 否 | 是否启用状态栏耳机附件显示，默认为 `false`；启用后按左耳、右耳和双耳连接状态显示三态图。 |
+| `bt_disconnect_policy` | 否 | 蓝牙待连接拦截范围：`global`（默认，全局遮罩）或 `app`（仅拦截声明 `requires_phone` 的 App）。与选择遮罩样式的 `system_bt_disconnect_overlay` 相互独立。 |
+| `home_view` | 否 | Home 菜单切换方式：省略、`1` 或 `"1"` 为静态切换，`2` 或 `"2"` 为图标滑动。仅 `jytek` 启用滑动，共用现有菜单、路由与引导逻辑。 |
 | `home_status_bar_position` | 否 | Home 状态栏位置：`bottom`（默认）或 `top`。 |
 | `home_guide_step2_mode` | 否 | Home 开机引导第二步演示 App 与语言栏：`translate`（默认，翻译双语言）、`transcribe`（转写单语言）或 `hidden`（翻译且隐藏语言栏）。 |
 | `common_modules` | 否 | 参与编译的共享实现目录列表，对应 `apps/common/<module>/`。未声明时默认为空。 |
@@ -227,6 +235,7 @@ Overlay 清理会清空根目录 `lfsd/`，随后把当前产品的 `lfsd/` 完�
 
 | 值 | 含义 |
 | --- | --- |
+| `requires_phone` | 依赖手机连接；`bt_disconnect_policy=app` 时，未连接或尚无可用平台配置（含产品默认平台）时显示待连接遮罩。未声明的 App 可离线使用。 |
 | `upload_progress` | 支持显示上传进度。 |
 | `assistant_open_blocked` | 当前 App 页面阻止打开 Assistant。 |
 | `display_position` | 按显示位置同时搬移 App 页面和 `app_float` 浮层。 |
@@ -276,10 +285,10 @@ ARM 和模拟器构建都需要使用 OS 仓导出的 OS SDK 包。直接调用 
 
 模拟器支持 Linux、macOS、Windows MinGW 和 Windows MSVC。构建后会准备运行时资源：
 
-1. 复制 `lfsd/` 到构建目录的 `jyt_d/`。
-2. 复制 `romfs/`。
+1. 创建空的 `jyt_d/`，用于用户配置和缓存。
+2. 复制 `romfs/` 字体和 `lfsc/system/` 静态资源，后者放入 `jyt_c/system/`；默认配置及多语言 JSON 也放入 `jyt_c/`。
 3. 调用 `scripts/StringPool.py` 生成多语言 JSON。
-4. 安装时带上模拟器可执行文件、`simulator_socket.conf`、事件面板、`jyt_d/`、`romfs/` 和 Windows 运行时 DLL。
+4. 安装时带上模拟器可执行文件、`simulator_socket.conf`、事件面板、`jyt_c/`、`jyt_d/`、`romfs/` 和 Windows 运行时 DLL。
 
 模拟器详细构建、运行、ADB 转发和事件面板说明请看 [FloatairSimulator_cn.md](FloatairSimulator_cn.md)。
 
@@ -306,9 +315,9 @@ map(2) {
 
 - 图片资源主要放在 `images/`，以 LVGL 可用的 C 源码形式参与构建。
 - `StringPool.csv` 是多语言字符串池输入。
-- 模拟器构建会把字符串池转换成 JSON 并放入 `jyt_d/system/i18n`。
-- `romfs/` 用于固件只读资源。
-- `lfsd/` 用于模拟器和 littlefs 可写资源。
+- 模拟器构建会把字符串池转换成 JSON 并放入 `jyt_c/system/i18n`。
+- `romfs/` 仅保存系统 TTF；其他静态资源随 App 打包至 `/jyt_c`。
+- `lfsd/` 提供打包至 `/jyt_c/lfsd` 的默认配置模板。
 
 ## 开发建议
 

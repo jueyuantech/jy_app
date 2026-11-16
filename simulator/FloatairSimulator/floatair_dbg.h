@@ -40,7 +40,7 @@ const char* app_router_get_app(void);
  */
 static inline FILE* floatair_log_open_file(void) {
     char exe_dir[FLOATAIR_SIMULATOR_LOG_PATH_MAX] = {0};
-    char log_path[FLOATAIR_SIMULATOR_LOG_PATH_MAX] = {0};
+    char log_path[FLOATAIR_SIMULATOR_LOG_PATH_MAX + sizeof(FLOATAIR_SIMULATOR_LOG_FILE)] = {0};
 
     simulator_platform_get_executable_dir(exe_dir, sizeof(exe_dir));
     if (exe_dir[0] != '\0') {

@@ -14,9 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(CONFIG_RPMSG_TTF_CLIENT)
-#include <malloc.h>
-#endif
 
 /* 导入 LVGL 头文件和自定义配置 */
 #include "floatair_dbg.h"
@@ -36,6 +33,7 @@
 #include "system/system_runtime_ui.h"
 
 #include <lvgl/lvgl.h>
+#include <lvgl/src/core/lv_refr_private.h>
 
 jyt_section_data_t g_section_data = {0};
 bt_info g_bt_info                 = {0};
@@ -173,12 +171,8 @@ static void floatair_call_minute_cbs(void) {
 }
 
 static void app_msg_handle(OSAL_MQ_MSG* msg) {
-    uint32_t msg_start_time_us = (uint32_t)GetTimeUs();
     JYT_ELF_MQ_MSG* p_que_data = NULL;
     bool handle_ret = false;
-    uint8_t msg_type = 0;
-    uint16_t event_type = 0;
-    uint16_t payload_len = 0;
 
     if (msg == NULL) {
         return;
@@ -186,9 +180,6 @@ static void app_msg_handle(OSAL_MQ_MSG* msg) {
     if (msg->header.id == LMID_ELFMSG_WRAP) {
         p_que_data = (JYT_ELF_MQ_MSG*)(msg->pdu.ptr[0]);
         if (p_que_data) {
-            msg_type = p_que_data->Header.msg_type;
-            event_type = p_que_data->Header.event_type;
-            payload_len = p_que_data->payload_len;
             floatair_log_elf_queue_msg_preview("recv elf wrap", p_que_data);
             switch (p_que_data->Header.msg_type) {
                 case EMT_HOST_MPACK_MSG: {
@@ -243,34 +234,14 @@ static void app_msg_handle(OSAL_MQ_MSG* msg) {
         free(p_que_data);
     }
     OSAL_DELETE_MQ_MSG(msg);
-    {
-        uint32_t msg_cost_us = (uint32_t)GetTimeUs() - msg_start_time_us;
-        floatair_info("app msg recv cost %lu us/%lu ms, handle_ret=%d msg_type=%u event_type=%u payload_len=%u",
-                      (unsigned long)msg_cost_us,
-                      (unsigned long)(msg_cost_us / 1000U),
-                      handle_ret ? 1 : 0,
-                      (unsigned)msg_type,
-                      (unsigned)event_type,
-                      (unsigned)payload_len);
-#if defined(CONFIG_RPMSG_TTF_CLIENT)
-        struct mallinfo info = mallinfo();
-        floatair_info("app msg heap total=%d used=%d free=%d largest=%d ordblks=%d",
-                      info.arena,
-                      info.uordblks,
-                      info.fordblks,
-                      info.mxordblk,
-                      info.ordblks);
-#endif
-    }
+
 }
 
 /**
  * @brief 非阻塞消费当前 Q-8 中的全部消息。
- * @return 本轮消费的消息数量。
+ * @return 无返回值。
  */
-static uint32_t app_msg_drain_pending(void) {
-    uint32_t drained = 0;
-
+static void app_msg_drain_pending(void) {
     while (1) {
         int pending = floatair_get_app_msg_queue_pending();
         int batch_count = pending;
@@ -291,55 +262,36 @@ static uint32_t app_msg_drain_pending(void) {
 #endif
 
             if (msg == NULL) {
-                return drained;
+                return;
             }
             app_msg_handle(msg);
-            drained++;
         }
     }
-
-    return drained;
 }
 
 static void app_msg_recv(void) {
     uint32_t refresh_start_tick = lv_tick_get();
-    uint32_t handled_since_refresh = 0;
 
     while (1) {
         uint32_t refresh_elapsed = lv_tick_elaps(refresh_start_tick);
 
         if (refresh_elapsed >= LV_DEF_REFR_PERIOD) {
-            uint32_t cycle_start_tick = lv_tick_get();
-            uint32_t drained_at_deadline = 0;
-            bool forced_refresh = false;
-
-            refresh_start_tick = cycle_start_tick;
-            drained_at_deadline = app_msg_drain_pending();
-            handled_since_refresh += drained_at_deadline;
+            refresh_start_tick = lv_tick_get();
+            app_msg_drain_pending();
             if (!floatair_lcd_is_off()) {
-                forced_refresh = system_ui_apply_pending_screen_refresh();
+                system_ui_apply_pending_screen_refresh();
                 lv_timer_handler();
-                /*
-                 * LVGL 9 会在无效区域刷新后暂停 display refresh timer。
-                 * 周期调度需要显式提交本轮 timer/动画产生的无效区域，否则
-                 * 空闲一段时间后新建的滚动动画可能只有坐标变化而没有显示帧。
-                 *
-                 * PC 模拟器的 lv_timer_handler 已替换为向 SDL 主线程提交刷新
-                 * 请求；不能在 app 线程再次直接刷新，否则会提前消费无效区域，
-                 * 导致 SDL 主线程拿不到需要显示的画面。
-                 */
+                /* LVGL 9 刷新后会暂停显示定时器，因此仍需显式提交 timer
+                 * 产生的脏区；动画已由 lv_timer_handler 推进，直接执行显示
+                 * 定时器，避免 lv_refr_now 再次推进动画并重复失效/布局。
+                 * PC 仍由 SDL 主线程负责刷新，应用线程不消费其脏区。 */
 #if !defined(BUILD_NATIVE)
-                lv_refr_now(lv_display_get_default());
+                lv_timer_t *refresh_timer = lv_display_get_refr_timer(lv_display_get_default());
+                if (refresh_timer != NULL) {
+                    lv_display_refr_timer(refresh_timer);
+                }
 #endif
             }
-            if (handled_since_refresh > 0 || forced_refresh) {
-                floatair_info("app refresh cycle cost=%lu ms handled=%lu drained_at_deadline=%lu forced_refresh=%d",
-                              (unsigned long)lv_tick_elaps(cycle_start_tick),
-                              (unsigned long)handled_since_refresh,
-                              (unsigned long)drained_at_deadline,
-                              forced_refresh ? 1 : 0);
-            }
-            handled_since_refresh = 0;
             continue;
         }
 
@@ -350,7 +302,6 @@ static void app_msg_recv(void) {
 
             if (msg != NULL) {
                 app_msg_handle(msg);
-                handled_since_refresh++;
             }
         }
     }

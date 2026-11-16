@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import struct
 import sys
 import tempfile
 from dataclasses import dataclass, field
@@ -29,7 +30,7 @@ ROMFS_DIR = REPO_ROOT / "romfs"
 ROMFS_BIN = Path("./nuttx_romfs.bin")
 LEFT_ROMFS_DIR = REPO_ROOT / "left_romfs"
 LEFT_ROMFS_BIN = Path("./nuttx_lromfs.bin")
-ROMFS_LFSD_DEFAULT_DIR = Path("lfsd")
+JYTC_LFSD_DEFAULT_DIR = Path("lfsd")
 ROMFS_SIZE = 16 * 1024 * 1024  # 0x1000000
 LEFT_ROMFS_SIZE = 1 * 1024 * 1024  # 0x100000
 LFSC_SIZE = 2 * 1024 * 1024
@@ -114,6 +115,41 @@ def check_file_size(file_path: Path, max_size: int) -> None:
         raise RuntimeError(f"文件 {file_path} 超过大小限制 ({file_size} > {max_size})")
 
     print_success("文件大小检查通过")
+
+
+def allocated_sections(path: Path) -> list[tuple]:
+    """Compare the ordered sections used by the NuttX ET_REL loader."""
+    data = path.read_bytes()
+    if len(data) < 52 or data[:6] != b"\x7fELF\x01\x01":
+        raise RuntimeError(f"Expected little-endian ELF32: {path}")
+    offset = struct.unpack_from("<I", data, 32)[0]
+    stride, count, names = struct.unpack_from("<HHH", data, 46)
+    if stride < 40 or not count or names >= count or offset + count * stride > len(data):
+        raise RuntimeError("Invalid ELF section table")
+    sections = [struct.unpack_from("<10I", data, offset + n * stride) for n in range(count)]
+    ns = sections[names]
+    strings = data[ns[4]:ns[4] + ns[5]]
+    result = []
+    for name, kind, flags, address, start, size, link, info, align, entry in sections:
+        if not flags & 2:
+            continue
+        if name >= len(strings) or (kind != 8 and start + size > len(data)):
+            raise RuntimeError("Invalid allocated ELF section")
+        content = b"" if kind == 8 else data[start:start + size]
+        result.append((strings[name:].split(b"\0", 1)[0], kind, flags, address, size, align, content))
+    return result
+
+
+def prepare_device_elf(source: Path, destination: Path, objcopy: str, max_size: int) -> None:
+    if source.resolve() == destination.resolve():
+        raise RuntimeError("Device ELF must not overwrite the analysis ELF")
+    # Retain symbols and relocations required by the ET_REL loader.
+    run_command([objcopy, "--strip-debug", str(source), str(destination)])
+    if allocated_sections(source) != allocated_sections(destination):
+        raise RuntimeError("Stripping changed ELF load layout or allocated data")
+    check_file_size(destination, max_size)
+    print_info(f"Analysis ELF retained: {source} ({source.stat().st_size} bytes)")
+    print_info(f"Device ELF: {destination} ({destination.stat().st_size} bytes)")
 
 
 def read_symbol_table(symbol_file: Path) -> set[str]:
@@ -435,8 +471,8 @@ def copy_tree_contents(source_dir: Path, target_dir: Path) -> None:
             shutil.copy2(item, destination)
 
 
-def generate_i18n_json(romfs_dir: Path) -> None:
-    output_dir = romfs_dir / "system" / "i18n"
+def generate_i18n_json(resource_dir: Path) -> None:
+    output_dir = resource_dir / "system" / "i18n"
     print_info(f"生成i18n JSON: {STRING_POOL_CSV} -> {output_dir}")
     result = run_command([
         sys.executable,
@@ -474,7 +510,7 @@ def create_romfs_image(
         print_success(f"ROMFS image created by genromfs: {output_file}")
         return
 
-    print_warning("genromfs not found in PATH, fallback to Python ROMFS writer")
+    print_info("Using Python ROMFS writer (genromfs not installed)")
     image = build_romfs_image(source_dir, volume_label)
     if len(image) > partition_size:
         raise RuntimeError(f"ROMFS image ({len(image)} bytes) exceeds partition size ({partition_size} bytes)")
@@ -488,6 +524,7 @@ def create_filesystem(
     outputs: FilesystemOutputs,
     romfs_dir: Path,
     left_romfs_dir: Path,
+    app_version: str,
 ) -> None:
     print_info("开始创建文件系统...")
 
@@ -497,23 +534,29 @@ def create_filesystem(
     print_info(f"复制文件: {source_file} -> {LFSC_DIR}")
     shutil.copy2(source_file, LFSC_DIR / source_file.name)
 
-    create_lfs_image(LFSC_DIR, outputs.lfsc, fs_size=LFSC_SIZE)
+    # 保留烧录/OTA 镜像名与地址，右腿 /jyt_c 内容改为只读 ROMFS。
+    version_data = app_version.encode("ascii")
+    if not version_data or len(version_data) >= 128 or any(c < 0x20 or c > 0x7e for c in version_data):
+        raise ValueError("应用版本须为 1~127 字节可打印 ASCII 字符")
+    (LFSC_DIR / "app_version.txt").write_bytes(version_data)
     with tempfile.TemporaryDirectory(prefix="filesystem_staging_") as temp_dir:
         staging_dir = Path(temp_dir)
         lfsd_source_dir = staging_dir / "lfsd"
-        romfs_source_dir = staging_dir / "romfs"
+        lfsc_source_dir = staging_dir / "lfsc"
         lfsd_source_dir.mkdir(parents=True, exist_ok=True)
-        copy_tree_contents(romfs_dir, romfs_source_dir)
-        lfsd_default_dir = romfs_source_dir / ROMFS_LFSD_DEFAULT_DIR
+        copy_tree_contents(LFSC_DIR, lfsc_source_dir)
+        lfsd_default_dir = lfsc_source_dir / JYTC_LFSD_DEFAULT_DIR
         if lfsd_default_dir.is_dir():
             shutil.rmtree(lfsd_default_dir)
         elif lfsd_default_dir.exists():
             lfsd_default_dir.unlink()
         copy_tree_contents(LFSD_DIR, lfsd_default_dir)
-        generate_i18n_json(romfs_source_dir)
+        generate_i18n_json(lfsc_source_dir)
+
+        create_romfs_image(lfsc_source_dir, outputs.lfsc, volume_label="jyt_c", partition_size=LFSC_SIZE)
 
         create_lfs_image(lfsd_source_dir, outputs.lfsd, fs_size=LFSD_SIZE)
-        create_romfs_image(romfs_source_dir, outputs.romfs)
+        create_romfs_image(romfs_dir, outputs.romfs)
 
     expected_kws_files = ("kws_firmware.bin", "kws_model.bin")
     missing_kws_files = [
@@ -541,6 +584,7 @@ def create_filesystem(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Cross-platform filesystem packaging for ARM builds")
+    parser.add_argument("--app-version", required=True, help="Exact version compiled into uimain")
     parser.add_argument("--source", default=str(DEFAULT_SOURCE), help="Path to the built ELF file")
     parser.add_argument("--romfs-dir", default=str(ROMFS_DIR), help="ROMFS source directory")
     parser.add_argument(
@@ -549,7 +593,8 @@ def parse_args() -> argparse.Namespace:
         help="Left-temple ROMFS source directory containing kws/",
     )
     parser.add_argument("--symbol-file", default=str(DEFAULT_SYMBOL_FILE), help="Symbol table used for undefined symbol verification")
-    parser.add_argument("--max-size", type=int, default=MAX_FILE_SIZE, help="Maximum ELF file size in bytes")
+    parser.add_argument("--objcopy", default="arm-none-eabi-objcopy", help="ARM objcopy for the device copy")
+    parser.add_argument("--max-size", type=int, default=MAX_FILE_SIZE, help="Maximum stripped device ELF file size in bytes")
     parser.add_argument("--no-symbol-check", action="store_true", help="Skip undefined symbol verification")
     return parser.parse_args()
 
@@ -581,8 +626,10 @@ def main() -> int:
         if not args.no_symbol_check:
             check_symbols(source_file, Path(args.symbol_file))
 
-        check_file_size(source_file, args.max_size)
-        create_filesystem(source_file, outputs, romfs_dir, left_romfs_dir)
+        with tempfile.TemporaryDirectory(prefix="jy-device-elf-") as staging:
+            device_elf = Path(staging) / source_file.name
+            prepare_device_elf(source_file, device_elf, args.objcopy, args.max_size)
+            create_filesystem(device_elf, outputs, romfs_dir, left_romfs_dir, args.app_version)
     except Exception as exc:  # noqa: BLE001
         print_error(str(exc))
         return 1

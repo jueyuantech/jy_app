@@ -49,8 +49,8 @@ PRODUCT_TREE_SYNCS = (
 )
 
 UI_RES_JSON = Path("ui.res.json")
-ROMFS_SYSTEM_IMAGES_DIR = "/romfs/system/images"
-ROMFS_SYSTEM_AUDIO_DIR = "/romfs/system/audio"
+JYTC_SYSTEM_IMAGES_DIR = "/jyt_c/system/images"
+JYTC_SYSTEM_AUDIO_DIR = "/jyt_c/system/audio"
 
 
 def clear_directory_contents(directory: Path, preserve_names: set[str] | None = None) -> None:
@@ -121,7 +121,7 @@ def generate_ui_res_json(images_dir: Path, audio_dir: Path, output_file: Path) -
         if resource_id in images:
             raise RuntimeError(f"duplicate image resource id: {resource_id}")
         images[resource_id] = {
-            "path": f"{ROMFS_SYSTEM_IMAGES_DIR}/{image_file.name}",
+            "path": f"{JYTC_SYSTEM_IMAGES_DIR}/{image_file.name}",
         }
 
     audio: dict[str, dict[str, str]] = {}
@@ -130,7 +130,7 @@ def generate_ui_res_json(images_dir: Path, audio_dir: Path, output_file: Path) -
         if resource_id in audio:
             raise RuntimeError(f"duplicate audio resource id: {resource_id}")
         audio[resource_id] = {
-            "path": f"{ROMFS_SYSTEM_AUDIO_DIR}/{audio_file.name}",
+            "path": f"{JYTC_SYSTEM_AUDIO_DIR}/{audio_file.name}",
         }
 
     output_file.write_text(
@@ -143,12 +143,12 @@ def clean_product_overlay(repo_root: Path) -> None:
     overlay_files = {dst for _, dst in PRODUCT_FILE_OVERLAYS}
     overlay_files.add(UI_RES_JSON)
 
-    images_dst = repo_root / "romfs" / "system" / "images"
-    print_info(f"clearing romfs images: {images_dst}")
+    images_dst = repo_root / "lfsc" / "system" / "images"
+    print_info(f"clearing jyt_c images: {images_dst}")
     clear_directory_contents(images_dst, preserve_names={".gitkeep"})
 
-    audio_dst = repo_root / "romfs" / "system" / "audio"
-    print_info(f"clearing romfs audio: {audio_dst}")
+    audio_dst = repo_root / "lfsc" / "system" / "audio"
+    print_info(f"clearing jyt_c audio: {audio_dst}")
     clear_directory_contents(audio_dst, preserve_names={".gitkeep"})
 
     for tree_rel in PRODUCT_TREE_SYNCS:
@@ -202,24 +202,24 @@ def apply_product_overlay(repo_root: Path, product_name: str) -> None:
     print_info(f"source:    {product_dir}")
 
     images_src = product_dir / "images"
-    images_dst = repo_root / "romfs" / "system" / "images"
+    images_dst = repo_root / "lfsc" / "system" / "images"
     if not images_src.is_dir():
         raise RuntimeError(f"product images not found: {images_src}")
-    print_info(f"clearing romfs images: {images_dst}")
+    print_info(f"clearing jyt_c images: {images_dst}")
     clear_directory_contents(images_dst, preserve_names={".gitkeep"})
     print_info(f"copy images from: {images_src} -> {images_dst}")
     img_total, img_copied = copy_tree(images_src, images_dst)
-    print_success(f"romfs images copied: {img_copied}/{img_total}")
+    print_success(f"jyt_c images copied: {img_copied}/{img_total}")
 
     audio_src = product_dir / "audio"
-    audio_dst = repo_root / "romfs" / "system" / "audio"
+    audio_dst = repo_root / "lfsc" / "system" / "audio"
     if not audio_src.is_dir():
         raise RuntimeError(f"product audio resources not found: {audio_src}")
-    print_info(f"clearing romfs audio: {audio_dst}")
+    print_info(f"clearing jyt_c audio: {audio_dst}")
     clear_directory_contents(audio_dst, preserve_names={".gitkeep"})
     print_info(f"copy audio from: {audio_src} -> {audio_dst}")
     audio_total, audio_copied = copy_tree(audio_src, audio_dst)
-    print_success(f"romfs audio copied: {audio_copied}/{audio_total}")
+    print_success(f"jyt_c audio copied: {audio_copied}/{audio_total}")
 
     ui_res_json = repo_root / UI_RES_JSON
     print_info(f"generate resource json: {ui_res_json}")

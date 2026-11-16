@@ -21,9 +21,9 @@ FloatairSimulator/
 ├── simulator_platform.c         # 平台适配分发
 ├── simulator_socket.conf        # 模拟器 TCP 目标地址配置
 ├── simulator_event_panel.py     # OS 事件注入面板
-├── build_all.sh                 # Linux/macOS 下探测并构建所有可支持组合
+├── build_all.sh                 # Linux/macOS 本机批量构建
 ├── build_all.bat                # Windows 下探测并构建所有可支持组合
-├── develop-simulator.sh         # Linux/macOS/Windows MinGW 交叉编译统一入口
+├── develop-simulator.sh         # Linux/macOS 本机构建入口
 ├── develop-simulator-mingw.bat  # Windows MinGW 入口，转发到 develop-simulator.ps1
 ├── develop-simulator-msvc.bat   # Windows MSVC 入口，转发到 develop-simulator.ps1
 ├── develop-simulator.ps1        # Windows MinGW/MSVC 共用构建逻辑
@@ -174,18 +174,16 @@ emulator-5554 tcp:24680 tcp:24680
 | --- | --- | --- |
 | `linux` | `gcc` / `clang` | 本地 Linux 模拟器，默认按 32 位构建，可通过 `ARCH` 切换 |
 | `macos` | AppleClang / `clang` | 本地 macOS 模拟器，仅支持 64 位 |
-| `mingw` | MinGW `gcc` / MinGW `clang` | Windows MinGW 构建，支持 Windows 本机构建和 Linux/macOS 交叉编译，支持 x86 / x64，链接 MinGW ABI 的 `.dll.a` |
+| `mingw` | MinGW `gcc` / MinGW `clang` | Windows MinGW 构建，支持 Windows 本机构建，支持 x86 / x64，链接 MinGW ABI 的 `.dll.a` |
 | `msvc` | `cl` / Visual Studio `clang` / `clang-cl` | 支持 x86 / x64，链接 MSVC ABI 的 `.lib` |
 
 Windows 侧已验证的组合是：MinGW `gcc` / `clang`，MSVC `cl` / Visual Studio `clang` / `clang-cl`，x86 / x64 均可构建。
-Linux/macOS 侧可以通过 MinGW `gcc` 或 LLVM/Clang 交叉编译 Windows MinGW 产物；CMake 会继续按传入的编译器名称或 `CMAKE_C_COMPILER_TARGET` 推断平台，不需要额外传入 toolchain file。
 
 Windows 下需要区分“命令行前端”和“目标 ABI”：
 
 - Visual Studio LLVM 的 `clang.exe` 使用 GNU-like 参数，例如 `-I`、`-D`、`-W...`，但它链接 `lld-link.exe` 和 MSVC `.lib`，因此归到 `msvc` 平台。
 - Windows 宿主或显式 `windows-msvc` target 下的 `clang-cl.exe` 使用 MSVC-like 参数，例如 `/I`、`/D`、`/wd...`，也归到 `msvc` 平台。
 - MinGW / LLVM-MinGW 的 `clang.exe` 使用 MinGW ABI，归到 `mingw` 平台。
-- Linux/macOS 上的 MinGW 工具链会生成 Windows GNU 目标产物；项目会根据 `i686-w64-mingw32-gcc`、`x86_64-w64-mingw32-gcc` 或带 `windows-gnu` target 的 Clang 自动归到 `mingw` 平台。
 - macOS 的 LLVM 包可能也提供 `clang-cl`，但它仍是 MSVC 风格前端，会把 `/Users/...` 路径解析成 MSVC 参数，不能用于本地 macOS 模拟器。
 
 ### 批量构建
@@ -196,21 +194,9 @@ Linux/macOS 下可以使用统一入口探测当前环境，并构建所有可�
 ./simulator/FloatairSimulator/build_all.sh
 ```
 
-Linux 主机下脚本会检查这些能力：
+Linux 环境下检查本机 `gcc` / `clang` 的 x86 / x64 四组构建；macOS 环境下检查本机 `clang` 构建。
 
-- 本地 `gcc`、`clang`
-- MinGW `gcc`
-- MinGW `clang`，包括带目标三元组前缀的 `*-clang` 或可用的 `clang --target=<mingw-triple>`
-- Linux SDL2 x86 和 x64 开发环境
-
-macOS 主机下脚本会检查这些能力：
-
-- 本地 `clang`
-- macOS SDL2 开发环境
-- MinGW `gcc`
-- MinGW `clang`，包括带目标三元组前缀的 `*-clang`
-
-只构建检查通过的组合；缺少依赖的组合会跳过并打印原因。本地 Linux/macOS 构建会自动传入 `--no_run`，因此只构建并安装产物，不启动模拟器。每个组合会安装到项目根目录下对应的 `install/linux-*`、`install/mingw-*` 或 `install/macos-*` 目录。
+只构建检查通过的组合；缺少依赖的组合会跳过并打印原因。本地 Linux/macOS 构建会自动传入 `--no_run`，因此只构建并安装产物，不启动模拟器。每个组合会安装到项目根目录下对应的 `install/linux-*` 或 `install/macos-*` 目录。
 
 如果只想查看当前环境会构建哪些组合：
 
@@ -252,47 +238,28 @@ simulator\FloatairSimulator\build_all.bat --dry-run
 - 平台选择：脚本会显式传入本地 `gcc`，CMake 再根据传入工具链识别为 `linux`
 - 默认 `ARCH=x86`，会使用 `-m32` 编译，因此需要可用的 32 位编译/链接环境
 - 如需 64 位本机构建，脚本可切换到 x64 目标；手动配置时仍需传给 CMake `-DARCH=amd64`
-- Linux 下 `x86` 使用 `pkg-config` 查找 i386 SDL2，默认路径为 `/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig`；如果没有 i386 `sdl2.pc`，`build_all.sh` 会跳过该组合
-- 脚本 `x64` 对应 CMake `amd64`，使用 `find_package(SDL2)` 查找系统 SDL2
 - 推荐使用 Ubuntu 20.04 作为 Linux 模拟器开发环境，x86 和 x64 本机构建依赖都兼容
-- 在非推荐环境中，不推荐为了本机 Linux x86 构建强行安装 32 位 SDL2；`libsdl2-dev:i386` 可能和当前桌面/系统包冲突，无法安全安装时让 `build_all.sh` 跳过该组合，或改用容器/虚拟机环境
 - 依赖：
   - `cmake`
   - `ninja`
   - `gcc`
-  - `SDL2` 开发库
   - `pthread`
 
 Linux 依赖安装以 Ubuntu 20.04 / Debian 系为准，其他发行版未验证，可按各自包管理器自行适配。
 
-如果只需要 x64 本机构建，安装基础工具和 SDL2 即可：
+如果只需要 x64 本机构建，安装基础工具 即可：
 
 ```bash
 sudo apt update
-sudo apt install cmake ninja-build gcc clang libsdl2-dev
+sudo apt install cmake ninja-build gcc clang
 ```
 
-如果需要默认的 x86 构建，需要额外启用 i386 架构并安装 32 位编译/链接环境和 i386 SDL2 开发包。Ubuntu 20.04 下 x86 和 x64 依赖兼容；其他环境安装 `libsdl2-dev:i386` 前必须仔细检查 apt 计划。如果会卸载 `ubuntu-desktop-minimal`、`gnome-shell`、`network-manager`、`python3` 等核心包，或因为 SDL2 32 位包与系统包冲突无法安装，就跳过本机 Linux x86 构建或换容器/虚拟机环境：
+如果需要默认的 x86 构建，需要额外启用 i386 架构并安装 32 位编译/链接环境：
 
 ```bash
 sudo dpkg --add-architecture i386
 sudo apt update
-sudo apt install gcc-multilib g++-multilib libc6-dev-i386 libsdl2-dev:i386
-```
-
-如果希望 `build_all.sh` 同时探测本地 `gcc` / `clang` 和 MinGW 交叉构建，可以再安装 MinGW 工具链：
-
-```bash
-sudo apt install mingw-w64
-```
-
-如果 x86 SDL2 的 `pkgconfig` 文件安装在非默认位置，可以在配置时覆盖：
-
-```bash
-cmake -S . -B simulator/FloatairSimulator/build-linux-x86-gcc -G Ninja \
-  -DCMAKE_C_COMPILER=gcc \
-  -DARCH=x86 \
-  -DLINUX_X86_SDL2_PATH="<SDL2_I386_PKGCONFIG_DIR>:/usr/share/pkgconfig"
+sudo apt install gcc-multilib g++-multilib libc6-dev-i386
 ```
 
 Linux 构建脚本也支持显式选择编译器和架构；不传参数时保持默认 `gcc + x86 + build-linux-x86-gcc`，并自动安装到项目根目录下的 `install/linux-x86-gcc`。
@@ -321,8 +288,7 @@ cmake --build simulator/FloatairSimulator/build-linux-x86-llvm
 #### Ubuntu / Linux 排错要点
 
 - 默认脚本走 x86；如果没有准备 32 位依赖，可以先临时切换到 64 位构建，或按上面的 i386 依赖命令补齐环境
-- `pkg-config --exists sdl2` 只代表当前默认架构 SDL2 可用；x86 构建需要确认 `PKG_CONFIG_LIBDIR="$LINUX_X86_SDL2_PATH" pkg-config --exists sdl2` 也能通过
-- `-m32` 链接失败通常是 `gcc-multilib`、`g++-multilib`、`libc6-dev-i386` 或 `libsdl2-dev:i386` 缺失
+- `-m32` 链接失败通常是 `gcc-multilib`、`g++-multilib`、`libc6-dev-i386` 缺失
 - `build_all.sh --dry-run` 会实际做小型探测编译；如果某个组合被跳过，优先看脚本打印的 `[SKIP]` 原因
 
 ### macOS
@@ -335,18 +301,16 @@ cmake --build simulator/FloatairSimulator/build-linux-x86-llvm
 - 如果只想构建并安装、不启动模拟器，可以传入 `--no_run`
 - 如果需要指定安装目录，可以传入 `--prefix <INSTALL_DIR>`
 - 如果只想检查当前 macOS 构建依赖，可以传入 `--check-platform-deps`
-- SDL2 通过 CMake 查找；Homebrew 默认路径 `/opt/homebrew` 和 `/usr/local` 会自动加入查找范围
 - 依赖：
   - Xcode Command Line Tools
   - `cmake`
   - `ninja`
-  - `SDL2` 开发库
 
 常见 Homebrew 安装方式如下：
 
 ```bash
 xcode-select --install
-brew install cmake ninja sdl2
+brew install cmake ninja
 ```
 
 默认会按当前 Mac 的原生架构构建：
@@ -354,9 +318,8 @@ brew install cmake ninja sdl2
 - Intel Mac：`x86_64`
 - Apple Silicon：`arm64`
 
-如需指定架构，可以在手动配置时传入 `CMAKE_OSX_ARCHITECTURES`。如果 SDL2 不在 Homebrew 默认路径，可以通过 `-DSIMULATOR_SDL2_ROOT=<SDL2_ROOT>` 指定。
+如需指定架构，可以在手动配置时传入 `CMAKE_OSX_ARCHITECTURES`。
 
-注意：使用 Homebrew SDL2 时，只推荐构建当前机器原生架构：Intel Mac 构建 `x86_64`，Apple Silicon 构建 `arm64`。跨架构构建和 universal build 都需要自行准备匹配架构的 SDL2；Homebrew 默认 SDL2 通常不满足这个要求。
 
 常用脚本示例：
 
@@ -371,9 +334,7 @@ brew install cmake ninja sdl2
 #### macOS 排错要点
 
 - 如果 `clang` 不存在，先执行 `xcode-select --install`
-- 如果 CMake 找不到 SDL2，优先确认 `brew install sdl2` 已完成；非 Homebrew 路径可以传 `-DSIMULATOR_SDL2_ROOT=<SDL2_ROOT>`
-- Apple Silicon 上 Homebrew 默认前缀通常是 `/opt/homebrew`，Intel Mac 通常是 `/usr/local`，脚本和 `build_all.sh` 会把这两个路径加入 SDL2 查找范围
-- 不建议直接用 Homebrew SDL2 做跨架构构建；需要跨架构时请准备包含目标架构的 SDL2，并在手动 CMake 配置里设置 `CMAKE_OSX_ARCHITECTURES`
+- Apple Silicon 上 Homebrew 默认前缀通常是 `/opt/homebrew`，Intel Mac 通常是 `/usr/local`
 
 ### Windows 通用工具
 
@@ -415,7 +376,6 @@ ninja --version
   - `ninja`
   - MinGW GCC 工具链
   - 如需使用 MinGW Clang，需要额外安装 LLVM-MinGW 或其他带 MinGW target 的 Clang 工具链；普通 MinGW GCC 工具包通常不包含 `clang.exe`
-  - 仓库内 `windows/SDL2` 提供的 SDL2 SDK
 
 推荐把不同 MinGW 工具链放到单独环境变量里，而不是全部塞进 `PATH`：
 
@@ -452,111 +412,7 @@ simulator\FloatairSimulator\develop-simulator-mingw.bat --check-platform-deps
 simulator\FloatairSimulator\develop-simulator-mingw.bat --arch x86 --compiler llvm --no_run
 ```
 
-手动 CMake 构建时，MinGW 目标位宽由编译器决定：`i686-w64-mingw32-gcc.exe` 会走 x86，`x86_64-w64-mingw32-gcc.exe` 会走 x64。仓库内 SDL2 SDK 会按目标位宽自动选择 `windows\SDL2\lib\mingw\x86` 或 `windows\SDL2\lib\mingw\x64`。
-
-#### Linux/macOS 交叉编译 Windows MinGW
-
-Linux/macOS 交叉编译 Windows 模拟器时，同样只需要把 MinGW 编译器传给 CMake，平台会由编译器名称自动识别为 `mingw`。
-
-交叉编译脚本要求以下工具在 `PATH` 中可用：
-
-- GCC 构建：`i686-w64-mingw32-gcc` 或 `x86_64-w64-mingw32-gcc`
-- LLVM 构建：优先使用 `i686-w64-mingw32-clang` 或 `x86_64-w64-mingw32-clang`
-- Linux 上如果没有带三元组前缀的 `*-clang`，脚本可以使用系统 `clang` 并传入 `CMAKE_C_COMPILER_TARGET`
-- macOS 上不使用系统通用 `clang` 作为 Windows GNU target fallback；如需 LLVM 构建，请安装 LLVM-MinGW 并把它的 `bin` 加入 `PATH`
-
-Ubuntu / Debian 安装 MinGW GCC：
-
-```bash
-sudo apt update
-sudo apt install mingw-w64
-
-i686-w64-mingw32-gcc --version
-x86_64-w64-mingw32-gcc --version
-```
-
-Linux 上如果希望使用系统 `clang --target=<mingw-triple>` 走 LLVM 构建，再安装 Clang / LLD：
-
-```bash
-sudo apt install clang lld
-clang --target=i686-w64-mingw32 --version
-clang --target=x86_64-w64-mingw32 --version
-```
-
-macOS 上常用 Homebrew 安装 MinGW GCC：
-
-```bash
-brew install mingw-w64
-
-i686-w64-mingw32-gcc --version
-x86_64-w64-mingw32-gcc --version
-```
-
-如果要在 Linux/macOS 上使用 LLVM-MinGW，推荐从 LLVM-MinGW 发布页下载对应宿主平台的预编译包：`https://github.com/mstorsjo/llvm-mingw/releases`。解压后把其中的 `bin` 目录加入 `PATH`，再验证带三元组前缀的 Clang：
-
-```bash
-export PATH="<LLVM_MINGW_ROOT>/bin:$PATH"
-
-i686-w64-mingw32-clang --version
-x86_64-w64-mingw32-clang --version
-```
-
-其中 `<LLVM_MINGW_ROOT>` 是解压后的 LLVM-MinGW 根目录。只要上述命令可执行，`develop-simulator.sh --platform mingw --compiler llvm` 就可以使用这套工具链。
-
-如果只想检查当前 Linux/macOS 到 Windows MinGW 的交叉编译依赖，可以传入 `--check-platform-deps`：
-
-```bash
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw --check-platform-deps
-```
-
-一键脚本默认构建 x86：
-
-```bash
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw
-```
-
-显式 x86 构建：
-
-```bash
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw --arch x86
-```
-
-LLVM/Clang 构建：
-
-```bash
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw --compiler llvm
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw --compiler llvm --arch x86
-```
-
-手动配置 GCC 示例：
-
-```bash
-cmake -S . -B simulator/FloatairSimulator/build-mingw-x86-gcc -G Ninja \
-  -DCMAKE_C_COMPILER=i686-w64-mingw32-gcc \
-  -DCMAKE_BUILD_TYPE=Debug
-cmake --build simulator/FloatairSimulator/build-mingw-x86-gcc
-```
-
-手动配置 LLVM-MinGW 示例：
-
-```bash
-cmake -S . -B simulator/FloatairSimulator/build-mingw-x86-llvm -G Ninja \
-  -DCMAKE_C_COMPILER=i686-w64-mingw32-clang \
-  -DCMAKE_BUILD_TYPE=Debug
-cmake --build simulator/FloatairSimulator/build-mingw-x86-llvm
-```
-
-如果环境里只有通用 `clang`，则显式传入 Windows GNU target：
-
-```bash
-cmake -S . -B simulator/FloatairSimulator/build-mingw-x86-llvm -G Ninja \
-  -DCMAKE_C_COMPILER=clang \
-  -DCMAKE_C_COMPILER_TARGET=i686-w64-mingw32 \
-  -DCMAKE_BUILD_TYPE=Debug
-cmake --build simulator/FloatairSimulator/build-mingw-x86-llvm
-```
-
-交叉编译产物是 Windows `.exe`，脚本只负责构建和复制运行时依赖，不会在 Linux/macOS 上直接启动模拟器。如需在当前宿主运行，需要自行使用 Wine 等环境。
+手动 CMake 构建时，MinGW 目标位宽由编译器决定：`i686-w64-mingw32-gcc.exe` 会走 x86，`x86_64-w64-mingw32-gcc.exe` 会走 x64。
 
 ### Windows MSVC
 
@@ -570,7 +426,6 @@ cmake --build simulator/FloatairSimulator/build-mingw-x86-llvm
   - `cmake`
   - `ninja`
   - Visual Studio C++ 工具链，或 Visual Studio 自带 LLVM 工具链
-  - 仓库内 `windows/SDL2` 提供的 SDL2 SDK
   - 在没有安装 Visual Studio 的纯运行环境上，需安装与目标位宽匹配的 Microsoft Visual C++ Redistributable
 
 脚本会按 `--arch` 选择目标架构。如果当前终端的 Visual Studio 环境不是目标架构，脚本会重新加载 `VsDevCmd.bat -arch=<x86|x64> -host_arch=x64`。
@@ -589,7 +444,7 @@ Visual C++ Redistributable 官方入口：
 - x86 直链：`https://aka.ms/vs/17/release/vc_redist.x86.exe`
 - x64 直链：`https://aka.ms/vs/17/release/vc_redist.x64.exe`
 
-手动 CMake 构建时，MSVC 目标位宽由当前开发者命令行或编译器决定：x86 开发者命令行会走 x86，x64 开发者命令行会走 x64。仓库内 SDL2 SDK 会按目标位宽自动选择 `windows\SDL2\lib\msvc\x86` 或 `windows\SDL2\lib\msvc\x64`。
+手动 CMake 构建时，MSVC 目标位宽由当前开发者命令行或编译器决定：x86 开发者命令行会走 x86，x64 开发者命令行会走 x64。
 
 常用脚本示例：
 
@@ -735,7 +590,7 @@ cd simulator/FloatairSimulator/build-macos-llvm
 ./floatair_simulator
 ```
 
-如需跨架构或 universal build，可以设置 `CMAKE_OSX_ARCHITECTURES`，但必须确保 SDL2 也包含对应架构；使用 Homebrew SDL2 时不推荐这样做。
+如需跨架构或 universal build，可以设置 `CMAKE_OSX_ARCHITECTURES`。
 
 ### MinGW
 
@@ -841,7 +696,7 @@ ninja -C simulator/FloatairSimulator/build-linux-x86-gcc install
 - `simulator_event_panel.py`
 - `jyt_d/`
 - `romfs/`
-- Windows 下还会安装 `SDL2.dll` 和 `libwinpthread-1.dll`
+- Windows 下还会安装 `libwinpthread-1.dll`
 
 ## OS 事件面板
 
@@ -927,5 +782,4 @@ python3 simulator_event_panel.py
 - `floatair_simulator` / `floatair_simulator.exe`
 - `simulator_socket.conf`
 - `jyt_d/`
-- Windows 下会包含 `SDL2.dll`
 - Windows 下还可能包含其他运行时 DLL

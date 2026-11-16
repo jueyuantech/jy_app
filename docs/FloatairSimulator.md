@@ -21,9 +21,9 @@ FloatairSimulator/
 |-- simulator_platform.c         # Platform dispatch layer
 |-- simulator_socket.conf        # Simulator TCP target configuration
 |-- simulator_event_panel.py     # OS event injection panel
-|-- build_all.sh                 # Detect and build all supported combinations on Linux/macOS
+|-- build_all.sh                 # Detect and build supported native combinations on Linux/macOS
 |-- build_all.bat                # Detect and build all supported combinations on Windows
-|-- develop-simulator.sh         # Unified Linux/macOS/Windows MinGW cross-build entry
+|-- develop-simulator.sh         # Native Linux/macOS build entry
 |-- develop-simulator-mingw.bat  # Windows MinGW entry, forwarded to develop-simulator.ps1
 |-- develop-simulator-msvc.bat   # Windows MSVC entry, forwarded to develop-simulator.ps1
 |-- develop-simulator.ps1        # Shared Windows MinGW/MSVC build logic
@@ -175,17 +175,16 @@ Supported compiler boundaries:
 | --- | --- | --- |
 | `linux` | `gcc` / `clang` | Native Linux simulator. Defaults to 32-bit build, switchable through `ARCH`. |
 | `macos` | AppleClang / `clang` | Native macOS simulator. 64-bit only. |
-| `mingw` | MinGW `gcc` / MinGW `clang` | Windows MinGW build. Supports native Windows builds and Linux/macOS cross-builds. Supports x86 / x64 and links MinGW ABI `.dll.a`. |
+| `mingw` | MinGW `gcc` / MinGW `clang` | Windows MinGW build. Supports native Windows builds. Supports x86 / x64 and links MinGW ABI `.dll.a`. |
 | `msvc` | `cl` / Visual Studio `clang` / `clang-cl` | Supports x86 / x64 and links MSVC ABI `.lib`. |
 
-Verified Windows combinations include MinGW `gcc` / `clang`, MSVC `cl`, Visual Studio `clang` / `clang-cl`, and both x86 / x64. Linux/macOS can cross-build Windows MinGW artifacts through MinGW `gcc` or LLVM/Clang. CMake infers the platform from the compiler name or `CMAKE_C_COMPILER_TARGET`; no additional toolchain file is required.
+Verified Windows combinations include MinGW `gcc` / `clang`, MSVC `cl`, Visual Studio `clang` / `clang-cl`, and both x86 / x64.
 
 On Windows, distinguish the command-line frontend from the target ABI:
 
 - Visual Studio LLVM `clang.exe` uses GNU-like arguments such as `-I`, `-D`, and `-W...`, but links through `lld-link.exe` and MSVC `.lib`, so it belongs to `msvc`.
 - `clang-cl.exe` on a Windows host or with an explicit `windows-msvc` target uses MSVC-like arguments such as `/I`, `/D`, and `/wd...`, so it also belongs to `msvc`.
 - MinGW / LLVM-MinGW `clang.exe` uses the MinGW ABI and belongs to `mingw`.
-- MinGW toolchains on Linux/macOS generate Windows GNU artifacts. The project recognizes compilers such as `i686-w64-mingw32-gcc`, `x86_64-w64-mingw32-gcc`, or Clang with a `windows-gnu` target as `mingw`.
 - macOS LLVM packages can provide `clang-cl`, but that is still an MSVC-style frontend and will parse `/Users/...` paths as MSVC options, so it cannot be used for native macOS simulator builds.
 
 ### Batch Build
@@ -196,21 +195,9 @@ On Linux/macOS, use the unified entry to detect the current environment and buil
 ./simulator/FloatairSimulator/build_all.sh
 ```
 
-On Linux, the script checks:
+On Linux, the script checks four native combinations: `gcc` / `clang` with x86 / x64. On macOS, it checks the native `clang` build.
 
-- Native `gcc` and `clang`
-- MinGW `gcc`
-- MinGW `clang`, including prefixed `*-clang` or usable `clang --target=<mingw-triple>`
-- Linux SDL2 x86 and x64 development environments
-
-On macOS, the script checks:
-
-- Native `clang`
-- macOS SDL2 development environment
-- MinGW `gcc`
-- MinGW `clang`, including prefixed `*-clang`
-
-Only combinations that pass dependency checks are built. Missing combinations are skipped with a printed reason. Native Linux/macOS builds automatically pass `--no_run`, so they only build and install artifacts without launching the simulator. Each combination installs into the corresponding `install/linux-*`, `install/mingw-*`, or `install/macos-*` directory under the project root.
+Only combinations that pass dependency checks are built. Missing combinations are skipped with a printed reason. Native Linux/macOS builds automatically pass `--no_run`, so they only build and install artifacts without launching the simulator. Each combination installs into the corresponding `install/linux-*` or `install/macos-*` directory under the project root.
 
 To preview which combinations would be built:
 
@@ -252,15 +239,11 @@ simulator\FloatairSimulator\build_all.bat --dry-run
 - Platform selection: the script explicitly passes native `gcc`, and CMake recognizes the platform as `linux`.
 - Default `ARCH=x86`, compiled with `-m32`, so a 32-bit compile/link environment is required.
 - For a 64-bit native build, the script can switch to x64; manual CMake configuration still needs `-DARCH=amd64`.
-- Linux x86 uses `pkg-config` to find i386 SDL2. The default path is `/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig`. If i386 `sdl2.pc` is missing, `build_all.sh` skips that combination.
-- Script x64 maps to CMake `amd64` and uses `find_package(SDL2)` to find system SDL2.
 - Ubuntu 20.04 is recommended for Linux simulator development. x86 and x64 native dependencies are compatible there.
-- On other environments, do not force-install 32-bit SDL2 for Linux x86 builds if package conflicts appear. If `libsdl2-dev:i386` cannot be safely installed, let `build_all.sh` skip that combination or use a container / VM.
 - Dependencies:
   - `cmake`
   - `ninja`
   - `gcc`
-  - SDL2 development library
   - `pthread`
 
 Linux dependency commands below target Ubuntu 20.04 / Debian-based systems. Other distributions are not verified.
@@ -269,30 +252,15 @@ For x64 native builds only:
 
 ```bash
 sudo apt update
-sudo apt install cmake ninja-build gcc clang libsdl2-dev
+sudo apt install cmake ninja-build gcc clang
 ```
 
-For the default x86 build, enable i386 and install 32-bit compile/link dependencies and i386 SDL2. Before installing `libsdl2-dev:i386` outside Ubuntu 20.04, carefully inspect the apt plan. If it would remove core packages such as `ubuntu-desktop-minimal`, `gnome-shell`, `network-manager`, or `python3`, skip native Linux x86 or use a container / VM:
+For the default x86 build, enable i386 and install 32-bit compile/link dependencies:
 
 ```bash
 sudo dpkg --add-architecture i386
 sudo apt update
-sudo apt install gcc-multilib g++-multilib libc6-dev-i386 libsdl2-dev:i386
-```
-
-To let `build_all.sh` detect native `gcc` / `clang` and MinGW cross-builds, install MinGW too:
-
-```bash
-sudo apt install mingw-w64
-```
-
-If the x86 SDL2 `pkgconfig` file is not in the default location, override it during CMake configuration:
-
-```bash
-cmake -S . -B simulator/FloatairSimulator/build-linux-x86-gcc -G Ninja \
-  -DCMAKE_C_COMPILER=gcc \
-  -DARCH=x86 \
-  -DLINUX_X86_SDL2_PATH="<SDL2_I386_PKGCONFIG_DIR>:/usr/share/pkgconfig"
+sudo apt install gcc-multilib g++-multilib libc6-dev-i386
 ```
 
 Common script examples:
@@ -318,8 +286,7 @@ cmake --build simulator/FloatairSimulator/build-linux-x86-llvm
 Linux troubleshooting:
 
 - The default script uses x86. If 32-bit dependencies are not ready, temporarily switch to 64-bit or install the i386 dependencies above.
-- `pkg-config --exists sdl2` only checks the current default architecture. For x86 builds, also verify `PKG_CONFIG_LIBDIR="$LINUX_X86_SDL2_PATH" pkg-config --exists sdl2`.
-- `-m32` link failures usually mean `gcc-multilib`, `g++-multilib`, `libc6-dev-i386`, or `libsdl2-dev:i386` is missing.
+- `-m32` link failures usually mean `gcc-multilib`, `g++-multilib`, `libc6-dev-i386` is missing.
 - `build_all.sh --dry-run` performs small probe builds. If a combination is skipped, check the printed `[SKIP]` reason first.
 
 ### macOS
@@ -332,18 +299,16 @@ Linux troubleshooting:
 - Pass `--no_run` to build and install without launching.
 - Pass `--prefix <INSTALL_DIR>` to override the install directory.
 - Pass `--check-platform-deps` to check current macOS build dependencies only.
-- SDL2 is found through CMake. Homebrew default paths `/opt/homebrew` and `/usr/local` are added automatically.
 - Dependencies:
   - Xcode Command Line Tools
   - `cmake`
   - `ninja`
-  - SDL2 development library
 
 Common Homebrew setup:
 
 ```bash
 xcode-select --install
-brew install cmake ninja sdl2
+brew install cmake ninja
 ```
 
 By default, the build uses the current Mac's native architecture:
@@ -351,9 +316,8 @@ By default, the build uses the current Mac's native architecture:
 - Intel Mac: `x86_64`
 - Apple Silicon: `arm64`
 
-To specify an architecture manually, pass `CMAKE_OSX_ARCHITECTURES`. If SDL2 is not in a Homebrew default path, pass `-DSIMULATOR_SDL2_ROOT=<SDL2_ROOT>`.
+To specify an architecture manually, pass `CMAKE_OSX_ARCHITECTURES`.
 
-When using Homebrew SDL2, build only the machine's native architecture. Cross-architecture and universal builds require a matching SDL2 package prepared manually.
 
 Common script examples:
 
@@ -368,9 +332,7 @@ Common script examples:
 macOS troubleshooting:
 
 - If `clang` does not exist, run `xcode-select --install`.
-- If CMake cannot find SDL2, confirm `brew install sdl2` is complete; use `-DSIMULATOR_SDL2_ROOT=<SDL2_ROOT>` for non-Homebrew paths.
 - Apple Silicon Homebrew usually uses `/opt/homebrew`; Intel Mac usually uses `/usr/local`.
-- Do not use Homebrew SDL2 for cross-architecture builds unless the SDL2 package includes the target architecture.
 
 ### Windows Common Tools
 
@@ -400,7 +362,6 @@ ninja --version
 - The script does not infer bitness from directory names. It searches by target triple compiler name and validates the target architecture from compiler output.
 - The `.bat` `FALLBACK_DIR` only affects the final single-directory fallback. It does not change the default build combination.
 - The script validates compiler kind: `gcc` combinations reject Clang wrappers, while `llvm` combinations require the compiler to actually be Clang.
-- Runtime SDL2 SDK is provided under `windows/SDL2` in the repository.
 
 Recommended environment variables:
 
@@ -433,99 +394,7 @@ simulator\FloatairSimulator\develop-simulator-mingw.bat --check-platform-deps
 simulator\FloatairSimulator\develop-simulator-mingw.bat --arch x86 --compiler llvm --no_run
 ```
 
-For manual CMake builds, the MinGW target bitness is determined by the compiler: `i686-w64-mingw32-gcc.exe` selects x86, and `x86_64-w64-mingw32-gcc.exe` selects x64. The repository SDL2 SDK selects `windows\SDL2\lib\mingw\x86` or `windows\SDL2\lib\mingw\x64` automatically.
-
-### Linux/macOS Cross-Build to Windows MinGW
-
-For cross-building the Windows simulator from Linux/macOS, pass a MinGW compiler to CMake. The platform is recognized as `mingw` from the compiler name.
-
-Required tools in `PATH`:
-
-- GCC build: `i686-w64-mingw32-gcc` or `x86_64-w64-mingw32-gcc`
-- LLVM build: preferably `i686-w64-mingw32-clang` or `x86_64-w64-mingw32-clang`
-- On Linux, if prefixed `*-clang` is missing, the script can use system `clang` with `CMAKE_C_COMPILER_TARGET`
-- On macOS, system generic `clang` is not used as a Windows GNU target fallback; install LLVM-MinGW for LLVM builds
-
-Ubuntu / Debian MinGW GCC installation:
-
-```bash
-sudo apt update
-sudo apt install mingw-w64
-
-i686-w64-mingw32-gcc --version
-x86_64-w64-mingw32-gcc --version
-```
-
-Linux system Clang with Windows GNU target:
-
-```bash
-sudo apt install clang lld
-clang --target=i686-w64-mingw32 --version
-clang --target=x86_64-w64-mingw32 --version
-```
-
-macOS MinGW GCC through Homebrew:
-
-```bash
-brew install mingw-w64
-
-i686-w64-mingw32-gcc --version
-x86_64-w64-mingw32-gcc --version
-```
-
-For LLVM-MinGW on Linux/macOS, download a prebuilt package from `https://github.com/mstorsjo/llvm-mingw/releases`, add its `bin` directory to `PATH`, and verify:
-
-```bash
-export PATH="<LLVM_MINGW_ROOT>/bin:$PATH"
-
-i686-w64-mingw32-clang --version
-x86_64-w64-mingw32-clang --version
-```
-
-Check cross-build dependencies:
-
-```bash
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw --check-platform-deps
-```
-
-Common commands:
-
-```bash
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw --arch x86
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw --compiler llvm
-./simulator/FloatairSimulator/develop-simulator.sh --platform mingw --compiler llvm --arch x86
-```
-
-Manual GCC example:
-
-```bash
-cmake -S . -B simulator/FloatairSimulator/build-mingw-x86-gcc -G Ninja \
-  -DCMAKE_C_COMPILER=i686-w64-mingw32-gcc \
-  -DCMAKE_BUILD_TYPE=Debug
-cmake --build simulator/FloatairSimulator/build-mingw-x86-gcc
-```
-
-Manual LLVM-MinGW example:
-
-```bash
-cmake -S . -B simulator/FloatairSimulator/build-mingw-x86-llvm -G Ninja \
-  -DCMAKE_C_COMPILER=i686-w64-mingw32-clang \
-  -DCMAKE_BUILD_TYPE=Debug
-cmake --build simulator/FloatairSimulator/build-mingw-x86-llvm
-```
-
-Generic Clang with explicit target:
-
-```bash
-cmake -S . -B simulator/FloatairSimulator/build-mingw-x86-llvm -G Ninja \
-  -DCMAKE_C_COMPILER=clang \
-  -DCMAKE_C_COMPILER_TARGET=i686-w64-mingw32 \
-  -DCMAKE_BUILD_TYPE=Debug
-cmake --build simulator/FloatairSimulator/build-mingw-x86-llvm
-```
-
-The cross-build output is a Windows `.exe`. The script builds and copies runtime dependencies only; it does not launch the simulator on Linux/macOS. Use Wine or another environment if you need to run it on the host.
+For manual CMake builds, the MinGW target bitness is determined by the compiler: `i686-w64-mingw32-gcc.exe` selects x86, and `x86_64-w64-mingw32-gcc.exe` selects x64.
 
 ### Windows MSVC
 
@@ -539,7 +408,6 @@ The cross-build output is a Windows `.exe`. The script builds and copies runtime
   - `cmake`
   - `ninja`
   - Visual Studio C++ toolchain, or Visual Studio bundled LLVM toolchain
-  - SDL2 SDK under `windows/SDL2`
   - On pure runtime machines without Visual Studio, install the Microsoft Visual C++ Redistributable matching the target bitness
 
 The script selects target architecture according to `--arch`. If the current terminal's Visual Studio environment does not match the target architecture, the script reloads `VsDevCmd.bat -arch=<x86|x64> -host_arch=x64`.
@@ -696,7 +564,7 @@ cd simulator/FloatairSimulator/build-macos-llvm
 ./floatair_simulator
 ```
 
-For cross-architecture or universal builds, set `CMAKE_OSX_ARCHITECTURES` and make sure SDL2 includes the target architecture. Homebrew SDL2 is not recommended for this.
+For cross-architecture or universal builds, set `CMAKE_OSX_ARCHITECTURES`.
 
 ### MinGW
 
@@ -804,7 +672,7 @@ The install directory contains:
 - `simulator_event_panel.py`
 - `jyt_d/`
 - `romfs/`
-- On Windows, `SDL2.dll` and `libwinpthread-1.dll`
+- On Windows, `libwinpthread-1.dll`
 
 ## OS Event Panel
 
@@ -890,5 +758,4 @@ After a successful build, the run directory usually contains at least:
 - `floatair_simulator` / `floatair_simulator.exe`
 - `simulator_socket.conf`
 - `jyt_d/`
-- On Windows, `SDL2.dll`
 - On Windows, other runtime DLLs may also be present

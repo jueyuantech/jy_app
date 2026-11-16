@@ -81,9 +81,9 @@ SDK 包包含：
 
 | 目录 / 文件 | 用途 |
 | --- | --- |
-| `romfs/` | 固件只读资源，ARM 构建时会复制到构建目录 staging 后打包 |
-| `lfsc/` | LittleFS C 分区源目录，构建产物 `uimain` 会复制到这里参与打包 |
-| `lfsd/` | LittleFS D 分区源目录，会生成 `nuttx_lfsd.bin` |
+| `romfs/` | 仅保留 `system/font/font.ttf`，供字体 XIP 访问 |
+| `lfsc/` | `/jyt_c` 只读 ROMFS 源目录，包含 `uimain`、版本和 `system/` 图片、音频；打包时加入 `lfsd/` 默认配置及 `system/i18n/` 多语言资源，总容量上限 2 MiB |
+| `lfsd/` | 默认配置模板源目录，打入 `/jyt_c/lfsd`；`nuttx_lfsd.bin` 初始化为空的可写用户分区 |
 | `left_romfs/` | 默认左耳只读资源；当前包含 `kws/kws_firmware.bin` 和 `kws/kws_model.bin` |
 | `products/<product>/left_romfs/` | 可选的产品专属左耳资源；存在时替代根目录默认资源，不执行目录覆盖 |
 | `StringPool.csv` | 多语言字符串池输入，打包时生成 i18n JSON |
@@ -134,9 +134,9 @@ ARM 构建后，构建目录中会生成：
 | 产物 | 说明 |
 | --- | --- |
 | `uimain` | ARM app 层 ELF |
-| `nuttx_lfsc.bin` | LittleFS C 分区镜像 |
+| `nuttx_lfsc.bin` | `/jyt_c` 只读 ROMFS 镜像（App 与静态资源） |
 | `nuttx_lfsd.bin` | LittleFS D 分区镜像 |
-| `nuttx_romfs.bin` | ROMFS 镜像 |
+| `nuttx_romfs.bin` | 仅含系统 TTF 的 ROMFS 镜像 |
 | `nuttx_lromfs.bin` | 左耳 ROMFS 镜像，分区容量 1 MiB，包含所选 product 的 KWS 固件和模型 |
 | `generated/` | UI 编译、资源头文件和构建配置等生成内容 |
 
@@ -161,4 +161,4 @@ ARM 构建后，构建目录中会生成：
 | 平台目录 | `bes28/` | `simulator/FloatairSimulator/` |
 | 主要产物 | `uimain` 和文件系统镜像 | `floatair_simulator` / `floatair_simulator.exe` |
 | 图形输出 | 真实光机 | SDL2 窗口 |
-| 资源路径 | 打包进 LittleFS / ROMFS | 构建目录下 `jyt_d/` / `romfs/` |
+| 资源路径 | 打包进 LittleFS / ROMFS | 构建目录下 `jyt_c/` / `jyt_d/` / `romfs/` |

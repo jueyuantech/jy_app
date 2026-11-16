@@ -78,16 +78,48 @@ bool system_update_kws_state(JYT_ELF_MQ_MSG* msg);
  */
 bool system_handle_call_setup_event(JYT_ELF_MQ_MSG* msg);
 /**
- * @brief 处理电池状态消息并同步缓存、状态栏与上报。
- * @param[in] msg 电池状态消息。
+ * @brief 缓存主从分侧电池快照，两侧均已上报后选择较低电量侧同步状态栏及上报。
+ * @param[in] msg payload 为 SDK 定义的 jyt_battery_report_t。
  * @return `true` 表示处理成功，`false` 表示处理失败。
  */
 bool system_update_bat_status(JYT_ELF_MQ_MSG* msg);
+/**
+ * @brief 更新指定侧的 case 充电覆盖状态，进入时补报盒子电量，退出时清零充电并等待该侧新上报。
+ * @param[in] side 主侧或从侧。
+ * @param[in] in_case 该侧配件是否为 case。
+ * @return 无返回值。
+ */
+void system_update_battery_case_state(jyt_battery_side_t side, bool in_case);
+/**
+ * @brief 读取指定侧的电池快照，充电模式已按该侧 case 状态修正。
+ * @param[in] side 主侧或从侧。
+ * @param[out] state 返回该侧电量、充电模式及电压，失败时不修改。
+ * @return `true` 表示已取得快照，`false` 表示参数无效或该侧尚未上报。
+ */
+bool system_get_battery_state_by_side(jyt_battery_side_t side, union bat_state_t* state);
+/**
+ * @brief 缓存眼镜盒电量，仅在手机已连接且当前有眼镜盒附件时上报。
+ * @param[in] battery 眼镜盒电量百分比。
+ * @return `true` 表示已缓存且无需发送或发送成功，`false` 表示发送失败。
+ */
+bool system_update_case_battery(uint8_t battery);
 /**
  * @brief 获取当前缓存充电状态。
  * @return 返回当前充电状态值。
  */
 uint8_t system_get_charge_state(void);
+/**
+ * @brief 判断主从两侧是否都已收到有效电池快照，统一显示和协议查询的就绪条件。
+ * @return 双侧均已收到有效快照时返回 true，否则返回 false。
+ */
+bool system_is_battery_ready(void);
+/**
+ * @brief 获取手机协议的聚合和双侧充电状态，未就绪时不输出默认值。
+ * @param[out] state 最低电量侧是否充电，取值 0/1；失败时不修改。
+ * @param[out] state_by_side bit0 表示主侧充电，bit1 表示从侧充电；失败时不修改。
+ * @return 双侧数据就绪且参数有效返回 true，否则返回 false。
+ */
+bool system_get_charge_states(uint8_t* state, uint8_t* state_by_side);
 /**
  * @brief 获取当前缓存电量。
  * @return 返回当前电量百分比。
@@ -110,7 +142,7 @@ uint32_t system_runtime_state_get_btconn_event(void);
  */
 void system_set_btconn_state(bool connected);
 /**
- * @brief 亮屏后补做灭屏期间延迟的蓝牙状态 UI 同步。
+ * @brief 亮屏后清理已结束的电话弹窗，并补做灭屏期间延迟的蓝牙状态 UI 同步。
  * @return 无返回值。
  */
 void system_runtime_state_flush_pending_after_screen_on(void);

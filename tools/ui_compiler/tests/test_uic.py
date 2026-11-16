@@ -172,6 +172,23 @@ class UicTests(unittest.TestCase):
         self.assertIn("container_set_child_fill(title_obj, true, false);", source)
         self.assertIn("container_set_child_grow(title_obj, 1);", source)
 
+    def test_border_post_validates_and_generates_draw_order(self):
+        tmp_path = self.temp_dir()
+        ui = self.sample_ui()
+        ui_path = tmp_path / "border_post.ui.json"
+        for value in (True, False):
+            ui["root"]["border_post"] = value
+            self.write_json(ui_path, ui)
+            generated = uic.compile_ui_file(ui_path, tmp_path / "generated")
+            self.assertIn(
+                f"lv_obj_set_style_border_post(root_obj, {str(value).lower()}, LV_PART_MAIN);",
+                generated.source.read_text(encoding="utf-8"),
+            )
+        ui["root"]["border_post"] = 1
+        self.write_json(ui_path, ui)
+        with self.assertRaisesRegex(ValueError, "border_post must be true or false"):
+            uic.compile_ui_file(ui_path, tmp_path / "generated")
+
     def test_generates_label_font_config(self):
         tmp_path = self.temp_dir()
         ui = self.sample_ui()

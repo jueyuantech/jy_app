@@ -430,11 +430,16 @@ static int ai_find_latest_hint_index(void) {
 /**
  * @brief 记录 AI STT 文本更新对应的对话区域。
  * @param[in] area 文本区域，0 为回答、1 为提问。
- * @param[in] msg_type 消息类型，0 为正式文本。
+ * @param[in] msg_type 消息类型，0 为正式文本，2 为提示文本。
  * @return 无返回值。
  */
 void ai_stt_note_update(uint8_t area, uint8_t msg_type) {
-    if (msg_type == AI_STT_MSG_TYPE_HINT || area == AI_STT_AREA_QUESTION) {
+    if (msg_type == AI_STT_MSG_TYPE_HINT && area == AI_STT_AREA_ANSWER) {
+        if (ai_find_latest_hint_index() == 0) {
+            stt_buffer_remove_area(AI_STT_AREA_QUESTION);
+        }
+        s_last_update_role = AI_STT_UPDATE_ROLE_ANSWER;
+    } else if (msg_type == AI_STT_MSG_TYPE_HINT || area == AI_STT_AREA_QUESTION) {
         s_last_update_role = AI_STT_UPDATE_ROLE_QUESTION;
     } else if (area == AI_STT_AREA_ANSWER && msg_type == AI_STT_MSG_TYPE_STT) {
         s_last_update_role = AI_STT_UPDATE_ROLE_ANSWER;
@@ -562,6 +567,11 @@ void ai_stt_update(void) {
     }
     if (s_last_update_role == AI_STT_UPDATE_ROLE_QUESTION) {
         answer = NULL;
+    }
+    if (question_hint_index >= 0 &&
+        stt_buffer_get_area_by_index((size_t)question_hint_index) == AI_STT_AREA_ANSWER &&
+        (answer_index < 0 || question_hint_index < answer_index)) {
+        answer = stt_buffer_get_transcribe_by_index((size_t)question_hint_index);
     }
 
     if (question != NULL && question[0] != '\0') {

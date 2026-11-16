@@ -57,6 +57,11 @@ lv_result_t lv_thread_init(lv_thread_t * thread,
     return LV_RESULT_OK;
 }
 
+/**
+ * @brief 等待已收到退出请求的 LVGL 线程结束并释放句柄。
+ * @param[in,out] thread 线程句柄，关闭后清空。
+ * @return 成功返回 LV_RESULT_OK，等待或关闭失败返回 LV_RESULT_INVALID。
+ */
 lv_result_t lv_thread_delete(lv_thread_t * thread)
 {
     lv_result_t result = LV_RESULT_OK;
@@ -65,8 +70,9 @@ lv_result_t lv_thread_delete(lv_thread_t * thread)
         return LV_RESULT_INVALID;
     }
 
-    if(!TerminateThread(*thread, 0)) {
-        result = LV_RESULT_INVALID;
+    /* LVGL 已设置退出标记并唤醒绘图线程，等待其正常返回并释放运行库锁。 */
+    if(WaitForSingleObject(*thread, INFINITE) != WAIT_OBJECT_0) {
+        return LV_RESULT_INVALID;
     }
 
     if(!CloseHandle(*thread)) {

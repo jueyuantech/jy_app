@@ -673,7 +673,7 @@ static void speech_stt_update_row(speech_stt_row_t* row,
     lv_obj_t* row_obj = NULL;
     bool has_first = (first != NULL && first[0] != '\0');
     bool has_second = (second != NULL && second[0] != '\0');
-    bool bordered = profile != NULL && profile->bordered_stt;
+    bool bordered = speech_bordered_stt_enabled();
     const void* icon_src = NULL;
     lv_coord_t bubble_max_width = SPEECH_BORDERED_MAX_WIDTH;
     lv_base_dir_t bordered_dir = has_first ? first_dir : second_dir;
@@ -805,6 +805,9 @@ static void speech_stt_hide_all_rows(speech_view_context_t* ctx) {
 static lv_base_dir_t speech_text_base_dir(bool is_source) {
     uint8_t direction = is_source ? stt_config.sourceTextDirection : stt_config.targetTextDirection;
 
+    if (direction == TEXT_DIRECTION_AUTO) {
+        return LV_BASE_DIR_AUTO;
+    }
     return direction == TEXT_DIRECTION_RTL ? LV_BASE_DIR_RTL : LV_BASE_DIR_LTR;
 }
 
@@ -870,6 +873,8 @@ static void speech_stt_update_now(void) {
     if (ctx->page_mode != SPEECH_PAGE_MODE_STT) {
         speech_mode_go_stt(ctx);
     } else {
+        // clearView 或空缓冲刷新会隐藏滚动容器，收到正文后需恢复显示。
+        ui_widget_set_visible(UI_WIDGET(ctx->scroll), true);
         stt_view_update_audio_source(ctx->audio_source);
         stt_view_update_mic_direction(ctx->mic_direction);
     }
@@ -944,6 +949,21 @@ void speech_stt_update(void) {
     speech_stt_update_now();
 }
 
+void speech_on_bordered_stt_changed(void) {
+    speech_view_context_t* ctx = &s_speech_context;
+
+    if (ctx->scroll == NULL) {
+        return;
+    }
+    container_set_spacing(ctx->scroll,
+                          speech_bordered_stt_enabled()
+                              ? SPEECH_BORDERED_ROW_GAP
+                              : get_system_font_row_space());
+    if (ctx->page_mode == SPEECH_PAGE_MODE_STT) {
+        speech_stt_update();
+    }
+}
+
 void speech_stt_request_update(void) {
     stt_view_request_deferred_update(&s_speech_stt_deferred_update,
                                      "speech",
@@ -966,11 +986,14 @@ void speech_stt_clear(void) {
 static void speech_touch_event_handle(lv_event_t* event) {
     speech_view_context_t* ctx = (speech_view_context_t*)lv_event_get_user_data(event);
     lv_event_code_t code = lv_event_get_code(event);
+    const speech_app_profile_t* profile = NULL;
     bool can_scroll = false;
 
     if (ctx == NULL) {
         return;
     }
+
+    profile = speech_config(ctx);
 
     if (ctx->function_menu_visible) {
         switch (code) {
@@ -982,6 +1005,15 @@ static void speech_touch_event_handle(lv_event_t* event) {
         default:
             break;
         }
+    }
+
+    if (profile != NULL &&
+        profile->config_name != NULL &&
+        strcmp(profile->config_name, "translate") == 0 &&
+        ctx->speech_state == SPEECH_STATE_STARTED &&
+        (code == LV_EVENT_GESTURE_LEFT || code == LV_EVENT_GESTURE_RIGHT)) {
+        (void)system_report_touch_event(code);
+        return;
     }
 
     can_scroll = (ctx->page_mode == SPEECH_PAGE_MODE_STT &&
@@ -1095,9 +1127,7 @@ void speech_on_fontconfig_changed(void) {
     }
     speech_update_lang_hint();
     speech_stt_reset_row_labels(ctx);
-    if (ctx->page_mode == SPEECH_PAGE_MODE_STT) {
-        speech_stt_update();
-    }
+    speech_on_bordered_stt_changed();
 }
 
 static void speech_update_transcribe_lang_hint(speech_view_context_t* ctx) {
@@ -1580,7 +1610,7 @@ static void speech_page_create(lv_obj_t* root, const app_page_data_t* data) {
     scroll_obj = container_get_obj(ctx->scroll);
     container_set_child_grow(scroll_obj, 1);
     container_set_layout_vbox_spaced(ctx->scroll,
-                                     ctx->profile != NULL && ctx->profile->bordered_stt
+                                     speech_bordered_stt_enabled()
                                          ? SPEECH_BORDERED_ROW_GAP
                                          : get_system_font_row_space());
     container_set_align(ctx->scroll,

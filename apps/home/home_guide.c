@@ -26,7 +26,7 @@
 #include <string.h>
 
 #define HOME_GUIDE_NOTIFY_DURATION_MS 3000u ///< Home 教学成功通知显示时长。
-#define HOME_GUIDE_TEXT_WIDTH_PCT 92        ///< Home 教学文案宽度百分比。
+#define HOME_GUIDE_TEXT_WIDTH_PCT 100        ///< Home 教学文案宽度百分比。
 #define HOME_GUIDE_STEP2_IMG_CENTER_Y (-42) ///< Home 教学第 2 步手势图垂直居中偏移。
 #define HOME_GUIDE_STEP2_TEXT_CENTER_Y 32    ///< Home 教学第 2 步文案垂直居中偏移。
 #define HOME_GUIDE_STEP2_LANG_Y 28          ///< Home 教学第 2 步语言栏顶部偏移。
@@ -61,7 +61,7 @@ static home_guide_ops_t s_ops = {0};      ///< Home 教学异步事件使用的�
  * @param[in] title 通知标题。
  * @return 无返回值。
  */
-static void home_guide_show_message_notify(const char* title) {
+void home_guide_show_message_notify(const char* title) {
     notify_cfg_t cfg = notify_default_cfg();
 
     cfg.title = title;
@@ -264,7 +264,7 @@ static void home_guide_complete_step4(void) {
 
 /**
  * @brief 完成或跳过教学步骤 5，并进入真实 Home。
- * @param[in] skipped 是否为用户主动跳过。
+ * @param[in] skipped 是否通过双击跳过 AI 助手体验；两种情况均完成教学。
  * @param[in] ops Home 页面动作回调。
  * @return 无返回值。
  */
@@ -281,7 +281,7 @@ static void home_guide_finish_step5(bool skipped, const home_guide_ops_t* ops) {
         s_ops.reset_selection();
     }
     home_guide_show_message_notify(skipped
-                                   ? app_get_str("BOOT_GUIDE_NOTIFY_SKIPPED")
+                                   ? app_get_str("BOOT_GUIDE_NOTIFY_AI_SKIPPED")
                                    : app_get_str("BOOT_GUIDE_NOTIFY_WAKE_DONE"));
     if (!app_router_call_home()) {
         floatair_warn("route after userguide finish failed");
@@ -370,7 +370,6 @@ void home_guide_create_controls(lv_obj_t* parent,
     guide_title_cfg.h = LV_SIZE_CONTENT;
     guide_title_cfg.align = LABEL_ALIGN_CENTER;
     guide_title_cfg.overflow = LABEL_OVERFLOW_WRAP;
-    guide_title_cfg.font.weight = get_system_font_size();
     guide_title_cfg.text = app_get_str("BOOT_GUIDE_STEP1_TITLE");
     s_guide_title_widget = label_create(parent, &guide_title_cfg);
     floatair_assert(s_guide_title_widget != NULL, "guide_step1_title widget NULL");
@@ -487,9 +486,6 @@ void home_guide_layout_update(void) {
     bool show_step4 = guide_runtime_is_home_step4_wait_sleep();
     bool show_step5 = guide_runtime_is_home_step5_wait_assistant();
     bool show_guide = show_step1 || show_step3_back || show_step3_forward || show_step4 || show_step5;
-    app_font_info_t guide_title_font = {0};
-
-    guide_title_font.weight = get_system_font_size();
 
     home_guide_step2_set_home_float_hidden(show_step2);
     if (s_step2_mask != NULL && lv_obj_is_valid(s_step2_mask)) {
@@ -523,8 +519,7 @@ void home_guide_layout_update(void) {
             lv_obj_clear_flag(s_guide_title, LV_OBJ_FLAG_HIDDEN);
             lv_obj_set_width(s_guide_title, LV_PCT(HOME_GUIDE_TEXT_WIDTH_PCT));
             lv_obj_set_height(s_guide_title, LV_SIZE_CONTENT);
-            label_set_auto_fit_width(s_guide_title_widget, false);
-            label_set_font_info(s_guide_title_widget, &guide_title_font);
+            label_set_font_info(s_guide_title_widget, NULL);
             label_set_overflow(s_guide_title_widget, LABEL_OVERFLOW_WRAP);
             if (show_step1) {
                 label_set_text(s_guide_title_widget, app_get_str("BOOT_GUIDE_STEP1_BODY"));
@@ -534,7 +529,6 @@ void home_guide_layout_update(void) {
                 label_set_text(s_guide_title_widget, app_get_str("BOOT_GUIDE_STEP3_BACK_BODY"));
             } else if (show_step4) {
                 label_set_text(s_guide_title_widget, app_get_str("BOOT_GUIDE_STEP4_BODY"));
-                label_set_auto_fit_width(s_guide_title_widget, true);
             } else {
                 label_set_text(s_guide_title_widget, app_get_str("BOOT_GUIDE_STEP5_BODY"));
             }

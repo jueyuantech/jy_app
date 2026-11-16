@@ -186,7 +186,7 @@ Unknown `biz` or unknown `cmd` returns `ErrCmdErr`.
 
 | cmd | Request `data` | Success ACK `data` |
 | --- | --- | --- |
-| `getAll` | `{}` | `{ "manufacturer": string, "model": string, "edition": string, "sn": string, "ssn": string, "btMac": string, "btName": string, "bleMac": string, "bleName": string, "fwVer": string, "bthVer": string, "protocolVer": string }` |
+| `getAll` | `{}` | `{ "manufacturer": string, "model": string, "edition": string, "sn": string, "ssn": string, "btMac": string, "btName": string, "bleMac": string, "bleName": string, "fwVer": string, "fontMd5": string, "bthVer": string, "protocolVer": string }` |
 | `getManufacturer` | `{}` | `{ "manufacturer": string }` |
 | `getModel` | `{}` | `{ "model": string }` |
 | `getEdition` | `{}` | `{ "edition": string }` |
@@ -196,6 +196,7 @@ Unknown `biz` or unknown `cmd` returns `ErrCmdErr`.
 | `getBleMac` | `{}` | `{ "bleMac": string }` |
 | `getBleName` | `{}` | `{ "bleName": string }` |
 | `getFwVer` | `{}` | `{ "fwVer": string }` |
+| `getFontMd5` | `{}` | `{ "fontMd5": string }`; 32 lowercase hexadecimal characters for the current ROMFS `font.ttf` |
 | `getBthVer` | `{}` | `{ "bthVer": string }` |
 | `getProtocolVer` | `{}` | `{ "protocolVer": string }` |
 
@@ -254,12 +255,21 @@ The Jytek home protocol units are `prompter(5)`, `translate(3)`, `transcribe(2)`
 
 ### 5.3 SystemStatus
 
+`chargeState` is the aggregate status of the lower-battery side (slave wins ties): 0=not charging, 1=charging.
+The new `chargeStateBySide` field is a two-side bitmask: 0=neither side, 1=master only (bit0), 2=slave only (bit1), 3=both sides.
+`getAll`, `getChargeState`, and `SystemInd.onChargeStateChanged` all contain both fields; only an effective OS `charger_mode` of 1 counts as charging.
+A side attached to a case is treated as charging. Leaving the case resets that side to not charging until its next battery report.
+Before both battery snapshots are available, `getAll`, `getChargeState`, and `getBattery` return `ErrNotReady` instead of a default charging state or a default 0% battery value.
+While disconnected, only the cache is updated. Each connection sends both latest fields; a change to either triggers a full report.
+This includes a change of the lower-battery side that changes the aggregate status without changing the bitmask.
+Case battery reports require a connected phone and a case attachment. If a case is detected after its battery value has been cached, the cached value is sent immediately; without a cached value, nothing is sent.
+
 | cmd | Request `data` | Success ACK `data` |
 | --- | --- | --- |
-| `getAll` | `{}` | `{ "sysState": uint8, "chargeState": uint8, "battery": uint8 }` |
+| `getAll` | `{}` | `{ "sysState": uint8, "chargeState": uint8, "chargeStateBySide": uint8, "battery": uint8 }` |
 | `getSysState` | `{}` | `{ "sysState": uint8 }` |
 | `setSysState` | `{ "sysState": uint8 }` | `{}` |
-| `getChargeState` | `{}` | `{ "chargeState": uint8 }` |
+| `getChargeState` | `{}` | `{ "chargeState": uint8, "chargeStateBySide": uint8 }` |
 | `getBattery` | `{}` | `{ "battery": uint8 }` |
 | `getAttachmentState` | `{}` | `{ "attachments": [{ "attachmentSide": uint8, "attachmentType": uint8 }] }` |
 | `getRomUsage` | `{}` | `{ "total": uint32, "used": uint32, "remaining": uint32 }` |
@@ -306,6 +316,8 @@ The Jytek home protocol units are `prompter(5)`, `translate(3)`, `transcribe(2)`
 | `0x06` | Swipe left |
 | `0x07` | Swipe right |
 
+The Home page, including its onboarding steps, reports left and right swipes through `SystemInd.onTouchEvent` as `event=6` and `event=7`. The existing local navigation and onboarding behavior remains unchanged.
+
 `getScreenOnScope` returns the current in-memory temporary screen-on scope. `setScreenOnScope.scope` changes only that in-memory state and does not change the persisted inactivity timeout configuration:
 
 | Value | Description |
@@ -317,6 +329,8 @@ The Jytek home protocol units are `prompter(5)`, `translate(3)`, `transcribe(2)`
 Assistant text fields are defined in [6.6 Assistant Popup](#66-assistant-popup).
 
 `openGuide` resets `SystemConfig.userguide` to `"false"` and routes to the Guide app. `closeGuide` resets guide runtime state, writes `SystemConfig.userguide` to `"true"`, returns to Home, and reports `onViewChangedByName` with `viewName="home"`. Phone-triggered `openGuide` and `closeGuide` do not report `onGuideOpen` or `onGuideClose`. Device-side guide entry reports `onGuideOpen`; completing or skipping the guide on device reports `onGuideClose` and then `onViewChangedByName` with `viewName="home"`. Guide internal transitions do not report `onViewChangedByName`.
+
+After phone-triggered `closeGuide` returns to Home, it shows the tutorial-skipped notification. Double-tapping the touchpad in Home tutorial step5 only skips the AI assistant experience and shows the AI-assistant-skipped/tutorial-completed notification. Both paths set `userguide` to `"true"`; event reporting remains dependent on the trigger source.
 
 ### 5.5 SystemInd
 
@@ -334,18 +348,19 @@ Device report direction:
 
 | cmd | type | data |
 | --- | --- | --- |
-| `onTouchEvent` | `DATA_UNRELIABLE` | `{ "event": uint8 }` |
-| `onViewChangedByName` | `DATA_UNRELIABLE` | `{ "viewName": string }` |
+| `onTouchEvent` | `DATA_RELIABLE` | `{ "event": uint8 }` |
+| `onViewChangedByName` | `DATA_RELIABLE` | `{ "viewName": string }` |
 | `onKeywordSpotting` | `DATA_RELIABLE` | `{}` |
-| `onAssistantOpen` | `DATA_UNRELIABLE` | `{}` |
-| `onAssistantClose` | `DATA_UNRELIABLE` | `{}` |
-| `onGuideOpen` | `DATA_UNRELIABLE` | `{}` |
-| `onGuideClose` | `DATA_UNRELIABLE` | `{}` |
-| `onSysStateChanged` | `DATA_UNRELIABLE` | `{ "sysState": uint8, "trigger": string }` |
-| `onChargeStateChanged` | `DATA_UNRELIABLE` | `{ "chargeState": uint8 }` |
-| `onBatteryChanged` | `DATA_UNRELIABLE` | `{ "battery": uint32 }` |
-| `onBrightnessChanged` | `DATA_UNRELIABLE` | `{ "brightness": uint8 }` |
-| `onAttachmentTypeChanged` | `DATA_UNRELIABLE` | `{ "attachmentType": uint8, "attachmentSide": uint8 }` |
+| `onAssistantOpen` | `DATA_RELIABLE` | `{}` |
+| `onAssistantClose` | `DATA_RELIABLE` | `{}` |
+| `onGuideOpen` | `DATA_RELIABLE` | `{}` |
+| `onGuideClose` | `DATA_RELIABLE` | `{}` |
+| `onSysStateChanged` | `DATA_RELIABLE` | `{ "sysState": uint8, "trigger": string }` |
+| `onChargeStateChanged` | `DATA_RELIABLE` | `{ "chargeState": uint8, "chargeStateBySide": uint8 }` |
+| `onBatteryChanged` | `DATA_RELIABLE` | `{ "battery": uint32 }` |
+| `onCaseBatteryChanged` | `DATA_RELIABLE` | `{ "battery": uint8 }` |
+| `onBrightnessChanged` | `DATA_RELIABLE` | `{ "brightness": uint8 }` |
+| `onAttachmentTypeChanged` | `DATA_RELIABLE` | `{ "attachmentType": uint8, "attachmentSide": uint8 }` |
 
 `onAttachmentTypeChanged.attachmentType`:
 
@@ -669,6 +684,16 @@ map(1) {
 | `1` | Show source text and translated text |
 | `2` | Show source text only |
 
+#### `setBorderedStt`
+
+```msgpack
+map(1) {
+  "borderedStt": uint8(1)
+}
+```
+
+`0` uses the unbordered text layout; `1` shows bordered STT bubbles aligned left or right by each message's `area`. Only `0` and `1` are accepted; any other value or a missing field returns `ErrBadParam`. The command immediately refreshes existing text on the current Speech page and changes only in-memory state for this session. It does not write the app's `config.json`; the next app launch reloads `borderedstt` from that file.
+
 #### `setMaxLine`
 
 ```msgpack
@@ -789,6 +814,7 @@ map(1) {
 | `setTextMode` | `{ "textMode": uint8 }` | `{}` |
 | `setAudioTrackState` | `{ "audioTrack": uint8 }` or `{ "data": { "audioTrack": uint8 } }` | `{}` |
 | `setTransMode` | `{ "transMode": uint8 }` | `{}` |
+| `setBorderedStt` | `{ "borderedStt": uint8(0/1) }` | `{}` |
 | `setMaxLine` | `{ "maxLine": uint32 }` | `{}` |
 | `setAudioSourceIndicator` | `{ "audioSourceIndicator": uint8 }` | `{}` |
 | `setMicDirectional` | `{ "micDirectional": uint8 }` | `{}` |
@@ -810,6 +836,7 @@ Every Speech entry supports both `mode=0` single-language hints and `mode=1` dua
 | `setTextMode` | `{ "textMode": uint8 }` | `{}` |
 | `setAudioTrackState` | `{ "audioTrack": uint8 }` or `{ "data": { "audioTrack": uint8 } }` | `{}` |
 | `setTransMode` | `{ "transMode": uint8 }` | `{}` |
+| `setBorderedStt` | `{ "borderedStt": uint8(0/1) }` | `{}` |
 | `setMaxLine` | `{ "maxLine": uint32 }` | `{}` |
 | `setAudioSourceIndicator` | `{ "audioSourceIndicator": uint8 }` | `{}` |
 | `setMicDirectional` | `{ "micDirectional": uint8 }` | `{}` |

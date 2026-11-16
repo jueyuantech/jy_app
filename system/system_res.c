@@ -16,7 +16,9 @@
 #include "lvgl/src/draw/lv_image_decoder.h"
 #include "lvgl.h"
 
-#if defined(CONFIG_RPMSG_TTF_CLIENT)
+#if PRODUCT_FONT_TYPE_BITMAP
+#include "bitmap_font.h"
+#elif defined(CONFIG_RPMSG_TTF_CLIENT) && CONFIG_RPMSG_TTF_CLIENT
 #include "rpmsgttf_client.h"
 #else
 #include "lvgl/src/libs/tiny_ttf/lv_tiny_ttf.h"
@@ -49,22 +51,7 @@ static const char s_empty_text[] = "";
 #define SYSTEM_FONT_TINY_TTF_CACHE_CNT 1024
 
 static system_font_entry_t s_font_registry[] = {
-    {10, NULL},
-    {12, NULL},
-    {14, NULL},
-    {15, NULL},
-    {18, NULL},
-    {20, NULL},
-    {23, NULL},
-    {24, NULL},
-    {26, NULL},
-    {30, NULL},
-    {35, NULL},
-    {36, NULL},
-    {38, NULL},
-    {50, NULL},
-    {55, NULL},
-    {60, NULL},
+    PRODUCT_FONT_REGISTRY_ENTRIES
 };
 
 /**
@@ -152,14 +139,21 @@ bool app_font_wordspace_valid(int32_t word_space) {
  */
 lv_font_t* app_font_create(int32_t font_size, size_t cache_cnt) {
     lv_font_t* font = NULL;
+#if PRODUCT_FONT_TYPE_BITMAP
+    /* 单一基准字号点阵字库：所有字号共用同一个 font.bin，运行时按目标字号缩放渲染。 */
     const char* font_file = floatair_fs_get_system_font_file();
-
     if (font_file == NULL || font_file[0] == '\0') {
         floatair_err("font file is empty size[%" PRId32 "]", font_size);
         return NULL;
     }
-
-#if defined(CONFIG_RPMSG_TTF_CLIENT)
+    font = bitmap_font_create_file(font_file, font_size);
+#else
+    const char* font_file = floatair_fs_get_system_font_file();
+    if (font_file == NULL || font_file[0] == '\0') {
+        floatair_err("font file is empty size[%" PRId32 "]", font_size);
+        return NULL;
+    }
+#if defined(CONFIG_RPMSG_TTF_CLIENT) && CONFIG_RPMSG_TTF_CLIENT
     font = rpmsgttf_create_font(font_file,
                                 font_size,
                                 LV_FONT_KERNING_NORMAL,
@@ -169,6 +163,7 @@ lv_font_t* app_font_create(int32_t font_size, size_t cache_cnt) {
                                       font_size,
                                       LV_FONT_KERNING_NORMAL,
                                       cache_cnt);
+#endif
 #endif
     if (font == NULL) {
         floatair_err("font create failed file[%s] size[%" PRId32 "]", font_file, font_size);
@@ -188,7 +183,9 @@ lv_font_t* app_font_create(int32_t font_size, size_t cache_cnt) {
  */
 void app_font_destroy(lv_font_t* font) {
     if (font != NULL) {
-#if defined(CONFIG_RPMSG_TTF_CLIENT)
+#if PRODUCT_FONT_TYPE_BITMAP
+        bitmap_font_destroy(font);
+#elif defined(CONFIG_RPMSG_TTF_CLIENT) && CONFIG_RPMSG_TTF_CLIENT
         rpmsgttf_destroy_font(font);
 #else
         lv_tiny_ttf_destroy(font);

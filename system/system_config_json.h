@@ -1,6 +1,6 @@
 /**
  * @file system_config_json.h
- * @brief 基于 ROMFS 默认值与 LFSD 稀疏覆盖的配置接口。
+ * @brief 基于 JYTC 默认值与 LFSD 稀疏覆盖的配置接口。
  * @author jytek
  * @version 1.0.0
  * @date 2026-01-31
@@ -92,14 +92,14 @@ bool system_config_get_bool(const char* config_file, const char* key);
 bool system_config_set_bool(const char* config_file, const char* key, bool value);
 
 /**
- * @brief 加载 ROMFS 完整默认配置，并使用同路径 LFSD 稀疏配置覆盖。
+ * @brief 加载 JYTC 完整默认配置，并使用同路径 LFSD 稀疏配置覆盖。
  * @param[in] config_file LFSD 配置文件路径。
  * @return 合并后的完整配置，使用后必须调用 `cJSON_Delete()`。
  */
 cJSON* system_config_load_json(const char* config_file);
 
 /**
- * @brief 将完整有效配置与 ROMFS 默认配置比较，并在 LFSD 原子保存稀疏差异。
+ * @brief 将完整有效配置与 JYTC 默认配置比较，并在 LFSD 原子保存稀疏差异。
  * @param[in] config_file LFSD 配置文件路径。
  * @param[in] config 完整有效配置。
  * @return 保存成功返回 0，否则返回非 0。

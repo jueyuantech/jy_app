@@ -12,6 +12,22 @@ set(GENERATED_UI_DIR "${CMAKE_BINARY_DIR}/generated/ui")
 set(PRODUCT_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated/product")
 set(PRODUCT_MANIFEST "${PROJECT_ROOT}/products/${JY_APP_PRODUCT}/product.json")
 
+if(CONFIG_LV_USE_BIDI OR CONFIG_LV_USE_HARFBUZZ_SHAPER)
+    set(SHEENBIDI_DIR "${THIRDPARTY_DIR}/sheenbidi")
+    set(SHEENBIDI_INCLUDE_DIRS
+        "${SHEENBIDI_DIR}/Headers"
+        "${SHEENBIDI_DIR}/Source"
+    )
+    set(SHEENBIDI_SOURCES
+        "${SHEENBIDI_DIR}/Source/SheenBidi.c"
+    )
+endif()
+
+if(CONFIG_LV_USE_HARFBUZZ_SHAPER AND NOT JY_APP_TARGET_PLATFORM STREQUAL "arm")
+    include(HarfBuzzSources)
+    set(HARFBUZZ_BRIDGE_SOURCE "${LVGL_DIR}/src/misc/lv_text_shape_hb.cc")
+endif()
+
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 if(NOT EXISTS "${PRODUCT_MANIFEST}")
@@ -39,6 +55,24 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 )
 include("${PRODUCT_GENERATED_DIR}/product_app_sources.cmake")
 
+# 从 product.json 读取字体类型配置 (font_type / bitmap_font_size / bitmap_bpp)
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}" -c
+            "import json,sys;d=json.load(open(sys.argv[1]));print(d.get('font_type','freetype'));print(d.get('bitmap_font_size',32));print(d.get('bitmap_bpp',8))"
+            "${PRODUCT_MANIFEST}"
+    OUTPUT_VARIABLE _font_cfg_out
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _font_cfg_result
+)
+if(NOT _font_cfg_result EQUAL 0)
+    message(FATAL_ERROR "Failed to read font_type from ${PRODUCT_MANIFEST}")
+endif()
+string(REPLACE "\n" ";" _font_cfg_list "${_font_cfg_out}")
+list(GET _font_cfg_list 0 JY_APP_FONT_TYPE)
+list(GET _font_cfg_list 1 JY_APP_BITMAP_FONT_SIZE)
+list(GET _font_cfg_list 2 JY_APP_BITMAP_BPP)
+message(STATUS "Font configuration: type=${JY_APP_FONT_TYPE} size=${JY_APP_BITMAP_FONT_SIZE} bpp=${JY_APP_BITMAP_BPP}")
+
 file(GLOB APP_SOURCES CONFIGURE_DEPENDS "${APPS_DIR}/*.c")
 set(UI_JSON_SOURCES)
 foreach(_app_common_module IN LISTS PRODUCT_APP_COMMON_MODULES)
@@ -61,12 +95,11 @@ foreach(_app_module IN LISTS PRODUCT_APP_MODULES)
     list(APPEND APP_SOURCES ${_app_module_sources})
     list(APPEND UI_JSON_SOURCES ${_app_module_ui_sources})
 endforeach()
+
 file(GLOB_RECURSE SYSTEM_SOURCES CONFIGURE_DEPENDS "${SYSTEM_DIR}/*.c")
 file(GLOB_RECURSE COMMON_SOURCES CONFIGURE_DEPENDS "${COMMON_DIR}/*.c")
-
 file(GLOB_RECURSE LVGL_SOURCES "${LVGL_DIR}/src/*.c")
 file(GLOB_RECURSE SYSTEM_UI_JSON_SOURCES CONFIGURE_DEPENDS "${SYSTEM_DIR}/*.ui.json")
-
 list(APPEND UI_JSON_SOURCES ${SYSTEM_UI_JSON_SOURCES})
 
 set(RES_JSON_SOURCES "${PROJECT_ROOT}/ui.res.json")
@@ -127,7 +160,6 @@ set(MPACK_SOURCES
 )
 
 set(TARGET_SOURCES
-    ${LVGL_SOURCES}
     ${CJSON_SOURCES}
     ${I18N_SOURCES}
     ${MPACK_SOURCES}
@@ -153,4 +185,6 @@ set(COMMON_INCLUDE_DIRS
     "${CJSON_DIR}"
     "${I18N_DIR}"
     "${MPACK_DIR}"
+    ${SHEENBIDI_INCLUDE_DIRS}
+    ${HARFBUZZ_INCLUDE_DIRS}
 )

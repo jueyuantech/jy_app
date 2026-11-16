@@ -1,4 +1,7 @@
 {
+    "manufacture": "JYTek",
+    "model": "H6",
+    "edition": "jytek",
     "fontinfo": {
         "weight": 26,
         "wordSpace": 0,
@@ -17,8 +20,8 @@
     "touchpadEnabled": true,
     "notificationEnabled": true,
     "keywordSpottingEnabled": true,
-    "kwsHitValue": [4, 5],
-    "idleDetectionEnabled": true,
+    "kwsHitValue": [5],
+    "idleDetectionEnabled": false,
     "displayMode": 0,
     "lcd_sleep_timeout": 30,
     "deep_sleep_timeout": 60,
